@@ -22,6 +22,8 @@ FastAPI + PostgreSQL complaint-intelligence API for **NimbusCarta**, a fictional
 
 ## Setup
 
+> **How does it work?** [documentation/APPLICATION_FLOW.md](documentation/APPLICATION_FLOW.md) walks one complaint through every step, from submission to closure.
+>
 > **Installing without Docker?** Follow [documentation/INSTALLATION.md](documentation/INSTALLATION.md). It lists every command for a fresh machine: PostgreSQL, Python, Node, configuration, running and testing.
 
 ```powershell
