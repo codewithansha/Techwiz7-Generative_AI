@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 
 from database.models import Complaint, GenAIRun
-from genai_pipeline.client import GenAIError, generate_structured
+from genai_pipeline.client import GenAIError, generate_structured, provider_chain
 from knowledge_base.retrieval import retrieve_policy_chunks
 from prompt_templates.loader import PROMPT_NAME, PROMPT_VERSION, render_prompts
 from security.prompt_injection import wrap_untrusted_complaint
@@ -51,9 +51,10 @@ def run_genai_pipeline(
             error_message="",
         )
     except GenAIError as exc:
+        attempted = provider_chain()
         run = GenAIRun(
             complaint_id=complaint.id,
-            provider="none",
+            provider=",".join(attempted) or "unconfigured",
             model="",
             prompt_name=PROMPT_NAME,
             prompt_version=PROMPT_VERSION,

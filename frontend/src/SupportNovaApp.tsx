@@ -311,7 +311,7 @@ function List({ title, items }: { title: string; items: string[] }) { return <di
 function genaiNote(complaint: Complaint): string | undefined {
   const meta = complaint.genai_meta
   if (!meta) return 'GenAI analysis has not run for this complaint yet. The Python ground truth is authoritative.'
-  if (meta.available === false) return `GenAI analysis failed${meta.provider ? ` on ${meta.provider}` : ''}: ${meta.error || 'no structured output was returned'}. The Python ground truth is authoritative.`
+  if (meta.available === false) return `GenAI analysis is unavailable${meta.provider && meta.provider !== 'unconfigured' ? ` (tried: ${meta.provider.split(',').join(', ')})` : ' — no provider key is configured'}. ${meta.error || 'No structured output was returned.'} The Python ground truth is authoritative.`
   if (meta.stale) return `Showing the last successful ${meta.provider || 'GenAI'} output. The most recent attempt failed${meta.error ? `: ${meta.error}` : ''}.`
   return undefined
 }

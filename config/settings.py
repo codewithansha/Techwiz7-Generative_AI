@@ -5,6 +5,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 
+# Providers that expose a synchronous text-completion API usable by Pipeline 1.
+CHAT_PROVIDERS = ("openai", "grok", "gemini", "anthropic")
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -22,19 +25,20 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:5173,http://localhost:3000"
 
     genai_provider: str = "openai"
-    genai_fallback_providers: str = "grok,cursor"
+    # Cursor is intentionally absent: api.cursor.com serves the Cloud Agents API and has no
+    # chat-completions endpoint, so it cannot answer complaint-analysis prompts.
+    genai_fallback_providers: str = "grok,gemini,anthropic"
+    # When true, any provider holding a key is appended to the chain as a last resort.
+    genai_auto_fallback: bool = True
     openai_api_key: str = ""
     openai_model: str = "gpt-4o-mini"
     gemini_api_key: str = ""
-    gemini_model: str = "gemini-2.0-flash"
+    gemini_model: str = "gemini-3.6-flash"
     anthropic_api_key: str = ""
     anthropic_model: str = "claude-sonnet-4-20250514"
     grok_api_key: str = ""
     xai_api_key: str = ""
     grok_model: str = "grok-4-fast"
-    cursor_api_key: str = ""
-    cursor_api_base_url: str = "https://api.cursor.com/v1"
-    cursor_model: str = "composer-2.5"
     genai_max_retries: int = 3
     genai_timeout_seconds: int = 18
 
@@ -57,7 +61,7 @@ class Settings(BaseSettings):
 
     def provider_has_key(self, provider: str) -> bool:
         name = provider.lower()
-        if name in {"openai"}:
+        if name == "openai":
             return bool(self.openai_api_key)
         if name == "gemini":
             return bool(self.gemini_api_key)
@@ -65,15 +69,10 @@ class Settings(BaseSettings):
             return bool(self.anthropic_api_key)
         if name in {"grok", "xai"}:
             return bool(self.grok_key)
-        if name == "cursor":
-            return bool(self.cursor_api_key)
         return False
 
     def has_any_genai_key(self) -> bool:
-        return any(
-            self.provider_has_key(name)
-            for name in {self.genai_provider, *self.genai_fallback_list}
-        )
+        return any(self.provider_has_key(name) for name in CHAT_PROVIDERS)
 
     @property
     def cors_origin_list(self) -> list[str]:

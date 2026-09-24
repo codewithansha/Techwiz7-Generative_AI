@@ -1,23 +1,31 @@
 from __future__ import annotations
 
-import base64
+import re
 import time
 from typing import Any
 
 import httpx
 
-from config.settings import Settings, get_settings
+from config.settings import CHAT_PROVIDERS, Settings, get_settings
 from python_validation.schema import extract_json
+
+# Retrying these buys nothing: the key, route, or permission is wrong until a human fixes it.
+PERMANENT_STATUS = {400, 401, 403, 404, 405}
 
 
 class GenAIError(RuntimeError):
-    pass
+    def __init__(self, message: str, *, permanent: bool = False) -> None:
+        super().__init__(message)
+        self.permanent = permanent
 
 
 def provider_chain(settings: Settings | None = None) -> list[str]:
     settings = settings or get_settings()
+    names = [settings.genai_provider.lower(), *settings.genai_fallback_list]
+    if getattr(settings, "genai_auto_fallback", True):
+        names.extend(CHAT_PROVIDERS)
     ordered: list[str] = []
-    for name in [settings.genai_provider.lower(), *settings.genai_fallback_list]:
+    for name in names:
         alias = "grok" if name == "xai" else name
         if alias not in ordered and settings.provider_has_key(alias):
             ordered.append(alias)
@@ -30,8 +38,9 @@ def generate_structured(system_prompt: str, user_prompt: str) -> dict[str, Any]:
     if not chain:
         raise GenAIError("No GenAI provider API key is configured.")
 
-    last_error = None
+    errors: list[str] = []
     for provider in chain:
+        provider_error = "unknown error"
         for attempt in range(1, settings.genai_max_retries + 1):
             started = time.perf_counter()
             try:
@@ -46,11 +55,18 @@ def generate_structured(system_prompt: str, user_prompt: str) -> dict[str, Any]:
                     "model": _model_name(provider, settings),
                     "error": "",
                     "fallback_used": provider != chain[0],
+                    "providers_tried": chain[: chain.index(provider) + 1],
                 }
-            except Exception as exc:  # noqa: BLE001 — retry current provider, then fall back
-                last_error = f"{provider}: {exc}"
+            except GenAIError as exc:
+                provider_error = str(exc)
+                if exc.permanent:
+                    break
+            except Exception as exc:  # noqa: BLE001 — retry this provider, then fall back
+                provider_error = str(exc)
+            if attempt < settings.genai_max_retries:
                 time.sleep(min(1.5 * attempt, 3))
-    raise GenAIError(last_error or "GenAI generation failed")
+        errors.append(f"{provider}: {provider_error}")
+    raise GenAIError("All GenAI providers failed — " + " | ".join(errors))
 
 
 def _model_name(provider: str, settings: Settings) -> str:
@@ -59,7 +75,6 @@ def _model_name(provider: str, settings: Settings) -> str:
         "anthropic": settings.anthropic_model,
         "grok": settings.grok_model,
         "xai": settings.grok_model,
-        "cursor": settings.cursor_model,
         "openai": settings.openai_model,
     }.get(provider, settings.openai_model)
 
@@ -71,8 +86,6 @@ def _dispatch(provider: str, system_prompt: str, user_prompt: str, settings: Set
         return _anthropic(system_prompt, user_prompt, settings)
     if provider in {"grok", "xai"}:
         return _grok(system_prompt, user_prompt, settings)
-    if provider == "cursor":
-        return _cursor(system_prompt, user_prompt, settings)
     return _openai(system_prompt, user_prompt, settings)
 
 
@@ -104,7 +117,9 @@ def _openai_compatible(
         body["response_format"] = {"type": "json_object"}
     with httpx.Client(timeout=timeout) as client:
         response = client.post(url, headers=headers, json=body)
-        if response.status_code >= 400 and json_mode:
+        # Only drop JSON mode when the model actually rejected response_format; retrying
+        # blindly on every 4xx hid the real cause (bad key, missing route) behind a second failure.
+        if json_mode and response.status_code == 400 and "response_format" in response.text:
             return _openai_compatible(
                 url=url,
                 api_key=api_key,
@@ -116,7 +131,7 @@ def _openai_compatible(
                 json_mode=False,
             )
         if response.status_code >= 400:
-            raise GenAIError(_http_error(response))
+            raise GenAIError(_http_error(response), permanent=_is_permanent(response))
         data = response.json()
         content = data["choices"][0]["message"]["content"]
         if isinstance(content, list):
@@ -125,8 +140,20 @@ def _openai_compatible(
 
 
 def _http_error(response: httpx.Response) -> str:
-    detail = response.text[:500]
-    return f"HTTP {response.status_code} {response.request.url}: {detail}"
+    # The URL can carry the API key as a query param; this message is persisted on the
+    # GenAIRun row and shown to reviewers, so it must never leak a credential.
+    url = re.sub(r"(key|api_key|access_token)=[^&]+", r"\1=REDACTED", str(response.request.url))
+    return f"HTTP {response.status_code} {url}: {response.text[:500]}"
+
+
+def _is_permanent(response: httpx.Response) -> bool:
+    if response.status_code in PERMANENT_STATUS:
+        return True
+    # A 429 is normally worth retrying, but an exhausted balance will not refill mid-run.
+    return response.status_code == 429 and any(
+        marker in response.text.lower()
+        for marker in ("insufficient_quota", "credit_balance_exhausted", "billing", "no credits")
+    )
 
 
 def _openai(system_prompt: str, user_prompt: str, settings: Settings) -> str:
@@ -156,49 +183,21 @@ def _grok(system_prompt: str, user_prompt: str, settings: Settings) -> str:
     )
 
 
-def _cursor(system_prompt: str, user_prompt: str, settings: Settings) -> str:
-    if not settings.cursor_api_key:
-        raise GenAIError("CURSOR_API_KEY is not configured.")
-    base = settings.cursor_api_base_url.rstrip("/")
-    url = f"{base}/chat/completions"
-    try:
-        return _openai_compatible(
-            url=url,
-            api_key=settings.cursor_api_key,
-            model=settings.cursor_model,
-            system_prompt=system_prompt,
-            user_prompt=user_prompt,
-            timeout=settings.genai_timeout_seconds,
-        )
-    except GenAIError:
-        basic = base64.b64encode(f"{settings.cursor_api_key}:".encode()).decode()
-        return _openai_compatible(
-            url=url,
-            api_key=settings.cursor_api_key,
-            model=settings.cursor_model,
-            system_prompt=system_prompt,
-            user_prompt=user_prompt,
-            timeout=settings.genai_timeout_seconds,
-            extra_headers={"Authorization": f"Basic {basic}"},
-        )
-
-
 def _gemini(system_prompt: str, user_prompt: str, settings: Settings) -> str:
     if not settings.gemini_api_key:
         raise GenAIError("GEMINI_API_KEY is not configured.")
-    url = (
-        "https://generativelanguage.googleapis.com/v1beta/models/"
-        f"{settings.gemini_model}:generateContent?key={settings.gemini_api_key}"
-    )
+    # Key travels as a header, not a query param, so it cannot leak through error text or logs.
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{settings.gemini_model}:generateContent"
+    headers = {"x-goog-api-key": settings.gemini_api_key, "Content-Type": "application/json"}
     body = {
         "systemInstruction": {"parts": [{"text": system_prompt}]},
         "contents": [{"role": "user", "parts": [{"text": user_prompt}]}],
         "generationConfig": {"temperature": 0.2, "responseMimeType": "application/json"},
     }
     with httpx.Client(timeout=settings.genai_timeout_seconds) as client:
-        response = client.post(url, json=body)
+        response = client.post(url, headers=headers, json=body)
         if response.status_code >= 400:
-            raise GenAIError(_http_error(response))
+            raise GenAIError(_http_error(response), permanent=_is_permanent(response))
         data = response.json()
         return data["candidates"][0]["content"]["parts"][0]["text"]
 
@@ -221,6 +220,6 @@ def _anthropic(system_prompt: str, user_prompt: str, settings: Settings) -> str:
     with httpx.Client(timeout=settings.genai_timeout_seconds) as client:
         response = client.post("https://api.anthropic.com/v1/messages", headers=headers, json=body)
         if response.status_code >= 400:
-            raise GenAIError(_http_error(response))
+            raise GenAIError(_http_error(response), permanent=_is_permanent(response))
         data = response.json()
         return "".join(part.get("text", "") for part in data.get("content", []))
