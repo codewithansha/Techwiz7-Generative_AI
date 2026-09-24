@@ -158,8 +158,21 @@ def analyze_complaint(db: Session, complaint: Complaint, *, tone: str = "profess
     }
 
 
+def latest_genai_output(complaint: Complaint):
+    """Newest run that actually produced structured output, plus the newest run overall.
+
+    A failed re-run stores an empty structured_output; without this the reviewer would
+    lose a recommendation that was generated successfully on an earlier attempt.
+    """
+    runs = list(complaint.genai_runs or [])
+    if not runs:
+        return None, None
+    with_output = [run for run in runs if run.structured_output]
+    return (with_output[-1] if with_output else None), runs[-1]
+
+
 def serialize_complaint(complaint: Complaint) -> dict:
-    latest_genai = complaint.genai_runs[-1] if complaint.genai_runs else None
+    genai_run, latest_genai = latest_genai_output(complaint)
     latest_val = complaint.validation_results[-1] if complaint.validation_results else None
     latest_cmp = complaint.comparisons[-1] if complaint.comparisons else None
     return {
@@ -181,13 +194,15 @@ def serialize_complaint(complaint: Complaint) -> dict:
         "assigned_department_id": complaint.assigned_department_id,
         "assigned_to_id": complaint.assigned_to_id,
         "created_at": complaint.created_at,
-        "genai": latest_genai.structured_output if latest_genai else None,
+        "genai": genai_run.structured_output if genai_run else None,
         "genai_meta": {
-            "provider": latest_genai.provider,
-            "model": latest_genai.model,
-            "prompt_version": latest_genai.prompt_version,
-            "attempt": latest_genai.attempt,
+            "provider": (genai_run or latest_genai).provider,
+            "model": (genai_run or latest_genai).model,
+            "prompt_version": (genai_run or latest_genai).prompt_version,
+            "attempt": (genai_run or latest_genai).attempt,
             "error": latest_genai.error_message,
+            "available": genai_run is not None,
+            "stale": genai_run is not None and genai_run.id != latest_genai.id,
         }
         if latest_genai
         else None,

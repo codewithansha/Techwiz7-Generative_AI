@@ -68,6 +68,8 @@ export interface Complaint {
     prompt_version: string
     attempt: number
     error: string
+    available?: boolean
+    stale?: boolean
   } | null
 }
 

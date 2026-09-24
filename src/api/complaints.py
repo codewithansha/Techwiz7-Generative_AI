@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy import or_
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, selectinload
 
 from complaint_processing.preprocess import content_hash, sanitize_input, validate_complaint_payload
 from complaint_processing.sla import refresh_sla_risk
@@ -27,6 +27,15 @@ router = APIRouter(prefix="/api/v1/complaints", tags=["complaints"])
 
 def _customer_for_user(db: Session, user: User) -> Customer | None:
     return db.query(Customer).filter(Customer.user_id == user.id).first()
+
+
+def _analysis_loaders():
+    """selectin loading keeps sibling collections from multiplying into a cartesian product."""
+    return (
+        selectinload(Complaint.genai_runs),
+        selectinload(Complaint.validation_results),
+        selectinload(Complaint.comparisons),
+    )
 
 
 @router.post("")
@@ -113,11 +122,7 @@ def list_complaints(
     escalated: bool | None = None,
     review: bool | None = None,
 ):
-    query = db.query(Complaint).options(
-        joinedload(Complaint.genai_runs),
-        joinedload(Complaint.validation_results),
-        joinedload(Complaint.comparisons),
-    )
+    query = db.query(Complaint).options(*_analysis_loaders())
     if user.role == UserRole.customer:
         customer = _customer_for_user(db, user)
         query = query.filter(Complaint.customer_id == (customer.id if customer else -1))
@@ -159,12 +164,12 @@ def list_complaints(
 
 @router.get("/queue/manual-review")
 def manual_review_queue(user: ReviewerUser, db: Session = Depends(get_db)):
-    rows = (
-        db.query(Complaint)
-        .options(joinedload(Complaint.validation_results), joinedload(Complaint.comparisons), joinedload(Complaint.genai_runs))
-        .all()
-    )
-    return [serialize_complaint(r) for r in rows if r.validation_results and r.validation_results[-1].requires_manual_review]
+    rows = db.query(Complaint).options(*_analysis_loaders()).order_by(Complaint.id.desc()).all()
+    return [
+        serialize_complaint(row)
+        for row in rows
+        if row.validation_results and row.validation_results[-1].requires_manual_review
+    ]
 
 
 @router.get("/{complaint_id}")
@@ -259,7 +264,7 @@ def review_complaint(complaint_id: int, payload: ReviewRequest, user: ReviewerUs
 def _get_visible_complaint(db: Session, user: User, complaint_id: int) -> Complaint:
     complaint = (
         db.query(Complaint)
-        .options(joinedload(Complaint.genai_runs), joinedload(Complaint.validation_results), joinedload(Complaint.comparisons))
+        .options(*_analysis_loaders())
         .filter(Complaint.id == complaint_id)
         .first()
     )
