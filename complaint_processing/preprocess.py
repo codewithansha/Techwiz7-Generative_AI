@@ -6,6 +6,7 @@ import unicodedata
 
 MIN_COMPLAINT_CHARS = 20
 ORDER_PATTERN = re.compile(r"^NC-\d{6,}$", re.I)
+COMPLAINT_REF_PATTERN = re.compile(r"^CMP-\d{5,}$", re.I)
 
 
 def normalize_text(text: str) -> str:
@@ -52,4 +53,7 @@ def validate_complaint_payload(payload: dict) -> list[str]:
     order_reference = (payload.get("order_reference") or "").strip()
     if order_reference and not ORDER_PATTERN.match(order_reference):
         errors.append("Invalid order reference. Expected format NC-000000.")
+    previous = (payload.get("previous_complaint_reference") or "").strip()
+    if previous and not COMPLAINT_REF_PATTERN.match(previous):
+        errors.append("Invalid previous complaint reference. Expected format CMP-00000.")
     return errors

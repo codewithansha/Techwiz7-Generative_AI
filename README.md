@@ -22,6 +22,8 @@ FastAPI + PostgreSQL complaint-intelligence API for **NimbusCarta**, a fictional
 
 ## Setup
 
+> **Installing without Docker?** Follow [documentation/INSTALLATION.md](documentation/INSTALLATION.md). It lists every command for a fresh machine: PostgreSQL, Python, Node, configuration, running and testing.
+
 ```powershell
 cd D:\Techwiz-7\support-nova
 python -m venv .venv
@@ -90,6 +92,16 @@ alembic upgrade head
 
 Change these before any public deployment.
 
+## Web interface by role
+
+| Role | What they can do in the UI |
+|---|---|
+| Customer | Submit complaints with attachments, track status / department / latest update. Internal analysis is never shown. |
+| Agent | Dashboard of assigned and unassigned cases, filters (category, department, priority, sentiment, escalation, SLA, dates), analyze (tone, Python-only), assign to self, change status, structured JSON and audit history. |
+| Reviewer / Manager | Everything above plus the manual-review queue: approve, reject, escalate, reassign, reclassify, regenerate, comment. |
+| Manager / Admin | Reports and analytics, trend detection, eight exportable reports (CSV / Excel / PDF). |
+| Administrator | Knowledge-base upload and version status, and Settings: rule matrix, escalation rules, categories and departments, SLA and priority logic, users. |
+
 ## Typical evaluator flow
 
 1. `POST /api/v1/auth/login` with form fields `username` (email) and `password`, or `POST /api/v1/auth/login-json`.
@@ -114,12 +126,30 @@ Each analysis stores:
 
 ```powershell
 pytest
-python scripts\generate_complaints.py
 ```
+
+Unit tests need no database. The API integration suite (roles, trap complaints, mocked GenAI
+agreement/disagreement, review queue, uploads, config changes, every report export) runs when
+`SUPPORTNOVA_TEST_DATABASE_URL` points at a **disposable** database. It drops and recreates the
+schema, so the name must contain `test` or `scratch`:
+
+```powershell
+docker exec support-nova-db-1 psql -U supportnova -c "CREATE DATABASE supportnova_test;"
+$env:SUPPORTNOVA_TEST_DATABASE_URL="postgresql+psycopg://supportnova:supportnova@localhost:5432/supportnova_test"
+pytest
+```
+
+Generate the synthetic dataset with `python scripts\generate_complaints.py`.
 
 ## Project layout (SRS folders)
 
 `genai_pipeline/`, `python_validation/`, `complaint_rules/`, `routing_rules/`, `escalation_rules/`, `prompt_templates/`, `schemas/`, `comparison_engine/`, `hallucination_checks/`, `security/`, `document_processing/`, `knowledge_base/`, `database/`, `tests/`
+
+## Reports
+
+`GET /api/v1/reports/export?report=<key>&fmt=csv|xlsx|pdf` with `report` one of
+`complaints`, `comparison`, `escalations`, `sla`, `manual_review`, `departments`,
+`policy_usage`, `resolution_compliance`.
 
 ## Assumptions
 
@@ -127,3 +157,12 @@ python scripts\generate_complaints.py
 - Reply drafts are stored in the app; email/SMS is not sent.
 - Semantic retrieval uses token overlap against active policy chunks (pgvector can be added later without changing APIs).
 - Hidden evaluation packs are processed through existing upload/config/analyze endpoints, not by editing core code.
+
+## Limitations
+
+- Retrieval uses token overlap, not embeddings.
+- Rule matching is whole-word keyword matching. Wording that uses none of a rule's keywords falls
+  back to `Unclassified` and goes to manual review rather than being guessed.
+- 81 of the seeded resolution rules are keyword variants generated to reach the 100-rule minimum;
+  replace them with hand-written rules before final submission.
+- A GenAI outage does not block analysis: Python validation still runs and the case is sent to review.

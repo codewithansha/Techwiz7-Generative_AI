@@ -23,7 +23,8 @@ export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
       user: null,
-      role: (localStorage.getItem('supportnova_role') as Role | null) || null,
+      // Role always comes from the server (/auth/me), never from browser storage.
+      role: null,
       authenticated: Boolean(localStorage.getItem('supportnova_token')),
       loading: false,
       complaints: [],
@@ -33,15 +34,18 @@ export const useAppStore = create<AppState>()(
       login: async (email, password) => {
         set({ loading: true })
         try {
-          const token = await api.login(email, password)
+          await api.login(email, password)
           const user = await api.me()
-          set({ user, role: token.role as Role, authenticated: true })
+          set({ user, role: user.role, authenticated: true })
         } finally {
           set({ loading: false })
         }
       },
       restore: async () => {
-        if (!localStorage.getItem('supportnova_token')) return
+        if (!localStorage.getItem('supportnova_token')) {
+          if (get().authenticated) get().logout()
+          return
+        }
         try {
           const user = await api.me()
           set({ user, role: user.role, authenticated: true })
@@ -63,17 +67,14 @@ export const useAppStore = create<AppState>()(
         }
       },
       loadMetrics: async () => {
-        set({ loading: true })
-        try {
-          set({ metrics: await api.adminMetrics() })
-        } finally {
-          set({ loading: false })
-        }
+        const role = get().role
+        // Admins use the admin dashboard; managers get the same metrics from analytics.
+        set({ metrics: role === 'administrator' ? await api.adminMetrics() : await api.analytics() })
       },
     }),
     {
       name: 'supportnova-ui',
-      partialize: (state) => ({ role: state.role, authenticated: state.authenticated }),
+      partialize: (state) => ({ authenticated: state.authenticated }),
     },
   ),
 )

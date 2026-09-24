@@ -28,7 +28,7 @@ def main() -> int:
     for provider in chain:
         label = f"{provider} ({_model_name(provider, settings)})"
         try:
-            _dispatch(provider, SYSTEM, USER, settings)
+            _dispatch(provider, SYSTEM, USER, settings, settings.genai_timeout_seconds)
         except GenAIError as exc:
             print(f"  FAIL  {label}\n        {exc}")
         except Exception as exc:  # noqa: BLE001

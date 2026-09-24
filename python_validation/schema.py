@@ -31,6 +31,29 @@ def extract_json(raw: str) -> dict:
     return json.loads(text[start : end + 1])
 
 
+def coerce_enums(payload: dict) -> dict:
+    """Fix letter case and spacing on enum fields ("Negative" -> "negative", "p1" -> "P1").
+
+    Only formatting is repaired. A value outside the allowed set stays as returned so
+    schema validation still reports it.
+    """
+    data = dict(payload)
+    for key in ("sentiment", "urgency", "escalation_level", "policy_applicability"):
+        if isinstance(data.get(key), str):
+            data[key] = data[key].strip().lower().replace(" ", "_").replace("-", "_")
+    if isinstance(data.get("priority"), str):
+        data["priority"] = data["priority"].strip().upper()
+    for key in ("escalation_required", "follow_up_required", "compensation_recommended"):
+        if isinstance(data.get(key), str) and data[key].strip().lower() in {"true", "false"}:
+            data[key] = data[key].strip().lower() == "true"
+    return data
+
+
+def structural_errors(payload: dict) -> list[str]:
+    """JSON Schema errors only: missing required fields and wrong types or enum values."""
+    return [f"{'/'.join(str(p) for p in e.path) or 'root'}: {e.message}" for e in _VALIDATOR.iter_errors(payload)]
+
+
 def validate_schema(
     payload: dict,
     *,

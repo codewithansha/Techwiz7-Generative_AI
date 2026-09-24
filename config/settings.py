@@ -42,6 +42,16 @@ class Settings(BaseSettings):
     genai_max_retries: int = 3
     genai_timeout_seconds: int = 18
 
+    # Pipeline 1 stops starting new attempts once this much time has passed, so a failing
+    # provider chain cannot blow the SRS 20-second analysis target by minutes.
+    genai_total_budget_seconds: int = 15
+    prompt_version: str = "v2"
+
+    # Pipeline 2 thresholds that evaluators may change without touching code.
+    default_department_code: str = "REL"
+    high_value_threshold: float = 200000
+    repeat_similarity_threshold: int = 55
+
     max_upload_mb: int = 15
     upload_dir: str = "uploads"
 

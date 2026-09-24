@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 
 from sqlalchemy.orm import Session
 
-from database.models import Complaint, CustomerType, PriorityCode, SlaPolicy
+from database.models import Complaint, ComplaintStatus, CustomerType, PriorityCode, SlaPolicy
 
 
 def apply_sla(db: Session, complaint: Complaint, priority: str) -> None:
@@ -45,7 +45,8 @@ def refresh_sla_risk(complaint: Complaint, now: datetime | None = None) -> bool:
     now = now or datetime.now(timezone.utc)
     due = complaint.sla_resolution_due
     start = complaint.created_at.replace(tzinfo=timezone.utc) if complaint.created_at.tzinfo is None else complaint.created_at
-    if not due:
+    # A finished complaint cannot breach its SLA any more.
+    if not due or complaint.status in (ComplaintStatus.resolved, ComplaintStatus.closed):
         complaint.sla_risk = False
         return False
     if due.tzinfo is None:

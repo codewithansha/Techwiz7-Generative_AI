@@ -372,6 +372,9 @@ class Complaint(Base, TimestampMixin):
     latest_update: Mapped[str] = mapped_column(Text, default="Submitted")
 
     customer: Mapped[Optional[Customer]] = relationship(back_populates="complaints")
+    assigned_department: Mapped[Optional[Department]] = relationship(foreign_keys=[assigned_department_id])
+    assigned_to: Mapped[Optional[User]] = relationship(foreign_keys=[assigned_to_id])
+    duplicate_of: Mapped[Optional["Complaint"]] = relationship(remote_side=[id], foreign_keys=[duplicate_of_id])
     attachments: Mapped[list["ComplaintAttachment"]] = relationship(back_populates="complaint")
     # Ordered so that [-1] is always the newest record for dashboards and review.
     genai_runs: Mapped[list["GenAIRun"]] = relationship(
@@ -383,7 +386,7 @@ class Complaint(Base, TimestampMixin):
     comparisons: Mapped[list["ComparisonResult"]] = relationship(
         back_populates="complaint", order_by="ComparisonResult.id"
     )
-    reviews: Mapped[list["ReviewAction"]] = relationship(back_populates="complaint")
+    reviews: Mapped[list["ReviewAction"]] = relationship(back_populates="complaint", order_by="ReviewAction.id")
     followups: Mapped[list["FollowUp"]] = relationship(back_populates="complaint")
 
 

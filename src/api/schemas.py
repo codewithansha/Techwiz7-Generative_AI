@@ -81,6 +81,11 @@ class StatusUpdate(BaseModel):
     note: str = ""
 
 
+class CustomerDecision(BaseModel):
+    action: str  # "confirm" closes a resolved complaint, "reopen" says the fix did not work
+    comment: str = ""
+
+
 class AssignRequest(BaseModel):
     agent_id: int | None = None
     department_id: int | None = None
@@ -123,3 +128,49 @@ class CategoryCreate(BaseModel):
     description: str = ""
     default_department_code: str
     subcategories: list[dict] = Field(default_factory=list)
+
+
+class DepartmentCreate(BaseModel):
+    code: str = Field(min_length=2, max_length=32)
+    name: str = Field(min_length=2, max_length=128)
+    description: str = ""
+
+
+class SubcategoryCreate(BaseModel):
+    code: str = Field(min_length=2, max_length=64)
+    name: str = Field(min_length=2, max_length=128)
+    keywords: list[str] = Field(default_factory=list)
+
+
+class EscalationRuleCreate(BaseModel):
+    rule_code: str = Field(min_length=3, max_length=64)
+    name: str
+    keywords: list[str] = Field(default_factory=list)
+    categories: list[str] = Field(default_factory=list)
+    customer_types: list[str] = Field(default_factory=list)
+    min_repeat_count: int = Field(default=0, ge=0)
+    escalation_level: str
+    reason: str
+    force_urgency: str | None = None
+
+
+class EscalationRuleUpdate(BaseModel):
+    keywords: list[str] | None = None
+    categories: list[str] | None = None
+    min_repeat_count: int | None = Field(default=None, ge=0)
+    escalation_level: str | None = None
+    force_urgency: str | None = None
+    is_active: bool | None = None
+
+
+class ActiveToggle(BaseModel):
+    is_active: bool
+
+
+class SlaUpdate(BaseModel):
+    first_response_minutes: int = Field(gt=0)
+    resolution_hours: int = Field(gt=0)
+
+
+class PriorityRuleUpdate(BaseModel):
+    priority: str
