@@ -1,0 +1,3 @@
+🔴 OpenAI: valid setup, but no credits
+🔴 Grok: recognized account/team, but no credits/license
+🟢 Gemini: fully usable
