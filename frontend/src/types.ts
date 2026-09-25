@@ -17,6 +17,8 @@ export interface SecondaryIssue {
 
 export interface ComplaintIntelligence {
   complaint_id?: string
+  evidence?: { satisfies?: string[]; photos?: number; documents?: number; order_ids?: string[]; purchase_date?: string | null }
+  eligibility?: { checks: Array<{ check: string; passed: boolean | null; detail: string; policy: string }>; needs_check: string[] }
   primary_issue?: string
   secondary_issues?: Array<string | SecondaryIssue>
   issue_category?: string
@@ -94,10 +96,11 @@ export interface Complaint {
   created_at: string
   updated_at?: string
   analyzed_at?: string | null
-  attachments?: Array<{ id: number; filename: string; size_bytes: number }>
+  attachments?: Attachment[]
+  evidence?: Evidence
   genai?: ComplaintIntelligence | null
   python?: ComplaintIntelligence | null
-  checks?: { review_reasons?: string[]; genai_skipped_reason?: string; policy?: Record<string, unknown> } & Record<string, unknown> | null
+  checks?: { review_reasons?: string[]; genai_skipped_reason?: string; policy?: { precedence?: PolicyPrecedence } & Record<string, unknown> } & Record<string, unknown> | null
   flags?: ValidationFlag[]
   verification_score?: number | null
   requires_manual_review?: boolean | null
@@ -120,6 +123,14 @@ export interface Complaint {
     stale?: boolean
   } | null
   open_followups?: Array<{ type: string; message: string; scheduled_at: string }>
+  incident_date?: string | null
+  unread_messages?: number
+  feedback?: { rating: number; comment: string } | null
+  classification?: { category?: string | null; subcategory?: string | null; urgency?: string | null; priority?: string | null; sentiment?: string | null; escalation_required?: boolean; overridden?: boolean }
+  first_response?: 'met' | 'breached' | 'pending' | 'overdue' | 'n/a'
+  sla_first_response_due?: string | null
+  first_responded_at?: string | null
+  needs_reanalysis?: boolean
   latest_review?: { action: string; comments: string; final_decision: Record<string, unknown>; created_at: string } | null
 }
 
@@ -145,6 +156,9 @@ export interface Metrics {
   manual_review_cases: number
   pending_reviews?: number
   repeat_complaints: number
+  csat?: { average: number | null; responses: number; distribution: Record<string, number> }
+  first_response?: { met: number; breached: number; pending: number; overdue: number; compliance: number | null }
+  daily_volume?: Array<{ date: string; complaints: number; escalations: number }>
 }
 
 export interface Trends {
@@ -206,6 +220,11 @@ export interface Rule {
   conditions: { keywords?: string[] }
   required_actions: string[]
   prohibited_actions: string[]
+  supporting_department_codes?: string[]
+  follow_up_required?: boolean
+  refund_eligible?: boolean | null
+  replacement_eligible?: boolean | null
+  compensation_permitted?: boolean
   is_active: boolean
 }
 
@@ -293,6 +312,8 @@ export interface ComplaintDraft {
   customer_code?: string
   preferred_contact_channel: string
   requested_resolution: string
+  channel?: string
+  incident_date?: string
 }
 
 export interface AnalysisResult {
@@ -301,4 +322,106 @@ export interface AnalysisResult {
   review_reasons?: string[]
   genai_error?: string
   genai_skipped_reason?: string
+}
+
+export interface AssistantReply {
+  session_id: number
+  reply: string
+  intent: string
+  source: 'genai' | 'knowledge_base' | 'system'
+  citations: Array<{ document_code: string; title: string; version: string; section: string; status: string }>
+  actions: Array<{ type: 'suggest' | 'open_complaint' | 'link' | 'use_draft'; label: string; prefill?: Partial<ComplaintDraft>; to?: string; complaint_id?: number; text?: string }>
+  complaints: Array<{ id: number; complaint_code: string; title: string; status: string; department: string | null; sla_risk: boolean; similarity?: number }>
+  flags: string[]
+}
+
+export interface ComplaintMessage {
+  id: number
+  direction: 'to_customer' | 'from_customer' | 'internal'
+  body: string
+  author: string
+  source: string | null
+  flags: ValidationFlag[]
+  created_at: string
+  read_by_customer: boolean
+}
+
+export interface NotificationItem {
+  id: string
+  complaint_id: number | null
+  complaint_code: string | null
+  title: string
+  text: string
+  kind: string
+  at: string | null
+  unread: boolean
+}
+
+export interface EvaluationRunSummary {
+  id: number
+  name: string
+  status: 'queued' | 'running' | 'done' | 'failed'
+  total: number
+  processed: number
+  use_genai: boolean
+  created_at: string
+}
+
+export interface EvaluationResult {
+  run: EvaluationRunSummary & { error: string }
+  import_errors: number
+  accuracy: { python: Record<string, number | null>; genai: Record<string, number | null> }
+  labelled: Record<string, number>
+  agreement: Record<string, number | null>
+  genai_rows: number
+  by_case_type: Record<string, number>
+  mismatches: Array<{ row: number; complaint_code: string | null; field: string; expected: unknown; python: unknown; case_type: string | null }>
+}
+
+export type PolicyPrecedence = {
+  governing: { document_code: string; version?: string; category?: string; section?: string } | null
+  overridden: Array<{ document_code: string; category: string; version?: string }>
+  conflicts: Array<{ document_code: string; category: string; unit: string; lower_says: string[]; governing_says: string[]; relied_on_by?: string | null }>
+}
+
+export type PolicyImpact = {
+  previous_versions: string[]
+  sections_added: string[]
+  sections_removed: string[]
+  sections_changed: string[]
+  resolution_rules: Array<{ rule_code: string; section: string; section_exists: boolean; section_changed: boolean }>
+  rules_citing_missing_sections: string[]
+  escalation_rules: Array<{ rule_code: string; name: string }>
+  timeline_changes: Array<{ unit: string; before: string[]; after: string[] }>
+  previous_obsolete: boolean
+  responses_need_revision: boolean
+}
+
+export type Attachment = { id: number; filename: string; size_bytes: number; content_type?: string; kind?: 'document' | 'image' | 'other'; uploaded_at?: string }
+
+export type EvidenceItem = {
+  id: number
+  filename: string
+  kind: string
+  pages?: number
+  characters?: number
+  order_ids?: string[]
+  amounts?: string[]
+  dates?: string[]
+  purchase_date?: string | null
+  width?: number
+  height?: number
+  taken_at?: string
+  note?: string
+}
+
+export type Evidence = {
+  count: number
+  photos: number
+  documents: number
+  order_ids: string[]
+  amounts: string[]
+  purchase_date: string | null
+  injection_in: string[]
+  items: EvidenceItem[]
 }

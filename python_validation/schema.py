@@ -43,9 +43,28 @@ def coerce_enums(payload: dict) -> dict:
             data[key] = data[key].strip().lower().replace(" ", "_").replace("-", "_")
     if isinstance(data.get("priority"), str):
         data["priority"] = data["priority"].strip().upper()
+        # Smaller local models annotate the code: "P1 (HIGH)", "High - P1". Keep it only when unambiguous.
+        codes = set(re.findall(r"\bP[0-3]\b", data["priority"]))
+        if len(codes) == 1:
+            data["priority"] = codes.pop()
+    for key, allowed in (("urgency", ALLOWED_URGENCY), ("sentiment", ALLOWED_SENTIMENT)):
+        value = data.get(key)
+        if isinstance(value, str) and value not in allowed:
+            hits = [word for word in allowed if re.match(rf"^{word}_*[(\[:]", value) and not any(other != word and other in value for other in allowed)]
+            if len(hits) == 1:
+                data[key] = hits[0]
     for key in ("escalation_required", "follow_up_required", "compensation_recommended"):
         if isinstance(data.get(key), str) and data[key].strip().lower() in {"true", "false"}:
             data[key] = data[key].strip().lower() == "true"
+    # "No recommendation" is the only safe reading of a null compensation flag; Python still
+    # decides whether compensation is permitted.
+    if "compensation_recommended" in data and data["compensation_recommended"] is None:
+        data["compensation_recommended"] = False
+    # "§2.2 Damaged on arrival" / "Section 2.2" -> "2.2": keep the section number, drop the heading.
+    if isinstance(data.get("policy_section"), str):
+        section = re.match(r"^\s*(?:§|section|sec\.?)?\s*(\d+(?:\.\d+)*)\b", data["policy_section"], re.I)
+        if section:
+            data["policy_section"] = section.group(1)
     return data
 
 

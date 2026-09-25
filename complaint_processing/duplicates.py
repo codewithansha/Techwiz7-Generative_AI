@@ -11,12 +11,12 @@ NEAR_DUPLICATE_THRESHOLD = 88
 
 def find_duplicates(db: Session, *, text: str, customer_id: int | None) -> dict:
     digest = content_hash(text)
-    exact = (
-        db.query(Complaint)
-        .filter(Complaint.content_hash == digest)
-        .order_by(Complaint.id.desc())
-        .first()
-    )
+    exact_query = db.query(Complaint).filter(Complaint.content_hash == digest)
+    if customer_id:
+        # Another customer writing the same words is not a duplicate, and telling them
+        # "duplicate of CMP-…" would reveal someone else's complaint.
+        exact_query = exact_query.filter(Complaint.customer_id == customer_id)
+    exact = exact_query.order_by(Complaint.id.desc()).first()
     if exact:
         return {"exact": True, "near_duplicate": False, "match_id": exact.id, "match_code": exact.complaint_code}
 
@@ -60,7 +60,8 @@ def detect_repeat_unresolved(db: Session, complaint: Complaint, *, similarity_th
     A complaint is related to an earlier one when the customer cites it as the previous
     complaint (any status: a resolved case raised again means the resolution failed), or
     when the same customer has another unresolved complaint about the same order or with
-    similar wording. The complaint being analyzed is never counted against itself.
+    similar wording. Only complaints filed before this one count, so a bulk import or a
+    re-analysis never links a complaint to one that arrived after it.
     """
     related: dict[int, Complaint] = {}
     reference = (complaint.previous_complaint_reference or "").strip().upper()
@@ -75,7 +76,7 @@ def detect_repeat_unresolved(db: Session, complaint: Complaint, *, similarity_th
             db.query(Complaint)
             .filter(
                 Complaint.customer_id == complaint.customer_id,
-                Complaint.id != complaint.id,
+                Complaint.id < complaint.id,  # only earlier complaints: a later one repeats this, not the reverse
                 Complaint.status.in_(OPEN_STATUSES),
             )
             .order_by(Complaint.id.desc())
@@ -87,6 +88,20 @@ def detect_repeat_unresolved(db: Session, complaint: Complaint, *, similarity_th
             similar = fuzz.token_set_ratio(text, (other.normalized_text or "").lower()) >= similarity_threshold
             if same_order or similar:
                 related[other.id] = other
+
+    elif complaint.order_reference:
+        # Logged without a customer profile (e.g. by staff or a bulk import): link on the order.
+        for other in (
+            db.query(Complaint)
+            .filter(
+                Complaint.order_reference == complaint.order_reference,
+                Complaint.id < complaint.id,  # only earlier complaints: a later one repeats this, not the reverse
+                Complaint.status.in_(OPEN_STATUSES),
+            )
+            .limit(20)
+            .all()
+        ):
+            related[other.id] = other
 
     codes = [row.complaint_code for row in sorted(related.values(), key=lambda r: r.id)]
     return {"is_repeat": bool(related), "open_count": len(related), "related_codes": codes}

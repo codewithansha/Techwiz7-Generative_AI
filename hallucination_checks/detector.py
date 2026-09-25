@@ -17,17 +17,39 @@ PROMISE_PATTERNS = [
     (re.compile(r"\b(free|immediate|guaranteed) replacement\b", re.I), "replacement_promise"),
     (re.compile(r"\bwe (will|shall) (send|ship) (you )?(a )?(new|replacement)\b", re.I), "replacement_promise"),
     (re.compile(r"\bwe (will|shall|have) (add|issue|give|credit)(ed)? (you )?(a )?(voucher|store credit|goodwill credit|discount|coupon)\b", re.I), "payment_promise"),
+    # "We will send you a new tablet and a PKR 5,000 voucher": the benefit can come later in the sentence.
+    (re.compile(r"\bwe(?: will|(?:'|’)ll| shall| are going to)\b(?:(?!\b(?:review|check|assess|consider|whether|if|eligib\w*|policy)\b)[^.!?]){0,80}?\b(voucher|store credit|coupon|discount code|gift card|goodwill (?:credit|payment)|compensation)\b", re.I), "payment_promise"),
     (re.compile(r"\b(guarantee|promise) (that )?(it|your (order|parcel|package)) will (arrive|be delivered)\b", re.I), "unsupported_deadline"),
     (re.compile(r"\bmaking an exception\b|\bas a one[- ]time exception\b", re.I), "unauthorized_exception"),
+    # Contractions and passive phrasing of the same commitments.
+    (re.compile(r"\bwe(?:'|’)ll (refund|reimburse)\b", re.I), "unverified_refund_promise"),
+    (re.compile(r"\byou(?:'|’)ll (get|receive) (a |your )?(full )?(refund|money back)\b|\byou will (get|receive) (a |your )?(full )?(refund|money back)\b", re.I), "unverified_refund_promise"),
+    (re.compile(r"\b(your |a |the )?(full )?refund will be (issued|processed|approved|sent|credited)\b", re.I), "unverified_refund_promise"),
+    (re.compile(r"\bwe(?:'|’)ll (send|ship) (you )?(a )?(new|replacement)\b|\b(a )?replacement (is|will be) (on its way|shipped|dispatched|sent)\b", re.I), "replacement_promise"),
+    (re.compile(r"\byou(?:'|’)ll (get|receive) (a |an )?(voucher|store credit|credit|discount|coupon|compensation)\b|\bcompensation (is|will be) (paid|issued|approved)\b", re.I), "payment_promise"),
 ]
+# A concrete timeline ("within 24 hours", "by Friday") must come from policy or the SLA.
+TIMELINE = re.compile(
+    r"\b(within|in|by) (the next )?(\d+|one|two|three|a few) (business |working )?(hours?|days?|weeks?)\b|\bby (monday|tuesday|wednesday|thursday|friday|saturday|sunday|tomorrow|tonight|end of (the )?day)\b",
+    re.I,
+)
 
 REFUND_CODES = {"guaranteed_refund", "unverified_refund_promise", "approved_refund_promise"}
 COMPENSATION_CODES = {"guaranteed_compensation", "payment_promise"}
 
 
-def detect_unsupported_promises(response: str, python_result: dict) -> list[dict]:
+def detect_unsupported_promises(response: str, python_result: dict, grounding: str = "") -> list[dict]:
+    """Commitments the rule matrix does not allow (SRS step 34).
+
+    ``grounding`` is the approved policy text; a timeline is only allowed when it appears there.
+    """
     flags = []
     seen: set[str] = set()
+    for match in TIMELINE.finditer(response or ""):
+        phrase = match.group(0)
+        if phrase.lower() not in (grounding or "").lower():
+            flags.append({"code": "unsupported_timeline", "detail": f"“{phrase}” is not a timeline stated in policy."})
+            break
     for pattern, code in PROMISE_PATTERNS:
         if code in seen or not pattern.search(response or ""):
             continue

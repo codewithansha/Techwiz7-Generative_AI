@@ -42,6 +42,20 @@ def render_prompts(context: dict, version: str | None = None) -> tuple[str, str]
     return system, user
 
 
+def render_named(name: str, version: str, context: dict) -> tuple[str, str]:
+    """Render another versioned prompt pair, e.g. the assistant's ``assistant.v1.*.j2``."""
+    settings = get_settings()
+    payload = {
+        "organization_name": settings.organization_name,
+        "organization_domain": settings.organization_domain,
+        "prompt_version": version,
+        **context,
+    }
+    system = env.get_template(f"{name}.{version}.system.j2").render(**payload)
+    user = env.get_template(f"{name}.{version}.user.j2").render(**payload)
+    return system, user
+
+
 def read_template(version: str, kind: str) -> str:
     return (PROMPT_DIR / f"{PROMPT_NAME}.{version}.{kind}.j2").read_text(encoding="utf-8")
 

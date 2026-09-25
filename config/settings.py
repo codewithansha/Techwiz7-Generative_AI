@@ -1,12 +1,14 @@
 from functools import lru_cache
 from pathlib import Path
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 
 # Providers that expose a synchronous text-completion API usable by Pipeline 1.
-CHAT_PROVIDERS = ("openai", "grok", "gemini", "anthropic")
+# Ollama is last: it runs locally, so it answers even when every paid provider is out of credit.
+CHAT_PROVIDERS = ("openai", "groq", "grok", "gemini", "anthropic", "ollama")
 
 
 class Settings(BaseSettings):
@@ -23,6 +25,17 @@ class Settings(BaseSettings):
     algorithm: str = "HS256"
     database_url: str = "postgresql+psycopg://supportnova:supportnova@localhost:5432/supportnova"
     cors_origins: str = "http://localhost:5173,http://localhost:3000"
+    # Built React app served by FastAPI in single-service deployments (empty = don't serve).
+    frontend_dist: str = str(ROOT_DIR / "frontend" / "dist")
+
+    @field_validator("database_url")
+    @classmethod
+    def _psycopg_driver(cls, value: str) -> str:
+        """Hosted Postgres (Render, Railway, Neon) hands out postgres:// URLs; use psycopg 3."""
+        for prefix in ("postgres://", "postgresql://"):
+            if value.startswith(prefix):
+                return "postgresql+psycopg://" + value[len(prefix):]
+        return value
 
     genai_provider: str = "openai"
     # Cursor is intentionally absent: api.cursor.com serves the Cloud Agents API and has no
@@ -39,13 +52,22 @@ class Settings(BaseSettings):
     grok_api_key: str = ""
     xai_api_key: str = ""
     grok_model: str = "grok-4-fast"
+    # Groq (groq.com, OpenAI-compatible; not the same service as xAI Grok)
+    groq_api_key: str = ""
+    groq_model: str = "llama-3.3-70b-versatile"
+    # Ollama: local model server, e.g. the ollama/ollama Docker container on port 11434
+    ollama_enabled: bool = False
+    ollama_base_url: str = "http://localhost:11434"
+    ollama_model: str = "qwen2.5:3b"
+    # A local CPU model is slower than a hosted API; it gets its own time allowance.
+    ollama_timeout_seconds: int = 90
     genai_max_retries: int = 3
     genai_timeout_seconds: int = 18
 
     # Pipeline 1 stops starting new attempts once this much time has passed, so a failing
     # provider chain cannot blow the SRS 20-second analysis target by minutes.
     genai_total_budget_seconds: int = 15
-    prompt_version: str = "v2"
+    prompt_version: str = "v3"
 
     # Pipeline 2 thresholds that evaluators may change without touching code.
     default_department_code: str = "REL"
@@ -79,6 +101,10 @@ class Settings(BaseSettings):
             return bool(self.anthropic_api_key)
         if name in {"grok", "xai"}:
             return bool(self.grok_key)
+        if name == "groq":
+            return bool(self.groq_api_key)
+        if name == "ollama":
+            return bool(self.ollama_enabled and self.ollama_base_url and self.ollama_model)
         return False
 
     def has_any_genai_key(self) -> bool:

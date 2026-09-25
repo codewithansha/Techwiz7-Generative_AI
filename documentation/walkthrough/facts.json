@@ -1,0 +1,1660 @@
+{
+  "started_at": "2026-09-25T07:07:02.944Z",
+  "steps": [
+    {
+      "file": "01-login.png",
+      "title": "Sign in",
+      "note": "Every role signs in on the same page; the role decides what they see.",
+      "section": 1
+    },
+    {
+      "file": "02-customer-dashboard.png",
+      "title": "Customer dashboard",
+      "note": "The customer sees only their own complaints, statuses and messages.",
+      "section": 1
+    },
+    {
+      "file": "03-wizard-step-1.png",
+      "title": "Complaint wizard: details",
+      "note": "Title, description (minimum 20 characters), product and order number. The order number format is checked as you type.",
+      "section": 1
+    },
+    {
+      "file": "04-wizard-step-2.png",
+      "title": "Complaint wizard: context and attachments",
+      "note": "Requested resolution, incident date and three supporting files: invoice (PDF), photo (JPG) and delivery note (DOCX).",
+      "section": 1
+    },
+    {
+      "file": "05-wizard-review.png",
+      "title": "Complaint wizard: review",
+      "note": "The customer checks everything, including the 3 attachments, before submitting.",
+      "section": 1
+    },
+    {
+      "file": "06-customer-complaint-submitted.png",
+      "title": "Submitted: CMP-00009",
+      "note": "Status, department and the latest update are shown in plain language. Attachments are listed under Supporting documents.",
+      "section": 1
+    },
+    {
+      "file": "07-customer-views-photo.png",
+      "title": "Customer opens an attachment",
+      "note": "Clicking a file opens it in a preview (images and PDFs inline); Download saves it. Only the complaint owner and staff can fetch it.",
+      "section": 1
+    },
+    {
+      "file": "08-customer-asks-nova.png",
+      "title": "Customer asks Nova",
+      "note": "Nova answers from the customer's own complaints and approved policies only.",
+      "section": 1
+    },
+    {
+      "file": "09-agent-dashboard.png",
+      "title": "Agent dashboard",
+      "note": "Unassigned and own cases, SLA risk and escalations at a glance.",
+      "section": 2
+    },
+    {
+      "file": "10-agent-complaint-list.png",
+      "title": "Complaint list with filters",
+      "note": "Filters run in SQL: category, department, priority, urgency, sentiment, escalation, SLA risk, review, dates.",
+      "section": 2
+    },
+    {
+      "file": "11-agent-before-analysis.png",
+      "title": "Complaint before analysis",
+      "note": "The agent sees the untrusted original text, metadata and the attachments.",
+      "section": 2
+    },
+    {
+      "file": "12-analysis-overview.png",
+      "title": "Analysis result: both pipelines",
+      "note": "Pipeline 2 (Python rules) is the ground truth; Pipeline 1 (GenAI) drafted in parallel. Took 29s.",
+      "section": 2
+    },
+    {
+      "file": "13-analysis-eligibility.png",
+      "title": "Eligibility against policy conditions",
+      "note": "Replacement window, product condition and previous replacements are checked from facts, including the invoice date.",
+      "section": 2
+    },
+    {
+      "file": "14-analysis-evidence.png",
+      "title": "Attachment evidence",
+      "note": "Order number, amount and purchase date read from the invoice; the photo counts as photo evidence. All of it fed both pipelines.",
+      "section": 2
+    },
+    {
+      "file": "15-analysis-validation.png",
+      "title": "Validation controls and policy precedence",
+      "note": "Every flag Python raised, and which policy governs over FAQs or older versions.",
+      "section": 2
+    },
+    {
+      "file": "16-analysis-comparison.png",
+      "title": "GenAI vs Python, field by field",
+      "note": "Mismatches lower the verification score and send the case to manual review.",
+      "section": 2
+    },
+    {
+      "file": "17-analysis-response.png",
+      "title": "Draft reply and guidance",
+      "note": "GenAI draft reply, clarification questions, and Python's mandatory and prohibited actions.",
+      "section": 2
+    },
+    {
+      "file": "18-analysis-json.png",
+      "title": "Structured JSON",
+      "note": "The exact schema-validated output of both pipelines, stored with provider, model and prompt version.",
+      "section": 2
+    },
+    {
+      "file": "19-agent-reply-blocked.png",
+      "title": "Unsafe reply blocked",
+      "note": "The promise guard stops replies that promise a replacement, a voucher or a timeline the policy does not support. Agents cannot override it.",
+      "section": 3
+    },
+    {
+      "file": "20-agent-reply-sent.png",
+      "title": "Policy-safe reply sent",
+      "note": "The reply passes the guard and reaches the customer. The first-response SLA is recorded.",
+      "section": 3
+    },
+    {
+      "file": "21-customer-conversation.png",
+      "title": "Customer sees the reply and answers",
+      "note": "Messages come from \"NimbusCarta Support\"; internal notes never show here.",
+      "section": 4
+    },
+    {
+      "file": "22-review-queue.png",
+      "title": "Manual review queue",
+      "note": "Why the case needs a human, and the GenAI recommendation next to the Python ground truth.",
+      "section": 5
+    },
+    {
+      "file": "23-review-approved.png",
+      "title": "Reviewer approves",
+      "note": "The decision and the original recommendation are both kept in the audit trail.",
+      "section": 5
+    },
+    {
+      "file": "24-agent-resolves.png",
+      "title": "Agent resolves the case",
+      "note": "The update note becomes the customer's latest update, and a resolution-confirmation follow-up is scheduled.",
+      "section": 6
+    },
+    {
+      "file": "25-customer-resolution-check.png",
+      "title": "Did this resolve your issue?",
+      "note": "The customer confirms or reopens with a reason.",
+      "section": 7
+    },
+    {
+      "file": "26-customer-closed.png",
+      "title": "Closed with a 5-star rating",
+      "note": "CSAT is stored and appears on the Reports page.",
+      "section": 7
+    },
+    {
+      "file": "27-audit-trail.png",
+      "title": "Audit trail",
+      "note": "Every action, by whom and when, plus GenAI runs with provider, model, prompt version and retries.",
+      "section": 8
+    },
+    {
+      "file": "28-manager-reports.png",
+      "title": "Reports and analytics",
+      "note": "Volume trend, categories, departments, products, sentiment, SLA, CSAT and exports.",
+      "section": 8
+    },
+    {
+      "file": "29-manager-evaluation.png",
+      "title": "Evaluation workbench",
+      "note": "Upload a hidden complaint pack and score both pipelines against expected labels.",
+      "section": 8
+    },
+    {
+      "file": "30-admin-knowledge-base.png",
+      "title": "Knowledge base",
+      "note": "Versioned policies, SOPs and FAQs, parsed into traceable sections.",
+      "section": 8
+    },
+    {
+      "file": "31-admin-settings.png",
+      "title": "Settings: pipelines",
+      "note": "Provider chain (incl. Ollama), prompt version, thresholds, rules, SLA and users, all editable without code.",
+      "section": 8
+    }
+  ],
+  "customer": {
+    "email": "demo.customer+mugmbfdv@example.com",
+    "password": "DemoCustomer!23",
+    "full_name": "Demo Customer"
+  },
+  "order": "NC-768565",
+  "files_dir": "D:\\Techwiz-7\\support-nova\\documentation\\walkthrough\\attachments",
+  "complaint": {
+    "code": "CMP-00009",
+    "id": 9
+  },
+  "analysis_seconds": 29,
+  "analysis": {
+    "genai_meta": {
+      "provider": "ollama",
+      "model": "qwen2.5:3b",
+      "prompt_version": "v3",
+      "attempt": 1,
+      "latency_ms": 23907,
+      "policy_versions": [
+        {
+          "status": "active",
+          "version": "1.0",
+          "document_code": "WAR-POL-03"
+        },
+        {
+          "status": "active",
+          "version": "1.0",
+          "document_code": "BIL-POL-02"
+        },
+        {
+          "status": "active",
+          "version": "1.0",
+          "document_code": "DEL-POL-04"
+        },
+        {
+          "status": "active",
+          "version": "1.0",
+          "document_code": "DEL-POL-04"
+        },
+        {
+          "status": "active",
+          "version": "1.0",
+          "document_code": "DEL-POL-04"
+        },
+        {
+          "status": "active",
+          "version": "1.0",
+          "document_code": "WAR-POL-03"
+        }
+      ],
+      "analyzed_at": "2026-09-25T07:07:25.906515+00:00",
+      "error": "",
+      "available": true,
+      "stale": false
+    },
+    "python": {
+      "urgency": "high",
+      "entities": {
+        "dates": [],
+        "emails": [],
+        "amounts": [],
+        "order_ids": []
+      },
+      "evidence": {
+        "count": 3,
+        "photos": 1,
+        "amounts": [
+          "PKR 89,999",
+          "PKR 89,999"
+        ],
+        "documents": 2,
+        "order_ids": [
+          "NC-768565"
+        ],
+        "satisfies": [
+          "Request unboxing photos"
+        ],
+        "injection_in": [],
+        "purchase_date": "2026-09-16"
+      },
+      "priority": "P1",
+      "policy_id": "WAR-POL-03",
+      "rule_code": "RR-006",
+      "department": "Warranty",
+      "eligibility": {
+        "checks": [
+          {
+            "check": "replacement_window",
+            "detail": "7 days since purchase/delivery (limit 30)",
+            "passed": true,
+            "policy": "RPL-POL-01 §1"
+          },
+          {
+            "check": "product_condition",
+            "detail": "Condition to be confirmed on inspection",
+            "passed": null,
+            "policy": "RPL-POL-01 §1 · WAR-POL-03 §4"
+          },
+          {
+            "check": "no_previous_replacement",
+            "detail": "No earlier replacement on this order",
+            "passed": true,
+            "policy": "RPL-POL-01 §2"
+          }
+        ],
+        "needs_check": [
+          "product_condition"
+        ],
+        "refund_eligible": null,
+        "replacement_eligible": true,
+        "rule_refund_eligible": null,
+        "rule_replacement_eligible": true
+      },
+      "subcategory": "Damaged Product",
+      "complaint_id": "CMP-00009",
+      "rule_matched": true,
+      "urgency_basis": {
+        "rule": "RR-006",
+        "inputs": [
+          "rule matrix",
+          "escalation rules",
+          "priority table",
+          "customer type"
+        ],
+        "rule_urgency": "high",
+        "escalation_rules": [],
+        "escalation_force_urgency": null
+      },
+      "issue_category": "Product Defect",
+      "policy_section": "2.2",
+      "policy_version": "1.0",
+      "refund_eligible": null,
+      "escalation_level": "no_escalation",
+      "escalation_rules": [],
+      "prompt_injection": {
+        "note": "Complaint text is untrusted data and must never override application instructions.",
+        "detected": false,
+        "patterns": []
+      },
+      "required_actions": [
+        "Request unboxing photos",
+        "Open replacement if eligible"
+      ],
+      "secondary_issues": [
+        {
+          "rule_code": "RR-124",
+          "department": "LOG",
+          "subcategory": "Delayed Delivery",
+          "issue_category": "Delivery"
+        },
+        {
+          "rule_code": "RR-137",
+          "department": "BIL",
+          "subcategory": "Incorrect Charge",
+          "issue_category": "Billing"
+        }
+      ],
+      "escalation_reasons": [],
+      "follow_up_required": true,
+      "prohibited_actions": [
+        "Approve refund before inspection"
+      ],
+      "related_complaints": [],
+      "sentiment_estimate": {
+        "score": 0,
+        "sentiment": "neutral",
+        "emotion_indicators": []
+      },
+      "escalation_required": false,
+      "missing_information": [],
+      "policy_applicability": "applicable",
+      "replacement_eligible": true,
+      "compensation_permitted": false,
+      "supporting_departments": [
+        "Logistics",
+        "Billing"
+      ],
+      "clarification_questions": []
+    },
+    "genai": {
+      "urgency": "high",
+      "entities": {
+        "date": "2026-09-18",
+        "amount": "PKR 89,999",
+        "product": "NimbusTab 11",
+        "service": "NimbusTab 11",
+        "location": "NimbusCarta warehouse",
+        "order_id": "NC-768565",
+        "department": "Returns",
+        "transaction_id": null,
+        "complaint_reference": "CMP-00009"
+      },
+      "priority": "P1",
+      "policy_id": "WAR-POL-03",
+      "sentiment": "negative",
+      "department": "Returns",
+      "subcategory": "Dead on Arrival",
+      "complaint_id": "CMP-00009",
+      "primary_issue": "Damaged Product",
+      "response_type": "internal",
+      "agent_guidance": [
+        "Verify the order details and invoice",
+        "Check the delivery note for any damage",
+        "Request a photo of the damaged product and packaging",
+        "Review the policy excerpt for Damaged on Arrival",
+        "Assess the claim within 5 business days",
+        "Request a replacement if the product is damaged on arrival"
+      ],
+      "issue_category": "Product Defect",
+      "policy_section": "3",
+      "refund_eligible": null,
+      "escalation_level": "supervisor_review",
+      "escalation_notes": "Tablet arrived with a cracked screen. Customer provided photo and invoice. The tablet works but the touch screen does not respond in the cracked area. The order was delivered two days ago and the box corner was dented.",
+      "resolution_steps": [
+        "Verify the order details and invoice",
+        "Check the delivery note for any damage",
+        "Request a photo of the damaged product and packaging",
+        "Review the policy excerpt for Damaged on Arrival",
+        "Assess the claim within 5 business days",
+        "Request a replacement if the product is damaged on arrival"
+      ],
+      "secondary_issues": [],
+      "complaint_summary": "Customer received a damaged NimbusTab 11 tablet with a cracked screen. The tablet works but the touch screen does not respond in the cracked area. The order was delivered two days ago and the box corner was dented.",
+      "customer_response": "Dear customer, we understand your concern about the damaged tablet. We have received your invoice, photo, and delivery note. We will review the policy and take the necessary steps to resolve this issue. The replacement will be processed as soon as possible.",
+      "escalation_reason": "Damaged product on arrival, need verification and replacement",
+      "emotion_indicators": [],
+      "follow_up_required": true,
+      "escalation_required": true,
+      "missing_information": [
+        "Serial number of the tablet",
+        "Date of purchase",
+        "Product model"
+      ],
+      "policy_applicability": "applicable",
+      "replacement_eligible": true,
+      "supporting_departments": [
+        "Logistics",
+        "Warranty",
+        "Customer Relations",
+        "Account Security",
+        "Management Escalations"
+      ],
+      "clarification_questions": [
+        "Can you provide the serial number of the tablet?",
+        "Is there any other damage to the tablet besides the cracked screen?",
+        "Can you confirm that the tablet was delivered to the correct address?"
+      ],
+      "follow_up_communication": "Dear customer, we have reviewed the policy and have requested a replacement for your damaged tablet. We will provide an update on the status of your request shortly.",
+      "compensation_recommended": false
+    },
+    "flags": [
+      {
+        "code": "missing_mandatory_action",
+        "action": "Open replacement if eligible"
+      }
+    ],
+    "review_reasons": [
+      "Complaint is ambiguous",
+      "GenAI and Python disagree significantly"
+    ],
+    "comparison": "manual_review",
+    "score": 52.14,
+    "evidence": {
+      "count": 3,
+      "photos": 1,
+      "documents": 2,
+      "order_ids": [
+        "NC-768565"
+      ],
+      "amounts": [
+        "PKR 89,999",
+        "PKR 89,999"
+      ],
+      "purchase_date": "2026-09-16",
+      "injection_in": [],
+      "items": [
+        {
+          "id": 12,
+          "filename": "invoice_NC-768565.pdf",
+          "kind": "document",
+          "dates": [
+            "2026-09-16",
+            "2026-09-18"
+          ],
+          "pages": 1,
+          "amounts": [
+            "PKR 89,999",
+            "PKR 89,999"
+          ],
+          "order_ids": [
+            "NC-768565"
+          ],
+          "characters": 297,
+          "purchase_date": "2026-09-16"
+        },
+        {
+          "id": 13,
+          "filename": "photo_cracked_screen.jpg",
+          "kind": "image",
+          "note": "Photo evidence. Image content is not machine-read; view it before deciding.",
+          "width": 1200,
+          "format": "JPEG",
+          "height": 800,
+          "taken_at": "2026-09-18T18:42:10"
+        },
+        {
+          "id": 14,
+          "filename": "delivery_note.docx",
+          "kind": "document",
+          "dates": [
+            "2026-09-18"
+          ],
+          "amounts": [],
+          "order_ids": [
+            "NC-768565"
+          ],
+          "characters": 157,
+          "purchase_date": "2026-09-18"
+        }
+      ]
+    }
+  },
+  "final": {
+    "id": 9,
+    "complaint_code": "CMP-00009",
+    "title": "Tablet arrived with a cracked screen",
+    "description": "My NimbusTab 11 was delivered two days ago with the screen cracked across the middle. The box corner was dented and the courier noted it on the delivery note. The tablet turns on but the touch screen does not respond in the cracked area. I have attached the invoice, a photo and the delivery note.",
+    "status": "closed",
+    "product_or_service": "NimbusTab 11",
+    "order_reference": "NC-768565",
+    "previous_complaint_reference": "",
+    "customer_type": "standard",
+    "channel": "web",
+    "preferred_contact_channel": "email",
+    "requested_resolution": "Please replace the tablet.",
+    "latest_update": "Thank you for confirming. Your complaint is closed.",
+    "sla_risk": false,
+    "sla_resolution_due": "2026-09-25T19:07:14.311869+00:00",
+    "follow_up_at": null,
+    "assigned_department_id": 5,
+    "department": "Warranty",
+    "created_at": "2026-09-25T07:07:14.311869+00:00",
+    "updated_at": "2026-09-25T07:08:34.027171+00:00",
+    "attachments": [
+      {
+        "id": 12,
+        "filename": "invoice_NC-768565.pdf",
+        "size_bytes": 3729,
+        "content_type": "application/pdf",
+        "kind": "document",
+        "uploaded_at": "2026-09-25T07:07:14.423893+00:00"
+      },
+      {
+        "id": 13,
+        "filename": "photo_cracked_screen.jpg",
+        "size_bytes": 39303,
+        "content_type": "image/jpeg",
+        "kind": "image",
+        "uploaded_at": "2026-09-25T07:07:14.497382+00:00"
+      },
+      {
+        "id": 14,
+        "filename": "delivery_note.docx",
+        "size_bytes": 36709,
+        "content_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "kind": "document",
+        "uploaded_at": "2026-09-25T07:07:14.631559+00:00"
+      }
+    ],
+    "incident_date": "2026-09-18",
+    "unread_messages": 0,
+    "feedback": {
+      "rating": 5,
+      "comment": ""
+    },
+    "evidence": {
+      "count": 3,
+      "photos": 1,
+      "documents": 2,
+      "order_ids": [
+        "NC-768565"
+      ],
+      "amounts": [
+        "PKR 89,999",
+        "PKR 89,999"
+      ],
+      "purchase_date": "2026-09-16",
+      "injection_in": [],
+      "items": [
+        {
+          "id": 12,
+          "filename": "invoice_NC-768565.pdf",
+          "kind": "document",
+          "dates": [
+            "2026-09-16",
+            "2026-09-18"
+          ],
+          "pages": 1,
+          "amounts": [
+            "PKR 89,999",
+            "PKR 89,999"
+          ],
+          "order_ids": [
+            "NC-768565"
+          ],
+          "characters": 297,
+          "purchase_date": "2026-09-16"
+        },
+        {
+          "id": 13,
+          "filename": "photo_cracked_screen.jpg",
+          "kind": "image",
+          "note": "Photo evidence. Image content is not machine-read; view it before deciding.",
+          "width": 1200,
+          "format": "JPEG",
+          "height": 800,
+          "taken_at": "2026-09-18T18:42:10"
+        },
+        {
+          "id": 14,
+          "filename": "delivery_note.docx",
+          "kind": "document",
+          "dates": [
+            "2026-09-18"
+          ],
+          "amounts": [],
+          "order_ids": [
+            "NC-768565"
+          ],
+          "characters": 157,
+          "purchase_date": "2026-09-18"
+        }
+      ]
+    },
+    "customer_code": "CUST-10006",
+    "is_repeat": false,
+    "is_adversarial": false,
+    "duplicate_of": null,
+    "assigned_to_id": 2,
+    "assigned_to": "Amina Agent",
+    "genai": {
+      "urgency": "high",
+      "entities": {
+        "date": "2026-09-18",
+        "amount": "PKR 89,999",
+        "product": "NimbusTab 11",
+        "service": "NimbusTab 11",
+        "location": "NimbusCarta warehouse",
+        "order_id": "NC-768565",
+        "department": "Returns",
+        "transaction_id": null,
+        "complaint_reference": "CMP-00009"
+      },
+      "priority": "P1",
+      "policy_id": "WAR-POL-03",
+      "sentiment": "negative",
+      "department": "Returns",
+      "subcategory": "Dead on Arrival",
+      "complaint_id": "CMP-00009",
+      "primary_issue": "Damaged Product",
+      "response_type": "internal",
+      "agent_guidance": [
+        "Verify the order details and invoice",
+        "Check the delivery note for any damage",
+        "Request a photo of the damaged product and packaging",
+        "Review the policy excerpt for Damaged on Arrival",
+        "Assess the claim within 5 business days",
+        "Request a replacement if the product is damaged on arrival"
+      ],
+      "issue_category": "Product Defect",
+      "policy_section": "3",
+      "refund_eligible": null,
+      "escalation_level": "supervisor_review",
+      "escalation_notes": "Tablet arrived with a cracked screen. Customer provided photo and invoice. The tablet works but the touch screen does not respond in the cracked area. The order was delivered two days ago and the box corner was dented.",
+      "resolution_steps": [
+        "Verify the order details and invoice",
+        "Check the delivery note for any damage",
+        "Request a photo of the damaged product and packaging",
+        "Review the policy excerpt for Damaged on Arrival",
+        "Assess the claim within 5 business days",
+        "Request a replacement if the product is damaged on arrival"
+      ],
+      "secondary_issues": [],
+      "complaint_summary": "Customer received a damaged NimbusTab 11 tablet with a cracked screen. The tablet works but the touch screen does not respond in the cracked area. The order was delivered two days ago and the box corner was dented.",
+      "customer_response": "Dear customer, we understand your concern about the damaged tablet. We have received your invoice, photo, and delivery note. We will review the policy and take the necessary steps to resolve this issue. The replacement will be processed as soon as possible.",
+      "escalation_reason": "Damaged product on arrival, need verification and replacement",
+      "emotion_indicators": [],
+      "follow_up_required": true,
+      "escalation_required": true,
+      "missing_information": [
+        "Serial number of the tablet",
+        "Date of purchase",
+        "Product model"
+      ],
+      "policy_applicability": "applicable",
+      "replacement_eligible": true,
+      "supporting_departments": [
+        "Logistics",
+        "Warranty",
+        "Customer Relations",
+        "Account Security",
+        "Management Escalations"
+      ],
+      "clarification_questions": [
+        "Can you provide the serial number of the tablet?",
+        "Is there any other damage to the tablet besides the cracked screen?",
+        "Can you confirm that the tablet was delivered to the correct address?"
+      ],
+      "follow_up_communication": "Dear customer, we have reviewed the policy and have requested a replacement for your damaged tablet. We will provide an update on the status of your request shortly.",
+      "compensation_recommended": false
+    },
+    "genai_meta": {
+      "provider": "ollama",
+      "model": "qwen2.5:3b",
+      "prompt_version": "v3",
+      "attempt": 1,
+      "latency_ms": 23907,
+      "policy_versions": [
+        {
+          "status": "active",
+          "version": "1.0",
+          "document_code": "WAR-POL-03"
+        },
+        {
+          "status": "active",
+          "version": "1.0",
+          "document_code": "BIL-POL-02"
+        },
+        {
+          "status": "active",
+          "version": "1.0",
+          "document_code": "DEL-POL-04"
+        },
+        {
+          "status": "active",
+          "version": "1.0",
+          "document_code": "DEL-POL-04"
+        },
+        {
+          "status": "active",
+          "version": "1.0",
+          "document_code": "DEL-POL-04"
+        },
+        {
+          "status": "active",
+          "version": "1.0",
+          "document_code": "WAR-POL-03"
+        }
+      ],
+      "analyzed_at": "2026-09-25T07:07:25.906515+00:00",
+      "error": "",
+      "available": true,
+      "stale": false
+    },
+    "python": {
+      "urgency": "high",
+      "entities": {
+        "dates": [],
+        "emails": [],
+        "amounts": [],
+        "order_ids": []
+      },
+      "evidence": {
+        "count": 3,
+        "photos": 1,
+        "amounts": [
+          "PKR 89,999",
+          "PKR 89,999"
+        ],
+        "documents": 2,
+        "order_ids": [
+          "NC-768565"
+        ],
+        "satisfies": [
+          "Request unboxing photos"
+        ],
+        "injection_in": [],
+        "purchase_date": "2026-09-16"
+      },
+      "priority": "P1",
+      "policy_id": "WAR-POL-03",
+      "rule_code": "RR-006",
+      "department": "Warranty",
+      "eligibility": {
+        "checks": [
+          {
+            "check": "replacement_window",
+            "detail": "7 days since purchase/delivery (limit 30)",
+            "passed": true,
+            "policy": "RPL-POL-01 §1"
+          },
+          {
+            "check": "product_condition",
+            "detail": "Condition to be confirmed on inspection",
+            "passed": null,
+            "policy": "RPL-POL-01 §1 · WAR-POL-03 §4"
+          },
+          {
+            "check": "no_previous_replacement",
+            "detail": "No earlier replacement on this order",
+            "passed": true,
+            "policy": "RPL-POL-01 §2"
+          }
+        ],
+        "needs_check": [
+          "product_condition"
+        ],
+        "refund_eligible": null,
+        "replacement_eligible": true,
+        "rule_refund_eligible": null,
+        "rule_replacement_eligible": true
+      },
+      "subcategory": "Damaged Product",
+      "complaint_id": "CMP-00009",
+      "rule_matched": true,
+      "urgency_basis": {
+        "rule": "RR-006",
+        "inputs": [
+          "rule matrix",
+          "escalation rules",
+          "priority table",
+          "customer type"
+        ],
+        "rule_urgency": "high",
+        "escalation_rules": [],
+        "escalation_force_urgency": null
+      },
+      "issue_category": "Product Defect",
+      "policy_section": "2.2",
+      "policy_version": "1.0",
+      "refund_eligible": null,
+      "escalation_level": "no_escalation",
+      "escalation_rules": [],
+      "prompt_injection": {
+        "note": "Complaint text is untrusted data and must never override application instructions.",
+        "detected": false,
+        "patterns": []
+      },
+      "required_actions": [
+        "Request unboxing photos",
+        "Open replacement if eligible"
+      ],
+      "secondary_issues": [
+        {
+          "rule_code": "RR-124",
+          "department": "LOG",
+          "subcategory": "Delayed Delivery",
+          "issue_category": "Delivery"
+        },
+        {
+          "rule_code": "RR-137",
+          "department": "BIL",
+          "subcategory": "Incorrect Charge",
+          "issue_category": "Billing"
+        }
+      ],
+      "escalation_reasons": [],
+      "follow_up_required": true,
+      "prohibited_actions": [
+        "Approve refund before inspection"
+      ],
+      "related_complaints": [],
+      "sentiment_estimate": {
+        "score": 0,
+        "sentiment": "neutral",
+        "emotion_indicators": []
+      },
+      "escalation_required": false,
+      "missing_information": [],
+      "policy_applicability": "applicable",
+      "replacement_eligible": true,
+      "compensation_permitted": false,
+      "supporting_departments": [
+        "Logistics",
+        "Billing"
+      ],
+      "clarification_questions": []
+    },
+    "checks": {
+      "policy": {
+        "precedence": {
+          "conflicts": [],
+          "governing": {
+            "section": "2.2",
+            "version": "1.0",
+            "category": "policy",
+            "document_code": "WAR-POL-03"
+          },
+          "overridden": []
+        },
+        "rule_policy": {
+          "code": "WAR-POL-03",
+          "known": true,
+          "versions": [
+            {
+              "status": "active",
+              "version": "1.0"
+            }
+          ],
+          "applicability": "applicable",
+          "active_version": "1.0"
+        },
+        "genai_policy": {
+          "known": true,
+          "versions": [
+            {
+              "status": "active",
+              "version": "1.0"
+            }
+          ],
+          "applicability": "applicable",
+          "active_version": "1.0"
+        }
+      },
+      "schema": {
+        "valid": true,
+        "errors": [],
+        "normalized": {
+          "urgency": "high",
+          "entities": {
+            "date": "2026-09-18",
+            "amount": "PKR 89,999",
+            "product": "NimbusTab 11",
+            "service": "NimbusTab 11",
+            "location": "NimbusCarta warehouse",
+            "order_id": "NC-768565",
+            "department": "Returns",
+            "transaction_id": null,
+            "complaint_reference": "CMP-00009"
+          },
+          "priority": "P1",
+          "policy_id": "WAR-POL-03",
+          "sentiment": "negative",
+          "department": "Returns",
+          "subcategory": "Dead on Arrival",
+          "complaint_id": "CMP-00009",
+          "primary_issue": "Damaged Product",
+          "response_type": "internal",
+          "agent_guidance": [
+            "Verify the order details and invoice",
+            "Check the delivery note for any damage",
+            "Request a photo of the damaged product and packaging",
+            "Review the policy excerpt for Damaged on Arrival",
+            "Assess the claim within 5 business days",
+            "Request a replacement if the product is damaged on arrival"
+          ],
+          "issue_category": "Product Defect",
+          "policy_section": "3",
+          "refund_eligible": null,
+          "escalation_level": "supervisor_review",
+          "escalation_notes": "Tablet arrived with a cracked screen. Customer provided photo and invoice. The tablet works but the touch screen does not respond in the cracked area. The order was delivered two days ago and the box corner was dented.",
+          "resolution_steps": [
+            "Verify the order details and invoice",
+            "Check the delivery note for any damage",
+            "Request a photo of the damaged product and packaging",
+            "Review the policy excerpt for Damaged on Arrival",
+            "Assess the claim within 5 business days",
+            "Request a replacement if the product is damaged on arrival"
+          ],
+          "secondary_issues": [],
+          "complaint_summary": "Customer received a damaged NimbusTab 11 tablet with a cracked screen. The tablet works but the touch screen does not respond in the cracked area. The order was delivered two days ago and the box corner was dented.",
+          "customer_response": "Dear customer, we understand your concern about the damaged tablet. We have received your invoice, photo, and delivery note. We will review the policy and take the necessary steps to resolve this issue. The replacement will be processed as soon as possible.",
+          "escalation_reason": "Damaged product on arrival, need verification and replacement",
+          "emotion_indicators": [],
+          "follow_up_required": true,
+          "escalation_required": true,
+          "missing_information": [
+            "Serial number of the tablet",
+            "Date of purchase",
+            "Product model"
+          ],
+          "policy_applicability": "applicable",
+          "replacement_eligible": true,
+          "supporting_departments": [
+            "Logistics",
+            "Warranty",
+            "Customer Relations",
+            "Account Security",
+            "Management Escalations"
+          ],
+          "clarification_questions": [
+            "Can you provide the serial number of the tablet?",
+            "Is there any other damage to the tablet besides the cracked screen?",
+            "Can you confirm that the tablet was delivered to the correct address?"
+          ],
+          "follow_up_communication": "Dear customer, we have reviewed the policy and have requested a replacement for your damaged tablet. We will provide an update on the status of your request shortly.",
+          "compensation_recommended": false
+        }
+      },
+      "routing": {
+        "python_department": "Warranty",
+        "supporting_departments": [
+          "Logistics",
+          "Billing"
+        ]
+      },
+      "escalation": {
+        "python_level": "no_escalation",
+        "matched_rules": [],
+        "python_required": false
+      },
+      "classification": {
+        "matched": true,
+        "ambiguous": true,
+        "rule_code": "RR-006",
+        "match_score": 1
+      },
+      "review_reasons": [
+        "Complaint is ambiguous",
+        "GenAI and Python disagree significantly"
+      ],
+      "genai_available": true,
+      "policy_traceable": true,
+      "genai_skipped_reason": ""
+    },
+    "flags": [
+      {
+        "code": "missing_mandatory_action",
+        "action": "Open replacement if eligible"
+      }
+    ],
+    "verification_score": 52.14,
+    "requires_manual_review": true,
+    "pending_review": false,
+    "analyzed_at": "2026-09-25T07:07:25.906515+00:00",
+    "classification": {
+      "category": "Product Defect",
+      "subcategory": "Damaged Product",
+      "urgency": "high",
+      "priority": "P1",
+      "sentiment": "negative",
+      "escalation_required": false,
+      "overridden": false
+    },
+    "first_response": "met",
+    "sla_first_response_due": "2026-09-25T08:07:14.311869+00:00",
+    "first_responded_at": "2026-09-25T07:08:04.925519+00:00",
+    "needs_reanalysis": false,
+    "comparison": {
+      "fields": {
+        "urgency": {
+          "genai": "high",
+          "match": true,
+          "python": "high"
+        },
+        "priority": {
+          "genai": "P1",
+          "match": true,
+          "python": "P1"
+        },
+        "policy_id": {
+          "genai": "WAR-POL-03",
+          "match": true,
+          "python": "WAR-POL-03"
+        },
+        "department": {
+          "genai": "Returns",
+          "match": false,
+          "python": "Warranty"
+        },
+        "subcategory": {
+          "genai": "Dead on Arrival",
+          "match": false,
+          "python": "Damaged Product"
+        },
+        "issue_category": {
+          "genai": "Product Defect",
+          "match": true,
+          "python": "Product Defect"
+        },
+        "escalation_required": {
+          "genai": true,
+          "match": false,
+          "python": false
+        }
+      },
+      "status": "manual_review",
+      "explanation": "subcategory: GenAI='Dead on Arrival' Python='Damaged Product'; department: GenAI='Returns' Python='Warranty'; escalation_required: GenAI=True Python=False"
+    },
+    "open_followups": [],
+    "latest_review": {
+      "action": "approve",
+      "comments": "Photo and delivery note confirm damage on arrival within the replacement window. Approve the Python recommendation.",
+      "final_decision": {
+        "accepted": "python"
+      },
+      "created_at": "2026-09-25T07:08:18.576095+00:00"
+    }
+  },
+  "history": {
+    "audit": [
+      {
+        "at": "2026-09-25T07:07:14.311869+00:00",
+        "actor": "Demo Customer",
+        "action": "submit",
+        "details": {}
+      },
+      {
+        "at": "2026-09-25T07:07:14.423893+00:00",
+        "actor": "Demo Customer",
+        "action": "attachment",
+        "details": {
+          "kind": "document",
+          "filename": "invoice_NC-768565.pdf",
+          "characters": 297
+        }
+      },
+      {
+        "at": "2026-09-25T07:07:14.497382+00:00",
+        "actor": "Demo Customer",
+        "action": "attachment",
+        "details": {
+          "kind": "image",
+          "filename": "photo_cracked_screen.jpg",
+          "characters": 0
+        }
+      },
+      {
+        "at": "2026-09-25T07:07:14.631559+00:00",
+        "actor": "Demo Customer",
+        "action": "attachment",
+        "details": {
+          "kind": "document",
+          "filename": "delivery_note.docx",
+          "characters": 157
+        }
+      },
+      {
+        "at": "2026-09-25T07:07:25.906515+00:00",
+        "actor": "Amina Agent",
+        "action": "analyze",
+        "details": {
+          "score": 52.14,
+          "rule_code": "RR-006",
+          "genai_provider": "ollama",
+          "prompt_version": "v3",
+          "review_reasons": [
+            "Complaint is ambiguous",
+            "GenAI and Python disagree significantly"
+          ],
+          "escalation_required": false,
+          "verification_status": "manual_review"
+        }
+      },
+      {
+        "at": "2026-09-25T07:08:02.175262+00:00",
+        "actor": "Amina Agent",
+        "action": "assign",
+        "details": {
+          "agent": "Amina Agent"
+        }
+      },
+      {
+        "at": "2026-09-25T07:08:04.874153+00:00",
+        "actor": "Amina Agent",
+        "action": "message_to_customer",
+        "details": {
+          "flags": [],
+          "source": "agent",
+          "override": false
+        }
+      },
+      {
+        "at": "2026-09-25T07:08:11.345847+00:00",
+        "actor": "Demo Customer",
+        "action": "message_from_customer",
+        "details": {
+          "flags": [],
+          "source": "customer",
+          "override": false
+        }
+      },
+      {
+        "at": "2026-09-25T07:08:18.576095+00:00",
+        "actor": "Rafi Reviewer",
+        "action": "review_approve",
+        "details": {
+          "final": {
+            "accepted": "python"
+          },
+          "comments": "Photo and delivery note confirm damage on arrival within the replacement window. Approve the Python recommendation.",
+          "original": {
+            "genai": {
+              "urgency": "high",
+              "entities": {
+                "date": "2026-09-18",
+                "amount": "PKR 89,999",
+                "product": "NimbusTab 11",
+                "service": "NimbusTab 11",
+                "location": "NimbusCarta warehouse",
+                "order_id": "NC-768565",
+                "department": "Returns",
+                "transaction_id": null,
+                "complaint_reference": "CMP-00009"
+              },
+              "priority": "P1",
+              "policy_id": "WAR-POL-03",
+              "sentiment": "negative",
+              "department": "Returns",
+              "subcategory": "Dead on Arrival",
+              "complaint_id": "CMP-00009",
+              "primary_issue": "Damaged Product",
+              "response_type": "internal",
+              "agent_guidance": [
+                "Verify the order details and invoice",
+                "Check the delivery note for any damage",
+                "Request a photo of the damaged product and packaging",
+                "Review the policy excerpt for Damaged on Arrival",
+                "Assess the claim within 5 business days",
+                "Request a replacement if the product is damaged on arrival"
+              ],
+              "issue_category": "Product Defect",
+              "policy_section": "3",
+              "refund_eligible": null,
+              "escalation_level": "supervisor_review",
+              "escalation_notes": "Tablet arrived with a cracked screen. Customer provided photo and invoice. The tablet works but the touch screen does not respond in the cracked area. The order was delivered two days ago and the box corner was dented.",
+              "resolution_steps": [
+                "Verify the order details and invoice",
+                "Check the delivery note for any damage",
+                "Request a photo of the damaged product and packaging",
+                "Review the policy excerpt for Damaged on Arrival",
+                "Assess the claim within 5 business days",
+                "Request a replacement if the product is damaged on arrival"
+              ],
+              "secondary_issues": [],
+              "complaint_summary": "Customer received a damaged NimbusTab 11 tablet with a cracked screen. The tablet works but the touch screen does not respond in the cracked area. The order was delivered two days ago and the box corner was dented.",
+              "customer_response": "Dear customer, we understand your concern about the damaged tablet. We have received your invoice, photo, and delivery note. We will review the policy and take the necessary steps to resolve this issue. The replacement will be processed as soon as possible.",
+              "escalation_reason": "Damaged product on arrival, need verification and replacement",
+              "emotion_indicators": [],
+              "follow_up_required": true,
+              "escalation_required": true,
+              "missing_information": [
+                "Serial number of the tablet",
+                "Date of purchase",
+                "Product model"
+              ],
+              "policy_applicability": "applicable",
+              "replacement_eligible": true,
+              "supporting_departments": [
+                "Logistics",
+                "Warranty",
+                "Customer Relations",
+                "Account Security",
+                "Management Escalations"
+              ],
+              "clarification_questions": [
+                "Can you provide the serial number of the tablet?",
+                "Is there any other damage to the tablet besides the cracked screen?",
+                "Can you confirm that the tablet was delivered to the correct address?"
+              ],
+              "follow_up_communication": "Dear customer, we have reviewed the policy and have requested a replacement for your damaged tablet. We will provide an update on the status of your request shortly.",
+              "compensation_recommended": false
+            },
+            "python": {
+              "urgency": "high",
+              "entities": {
+                "dates": [],
+                "emails": [],
+                "amounts": [],
+                "order_ids": []
+              },
+              "evidence": {
+                "count": 3,
+                "photos": 1,
+                "amounts": [
+                  "PKR 89,999",
+                  "PKR 89,999"
+                ],
+                "documents": 2,
+                "order_ids": [
+                  "NC-768565"
+                ],
+                "satisfies": [
+                  "Request unboxing photos"
+                ],
+                "injection_in": [],
+                "purchase_date": "2026-09-16"
+              },
+              "priority": "P1",
+              "policy_id": "WAR-POL-03",
+              "rule_code": "RR-006",
+              "department": "Warranty",
+              "eligibility": {
+                "checks": [
+                  {
+                    "check": "replacement_window",
+                    "detail": "7 days since purchase/delivery (limit 30)",
+                    "passed": true,
+                    "policy": "RPL-POL-01 §1"
+                  },
+                  {
+                    "check": "product_condition",
+                    "detail": "Condition to be confirmed on inspection",
+                    "passed": null,
+                    "policy": "RPL-POL-01 §1 · WAR-POL-03 §4"
+                  },
+                  {
+                    "check": "no_previous_replacement",
+                    "detail": "No earlier replacement on this order",
+                    "passed": true,
+                    "policy": "RPL-POL-01 §2"
+                  }
+                ],
+                "needs_check": [
+                  "product_condition"
+                ],
+                "refund_eligible": null,
+                "replacement_eligible": true,
+                "rule_refund_eligible": null,
+                "rule_replacement_eligible": true
+              },
+              "subcategory": "Damaged Product",
+              "complaint_id": "CMP-00009",
+              "rule_matched": true,
+              "urgency_basis": {
+                "rule": "RR-006",
+                "inputs": [
+                  "rule matrix",
+                  "escalation rules",
+                  "priority table",
+                  "customer type"
+                ],
+                "rule_urgency": "high",
+                "escalation_rules": [],
+                "escalation_force_urgency": null
+              },
+              "issue_category": "Product Defect",
+              "policy_section": "2.2",
+              "policy_version": "1.0",
+              "refund_eligible": null,
+              "escalation_level": "no_escalation",
+              "escalation_rules": [],
+              "prompt_injection": {
+                "note": "Complaint text is untrusted data and must never override application instructions.",
+                "detected": false,
+                "patterns": []
+              },
+              "required_actions": [
+                "Request unboxing photos",
+                "Open replacement if eligible"
+              ],
+              "secondary_issues": [
+                {
+                  "rule_code": "RR-124",
+                  "department": "LOG",
+                  "subcategory": "Delayed Delivery",
+                  "issue_category": "Delivery"
+                },
+                {
+                  "rule_code": "RR-137",
+                  "department": "BIL",
+                  "subcategory": "Incorrect Charge",
+                  "issue_category": "Billing"
+                }
+              ],
+              "escalation_reasons": [],
+              "follow_up_required": true,
+              "prohibited_actions": [
+                "Approve refund before inspection"
+              ],
+              "related_complaints": [],
+              "sentiment_estimate": {
+                "score": 0,
+                "sentiment": "neutral",
+                "emotion_indicators": []
+              },
+              "escalation_required": false,
+              "missing_information": [],
+              "policy_applicability": "applicable",
+              "replacement_eligible": true,
+              "compensation_permitted": false,
+              "supporting_departments": [
+                "Logistics",
+                "Billing"
+              ],
+              "clarification_questions": []
+            }
+          }
+        }
+      },
+      {
+        "at": "2026-09-25T07:08:25.716929+00:00",
+        "actor": "Amina Agent",
+        "action": "status",
+        "details": {
+          "to": "resolved",
+          "from": "in_progress",
+          "note": "A replacement NimbusTab 11 has been approved under RPL-POL-01 after the photo and delivery note were checked. The courier will collect the damaged unit."
+        }
+      },
+      {
+        "at": "2026-09-25T07:08:34.027171+00:00",
+        "actor": "Demo Customer",
+        "action": "customer_confirm",
+        "details": {
+          "rating": 5,
+          "comment": ""
+        }
+      }
+    ],
+    "reviews": [
+      {
+        "at": "2026-09-25T07:08:18.576095+00:00",
+        "reviewer": "Rafi Reviewer",
+        "action": "approve",
+        "comments": "Photo and delivery note confirm damage on arrival within the replacement window. Approve the Python recommendation.",
+        "original_recommendation": {
+          "genai": {
+            "urgency": "high",
+            "entities": {
+              "date": "2026-09-18",
+              "amount": "PKR 89,999",
+              "product": "NimbusTab 11",
+              "service": "NimbusTab 11",
+              "location": "NimbusCarta warehouse",
+              "order_id": "NC-768565",
+              "department": "Returns",
+              "transaction_id": null,
+              "complaint_reference": "CMP-00009"
+            },
+            "priority": "P1",
+            "policy_id": "WAR-POL-03",
+            "sentiment": "negative",
+            "department": "Returns",
+            "subcategory": "Dead on Arrival",
+            "complaint_id": "CMP-00009",
+            "primary_issue": "Damaged Product",
+            "response_type": "internal",
+            "agent_guidance": [
+              "Verify the order details and invoice",
+              "Check the delivery note for any damage",
+              "Request a photo of the damaged product and packaging",
+              "Review the policy excerpt for Damaged on Arrival",
+              "Assess the claim within 5 business days",
+              "Request a replacement if the product is damaged on arrival"
+            ],
+            "issue_category": "Product Defect",
+            "policy_section": "3",
+            "refund_eligible": null,
+            "escalation_level": "supervisor_review",
+            "escalation_notes": "Tablet arrived with a cracked screen. Customer provided photo and invoice. The tablet works but the touch screen does not respond in the cracked area. The order was delivered two days ago and the box corner was dented.",
+            "resolution_steps": [
+              "Verify the order details and invoice",
+              "Check the delivery note for any damage",
+              "Request a photo of the damaged product and packaging",
+              "Review the policy excerpt for Damaged on Arrival",
+              "Assess the claim within 5 business days",
+              "Request a replacement if the product is damaged on arrival"
+            ],
+            "secondary_issues": [],
+            "complaint_summary": "Customer received a damaged NimbusTab 11 tablet with a cracked screen. The tablet works but the touch screen does not respond in the cracked area. The order was delivered two days ago and the box corner was dented.",
+            "customer_response": "Dear customer, we understand your concern about the damaged tablet. We have received your invoice, photo, and delivery note. We will review the policy and take the necessary steps to resolve this issue. The replacement will be processed as soon as possible.",
+            "escalation_reason": "Damaged product on arrival, need verification and replacement",
+            "emotion_indicators": [],
+            "follow_up_required": true,
+            "escalation_required": true,
+            "missing_information": [
+              "Serial number of the tablet",
+              "Date of purchase",
+              "Product model"
+            ],
+            "policy_applicability": "applicable",
+            "replacement_eligible": true,
+            "supporting_departments": [
+              "Logistics",
+              "Warranty",
+              "Customer Relations",
+              "Account Security",
+              "Management Escalations"
+            ],
+            "clarification_questions": [
+              "Can you provide the serial number of the tablet?",
+              "Is there any other damage to the tablet besides the cracked screen?",
+              "Can you confirm that the tablet was delivered to the correct address?"
+            ],
+            "follow_up_communication": "Dear customer, we have reviewed the policy and have requested a replacement for your damaged tablet. We will provide an update on the status of your request shortly.",
+            "compensation_recommended": false
+          },
+          "python": {
+            "urgency": "high",
+            "entities": {
+              "dates": [],
+              "emails": [],
+              "amounts": [],
+              "order_ids": []
+            },
+            "evidence": {
+              "count": 3,
+              "photos": 1,
+              "amounts": [
+                "PKR 89,999",
+                "PKR 89,999"
+              ],
+              "documents": 2,
+              "order_ids": [
+                "NC-768565"
+              ],
+              "satisfies": [
+                "Request unboxing photos"
+              ],
+              "injection_in": [],
+              "purchase_date": "2026-09-16"
+            },
+            "priority": "P1",
+            "policy_id": "WAR-POL-03",
+            "rule_code": "RR-006",
+            "department": "Warranty",
+            "eligibility": {
+              "checks": [
+                {
+                  "check": "replacement_window",
+                  "detail": "7 days since purchase/delivery (limit 30)",
+                  "passed": true,
+                  "policy": "RPL-POL-01 §1"
+                },
+                {
+                  "check": "product_condition",
+                  "detail": "Condition to be confirmed on inspection",
+                  "passed": null,
+                  "policy": "RPL-POL-01 §1 · WAR-POL-03 §4"
+                },
+                {
+                  "check": "no_previous_replacement",
+                  "detail": "No earlier replacement on this order",
+                  "passed": true,
+                  "policy": "RPL-POL-01 §2"
+                }
+              ],
+              "needs_check": [
+                "product_condition"
+              ],
+              "refund_eligible": null,
+              "replacement_eligible": true,
+              "rule_refund_eligible": null,
+              "rule_replacement_eligible": true
+            },
+            "subcategory": "Damaged Product",
+            "complaint_id": "CMP-00009",
+            "rule_matched": true,
+            "urgency_basis": {
+              "rule": "RR-006",
+              "inputs": [
+                "rule matrix",
+                "escalation rules",
+                "priority table",
+                "customer type"
+              ],
+              "rule_urgency": "high",
+              "escalation_rules": [],
+              "escalation_force_urgency": null
+            },
+            "issue_category": "Product Defect",
+            "policy_section": "2.2",
+            "policy_version": "1.0",
+            "refund_eligible": null,
+            "escalation_level": "no_escalation",
+            "escalation_rules": [],
+            "prompt_injection": {
+              "note": "Complaint text is untrusted data and must never override application instructions.",
+              "detected": false,
+              "patterns": []
+            },
+            "required_actions": [
+              "Request unboxing photos",
+              "Open replacement if eligible"
+            ],
+            "secondary_issues": [
+              {
+                "rule_code": "RR-124",
+                "department": "LOG",
+                "subcategory": "Delayed Delivery",
+                "issue_category": "Delivery"
+              },
+              {
+                "rule_code": "RR-137",
+                "department": "BIL",
+                "subcategory": "Incorrect Charge",
+                "issue_category": "Billing"
+              }
+            ],
+            "escalation_reasons": [],
+            "follow_up_required": true,
+            "prohibited_actions": [
+              "Approve refund before inspection"
+            ],
+            "related_complaints": [],
+            "sentiment_estimate": {
+              "score": 0,
+              "sentiment": "neutral",
+              "emotion_indicators": []
+            },
+            "escalation_required": false,
+            "missing_information": [],
+            "policy_applicability": "applicable",
+            "replacement_eligible": true,
+            "compensation_permitted": false,
+            "supporting_departments": [
+              "Logistics",
+              "Billing"
+            ],
+            "clarification_questions": []
+          }
+        },
+        "final_decision": {
+          "accepted": "python"
+        }
+      }
+    ],
+    "genai_runs": [
+      {
+        "at": "2026-09-25T07:07:25.906515+00:00",
+        "provider": "ollama",
+        "model": "qwen2.5:3b",
+        "prompt_version": "v3",
+        "attempt": 1,
+        "latency_ms": 23907,
+        "valid": true,
+        "error": "",
+        "policy_versions": [
+          {
+            "status": "active",
+            "version": "1.0",
+            "document_code": "WAR-POL-03"
+          },
+          {
+            "status": "active",
+            "version": "1.0",
+            "document_code": "BIL-POL-02"
+          },
+          {
+            "status": "active",
+            "version": "1.0",
+            "document_code": "DEL-POL-04"
+          },
+          {
+            "status": "active",
+            "version": "1.0",
+            "document_code": "DEL-POL-04"
+          },
+          {
+            "status": "active",
+            "version": "1.0",
+            "document_code": "DEL-POL-04"
+          },
+          {
+            "status": "active",
+            "version": "1.0",
+            "document_code": "WAR-POL-03"
+          }
+        ]
+      }
+    ],
+    "followups": [
+      {
+        "scheduled_at": "2026-09-26T07:07:53.785590+00:00",
+        "type": "replacement_status_update",
+        "message": "Dear customer, we have reviewed the policy and have requested a replacement for your damaged tablet. We will provide an update on the status of your request shortly.",
+        "completed": true
+      },
+      {
+        "scheduled_at": "2026-09-27T07:08:25.773060+00:00",
+        "type": "resolution_confirmation",
+        "message": "Check the resolution worked for the customer, then close the complaint.",
+        "completed": true
+      }
+    ]
+  },
+  "finished_at": "2026-09-25T07:09:02.761Z"
+}

@@ -15,7 +15,7 @@ from database.session import get_db
 from document_processing.chunking import chunk_sections
 from document_processing.parser import parse_document
 from document_processing.validate import file_checksum, safe_filename, validate_knowledge_file
-from knowledge_base.impact import flag_complaints_on_policy_change
+from knowledge_base.impact import flag_complaints_on_policy_change, policy_change_impact
 from knowledge_base.precedence import PRECEDENCE, is_usable_policy
 from security.audit import write_audit
 from security.auth import AdminUser, StaffUser
@@ -114,6 +114,13 @@ def upload_document(
     )
     db.add(doc)
     db.flush()
+    replaced = (
+        db.query(KnowledgeDocument)
+        .filter(KnowledgeDocument.document_code == document_code, KnowledgeDocument.id != doc.id, KnowledgeDocument.status == DocumentStatus.active)
+        .all()
+        if doc.status == DocumentStatus.active
+        else []
+    )
     superseded = _supersede_previous(db, doc) if doc.status == DocumentStatus.active else []
     for chunk in chunks:
         db.add(
@@ -134,6 +141,9 @@ def upload_document(
     if not is_usable_policy(doc) and doc.status == DocumentStatus.active:
         warnings.append("Document is active but outside its effective/expiry window, so retrieval will not treat it as usable.")
     affected = flag_complaints_on_policy_change(db, doc) if doc.status == DocumentStatus.active else []
+    db.flush()
+    db.refresh(doc)
+    impact = policy_change_impact(db, doc, replaced) if doc.status == DocumentStatus.active else None
     write_audit(
         db,
         actor_id=user.id,
@@ -146,6 +156,7 @@ def upload_document(
             "superseded_versions": superseded,
             "affected_open_complaints": affected,
             "injection_patterns": injection["patterns"],
+            "impact": impact,
         },
     )
     db.commit()
@@ -158,6 +169,7 @@ def upload_document(
         "superseded_versions": superseded,
         "affected_open_complaints": len(affected),
         "affected_complaint_codes": affected,
+        "impact": impact,
         "warnings": warnings,
     }
 

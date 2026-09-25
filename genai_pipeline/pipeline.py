@@ -7,7 +7,29 @@ from genai_pipeline.client import GenAIError, generate_structured, provider_chai
 from knowledge_base.retrieval import retrieve_policy_chunks
 from prompt_templates.loader import PROMPT_NAME, active_prompt_version, render_prompts
 from security.pii import mask_pii
-from security.prompt_injection import wrap_untrusted_complaint, wrap_untrusted_policy
+from security.prompt_injection import wrap_untrusted_attachment, wrap_untrusted_complaint, wrap_untrusted_policy
+
+
+def _attachment_context(complaint: Complaint) -> list[dict]:
+    """Attachment facts and a masked excerpt for the prompt; photos are described, not read."""
+    items = []
+    for a in complaint.attachments or []:
+        facts = a.facts or {}
+        excerpt = mask_pii((a.extracted_text or "")[:1500])
+        items.append({
+            "filename": a.filename,
+            "kind": facts.get("kind", "file"),
+            "summary": ", ".join(
+                part for part in (
+                    f"order ids {', '.join(facts['order_ids'])}" if facts.get("order_ids") else "",
+                    f"amounts {', '.join(facts['amounts'][:4])}" if facts.get("amounts") else "",
+                    f"purchase date {facts['purchase_date']}" if facts.get("purchase_date") else "",
+                    f"photo {facts.get('width')}x{facts.get('height')}" if facts.get("kind") == "image" else "",
+                ) if part
+            ) or "no machine-readable facts",
+            "excerpt": wrap_untrusted_attachment(excerpt) if excerpt else "",
+        })
+    return items
 
 
 def run_genai_pipeline(
@@ -35,6 +57,7 @@ def run_genai_pipeline(
             "previous_complaint_reference": complaint.previous_complaint_reference,
             "repeat_context": repeat_context,
             "wrapped_complaint": wrap_untrusted_complaint(complaint_text),
+            "attachments": _attachment_context(complaint),
             "policy_chunks": [{**chunk, "content": wrap_untrusted_policy(chunk["content"])} for chunk in policy_chunks],
             "policy_codes": sorted({chunk["document_code"] for chunk in policy_chunks}),
             "categories": ", ".join(categories),

@@ -2,12 +2,14 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi import HTTPException
 from sqlalchemy import or_
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, object_session
 
 from config.settings import get_settings
+from config.runtime import get_threshold
+from document_processing.attachments import evidence_summary, extract_attachment, kind_of
 from complaint_processing.duplicates import detect_repeat_unresolved, find_duplicates
 from complaint_processing.preprocess import extract_metadata
-from complaint_processing.sla import apply_sla, refresh_sla_risk
+from complaint_processing.sla import apply_sla, first_response_status, refresh_sla_risk
 from comparison_engine.compare import compare_outputs
 from database.models import (
     ComparisonResult,
@@ -73,8 +75,8 @@ def analyze_complaint(db: Session, complaint: Complaint, *, tone: str = "profess
     allowed_policies = {d.document_code for d in db.query(KnowledgeDocument).all()}
 
     settings = get_settings()
-    repeat = detect_repeat_unresolved(db, complaint, similarity_threshold=settings.repeat_similarity_threshold)
-    complaint.is_repeat = repeat["is_repeat"]
+    repeat = detect_repeat_unresolved(db, complaint, similarity_threshold=get_threshold(db, "repeat_similarity_threshold"))
+    complaint.is_repeat = bool(complaint.is_repeat or repeat["is_repeat"])
     repeat_context = (
         f"related unresolved complaints: {', '.join(repeat['related_codes'])}" if repeat["related_codes"] else "none found"
     )
@@ -135,7 +137,11 @@ def analyze_complaint(db: Session, complaint: Complaint, *, tone: str = "profess
         db.add(FollowUp(complaint_id=complaint.id, scheduled_at=complaint.follow_up_at, message=message, follow_up_type=follow_type))
 
     if complaint.status not in LATER_STATUSES:
-        complaint.status = ComplaintStatus.escalated if python_out.get("escalation_required") else ComplaintStatus.analyzed
+        if python_out.get("escalation_required"):
+            complaint.status = ComplaintStatus.escalated
+        elif complaint.status not in (ComplaintStatus.assigned, ComplaintStatus.reopened, ComplaintStatus.escalated):
+            # An owned or reopened case keeps its status; only a mandatory escalation changes it.
+            complaint.status = ComplaintStatus.analyzed
         complaint.latest_update = customer_update(complaint.status, dept.name if dept else None)
 
     result = ValidationResult(
@@ -181,6 +187,9 @@ def analyze_complaint(db: Session, complaint: Complaint, *, tone: str = "profess
             "review_reasons": validation["checks"].get("review_reasons"),
         },
     )
+    complaint.needs_reanalysis = False
+    db.flush()
+    sync_classification(complaint)
     db.commit()
     db.refresh(complaint)
     return {
@@ -233,6 +242,43 @@ def latest_genai_output(complaint: Complaint):
     return (with_output[-1] if with_output else None), runs[-1]
 
 
+def effective_classification(complaint: Complaint) -> dict:
+    """Python ground truth, overridden field by field by a later reviewer reclassification."""
+    latest_val = complaint.validation_results[-1] if complaint.validation_results else None
+    python = dict(latest_val.python_output) if latest_val else {}
+    for review in complaint.reviews or []:
+        if latest_val and review.created_at < latest_val.created_at:
+            continue
+        if review.action.value in ("reclassify", "modify", "reassign"):
+            decision = review.final_decision or {}
+            for key in ("issue_category", "subcategory", "urgency", "priority", "department"):
+                if decision.get(key):
+                    python[key] = decision[key]
+            if "escalation_required" in decision:
+                python["escalation_required"] = bool(decision["escalation_required"])
+    return python
+
+
+def sync_classification(complaint: Complaint) -> None:
+    """Copy the current classification onto indexed columns used by filters and dashboards."""
+    session = object_session(complaint)
+    if session is not None:
+        # Rows added with db.add() are not in already-loaded collections; reload them.
+        session.flush()
+        session.expire(complaint, ["validation_results", "genai_runs", "reviews", "comparisons"])
+    current = effective_classification(complaint)
+    genai_run, _ = latest_genai_output(complaint)
+    genai_sentiment = (genai_run.structured_output or {}).get("sentiment") if genai_run else None
+    estimate = (current.get("sentiment_estimate") or {}).get("sentiment")
+    complaint.category = current.get("issue_category")
+    complaint.subcategory = current.get("subcategory")
+    complaint.urgency = current.get("urgency")
+    complaint.priority = current.get("priority")
+    complaint.sentiment = str(genai_sentiment or estimate or "").lower() or None
+    complaint.escalation_required = bool(current.get("escalation_required"))
+    complaint.pending_review = pending_review(complaint)
+
+
 def pending_review(complaint: Complaint) -> bool:
     """In the manual-review queue until a reviewer acts on the latest analysis."""
     latest_val = complaint.validation_results[-1] if complaint.validation_results else None
@@ -265,7 +311,20 @@ def serialize_complaint(complaint: Complaint, *, audience: str = "staff") -> dic
         "department": complaint.assigned_department.name if complaint.assigned_department else None,
         "created_at": complaint.created_at,
         "updated_at": complaint.updated_at,
-        "attachments": [{"id": a.id, "filename": a.filename, "size_bytes": a.size_bytes} for a in complaint.attachments or []],
+        "attachments": [
+            {
+                "id": a.id,
+                "filename": a.filename,
+                "size_bytes": a.size_bytes,
+                "content_type": a.content_type,
+                "kind": (a.facts or {}).get("kind") or kind_of(a.filename),
+                "uploaded_at": a.created_at,
+            }
+            for a in complaint.attachments or []
+        ],
+        "incident_date": complaint.incident_date,
+        "unread_messages": sum(1 for m in complaint.messages or [] if m.direction == "to_customer" and not m.read_by_customer),
+        "feedback": {"rating": complaint.feedback.rating, "comment": complaint.feedback.comment} if complaint.feedback else None,
     }
     if audience == "customer":
         # Customers see tracking data only; drafts, rule output and flags are internal.
@@ -278,6 +337,7 @@ def serialize_complaint(complaint: Complaint, *, audience: str = "staff") -> dic
     genai_available = bool(latest_val and (latest_val.checks or {}).get("genai_available", genai_run is not None))
     return {
         **base,
+        "evidence": evidence_summary(complaint.attachments),
         "customer_code": complaint.customer.customer_code if complaint.customer else None,
         "is_repeat": complaint.is_repeat,
         "is_adversarial": complaint.is_adversarial,
@@ -306,6 +366,19 @@ def serialize_complaint(complaint: Complaint, *, audience: str = "staff") -> dic
         "requires_manual_review": latest_val.requires_manual_review if latest_val else None,
         "pending_review": pending_review(complaint),
         "analyzed_at": latest_val.created_at if latest_val else None,
+        "classification": {
+            "category": complaint.category,
+            "subcategory": complaint.subcategory,
+            "urgency": complaint.urgency,
+            "priority": complaint.priority,
+            "sentiment": complaint.sentiment,
+            "escalation_required": complaint.escalation_required,
+            "overridden": bool(latest_val) and complaint.category != (latest_val.python_output or {}).get("issue_category"),
+        },
+        "first_response": first_response_status(complaint),
+        "sla_first_response_due": complaint.sla_first_response_due,
+        "first_responded_at": complaint.first_responded_at,
+        "needs_reanalysis": complaint.needs_reanalysis,
         "comparison": {
             "fields": latest_cmp.field_comparisons,
             "status": latest_cmp.verification_status,
@@ -337,3 +410,40 @@ def ensure_not_duplicate_block(db: Session, text: str, customer_id: int | None) 
             detail=f"Exact duplicate of {found['match_code']}",
         )
     return found
+
+
+def backfill_classification(db: Session) -> int:
+    """One-time fill of the indexed classification columns for complaints analyzed before they existed."""
+    from sqlalchemy.orm import selectinload
+
+    rows = (
+        db.query(Complaint)
+        .options(selectinload(Complaint.validation_results), selectinload(Complaint.genai_runs), selectinload(Complaint.reviews))
+        .filter(Complaint.category.is_(None), Complaint.validation_results.any())
+        .all()
+    )
+    for row in rows:
+        sync_classification(row)
+    if rows:
+        db.commit()
+    return len(rows)
+
+
+def backfill_attachments(db: Session) -> int:
+    """Read attachments uploaded before evidence extraction existed (idempotent)."""
+    from pathlib import Path
+
+    from database.models import ComplaintAttachment
+
+    done = 0
+    for row in db.query(ComplaintAttachment).filter(ComplaintAttachment.facts.is_(None)).all():
+        path = Path(row.storage_path)
+        if not path.is_file():
+            row.facts = {"kind": kind_of(row.filename), "note": "The stored file is missing."}
+            continue
+        evidence = extract_attachment(row.filename, path.read_bytes())
+        row.extracted_text = evidence["text"] or None
+        row.facts = evidence["facts"]
+        done += 1
+    db.commit()
+    return done

@@ -34,5 +34,63 @@ def flag_complaints_on_policy_change(db: Session, document: KnowledgeDocument) -
                 action="policy_changed",
                 details={"policy": document.document_code, "version": document.version, "note": "Re-analysis recommended"},
             )
+            complaint.needs_reanalysis = True
             affected.append(complaint.complaint_code)
     return affected
+
+
+def policy_change_impact(db: Session, document: KnowledgeDocument, previous: list[KnowledgeDocument]) -> dict:
+    """What a new policy version changes (SRS 1.8 #4).
+
+    - resolution rules that cite the document, and whether the section they cite still exists;
+    - escalation rules whose reason names the document;
+    - sections added, removed or reworded against the version it replaces;
+    - timelines, rates or automatic entitlements that differ.
+    """
+    from database.models import EscalationRule, ResolutionRule
+    from knowledge_base.precedence import _facts
+
+    new_sections = {c.section or "": c.content for c in document.chunks}
+    old_sections: dict[str, str] = {}
+    for row in previous:
+        for chunk in row.chunks:
+            old_sections.setdefault(chunk.section or "", chunk.content)
+
+    def _norm(text: str) -> str:
+        return " ".join((text or "").lower().split())
+
+    changed = sorted(s for s in set(new_sections) & set(old_sections) if _norm(new_sections[s]) != _norm(old_sections[s]))
+    rules = []
+    for rule in db.query(ResolutionRule).filter(ResolutionRule.policy_code == document.document_code, ResolutionRule.is_active.is_(True)).all():
+        section = rule.policy_section or ""
+        exists = not section or section in new_sections or any(s.startswith(section + ".") for s in new_sections)
+        rules.append({
+            "rule_code": rule.rule_code,
+            "section": section,
+            "section_exists": exists,
+            "section_changed": section in changed,
+        })
+    escalations = [
+        {"rule_code": r.rule_code, "name": r.name}
+        for r in db.query(EscalationRule).filter(EscalationRule.is_active.is_(True)).all()
+        if document.document_code in (r.reason or "")
+    ]
+    old_facts = _facts(" ".join(old_sections.values()))
+    new_facts = _facts(" ".join(new_sections.values()))
+    fact_changes = [
+        {"unit": unit, "before": sorted(old_facts.get(unit, set())), "after": sorted(new_facts.get(unit, set()))}
+        for unit in sorted(set(old_facts) | set(new_facts))
+        if old_facts.get(unit, set()) != new_facts.get(unit, set())
+    ] if previous else []
+    return {
+        "previous_versions": [row.version for row in previous],
+        "sections_added": sorted(set(new_sections) - set(old_sections)) if previous else [],
+        "sections_removed": sorted(set(old_sections) - set(new_sections)),
+        "sections_changed": changed,
+        "resolution_rules": rules,
+        "rules_citing_missing_sections": [r["rule_code"] for r in rules if not r["section_exists"]],
+        "escalation_rules": escalations,
+        "timeline_changes": fact_changes,
+        "previous_obsolete": bool(previous),
+        "responses_need_revision": bool(changed or fact_changes or not previous),
+    }

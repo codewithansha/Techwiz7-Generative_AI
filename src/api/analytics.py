@@ -7,8 +7,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session, selectinload
 
-from complaint_processing.sla import refresh_sla_risk
-from database.models import Complaint, ComplaintStatus, Customer, UserRole
+from complaint_processing.sla import first_response_status, refresh_sla_risk
+from database.models import Complaint, ComplaintFeedback, ComplaintStatus, Customer, UserRole
 from database.session import get_db
 from security.auth import AdminUser, CurrentUser, ManagerUser, StaffUser
 from src.services.analysis import latest_genai_output, pending_review
@@ -55,7 +55,8 @@ def _latest(row: Complaint) -> tuple[dict, dict, object]:
 
 @router.get("/dashboards/admin")
 def admin_dashboard(user: AdminUser, db: Session = Depends(get_db)):
-    return _metrics(_all_complaints(db))
+    rows = _all_complaints(db)
+    return {**_metrics(rows), **_extras(db, rows)}
 
 
 @router.get("/dashboards/agent")
@@ -98,7 +99,8 @@ def customer_dashboard(user: CurrentUser, db: Session = Depends(get_db)):
 
 @router.get("/analytics")
 def analytics(user: ManagerUser, db: Session = Depends(get_db)):
-    return _metrics(_all_complaints(db))
+    rows = _all_complaints(db)
+    return {**_metrics(rows), **_extras(db, rows)}
 
 
 @router.get("/analytics/trends")
@@ -375,6 +377,34 @@ def _resolution_hours(row: Complaint) -> float | None:
     return (row.updated_at - row.created_at).total_seconds() / 3600
 
 
+def _extras(db: Session, rows: list[Complaint]) -> dict:
+    """CSAT, first-response SLA and a daily volume series (SRS steps 55, 64, 65)."""
+    ratings = [r for (r,) in db.query(ComplaintFeedback.rating).all()]
+    first = Counter(first_response_status(r) for r in rows)
+    answered = first["met"] + first["breached"]
+    today = datetime.now(timezone.utc).date()
+    days = [today - timedelta(days=i) for i in range(13, -1, -1)]
+    per_day = Counter(r.created_at.date() for r in rows if r.created_at)
+    escalations_per_day = Counter(r.created_at.date() for r in rows if r.created_at and (r.escalation_required or r.status == ComplaintStatus.escalated))
+    return {
+        "csat": {
+            "average": round(sum(ratings) / len(ratings), 2) if ratings else None,
+            "responses": len(ratings),
+            "distribution": {str(k): ratings.count(k) for k in range(1, 6)},
+        },
+        "first_response": {
+            "met": first["met"],
+            "breached": first["breached"],
+            "pending": first["pending"],
+            "overdue": first["overdue"],
+            "compliance": round(100 * first["met"] / answered, 1) if answered else None,
+        },
+        "daily_volume": [
+            {"date": d.isoformat(), "complaints": per_day.get(d, 0), "escalations": escalations_per_day.get(d, 0)} for d in days
+        ],
+    }
+
+
 def _metrics(rows: list[Complaint]) -> dict:
     categories, departments, priorities, urgencies, sentiments, products = (Counter() for _ in range(6))
     statuses = Counter(r.status.value for r in rows)
@@ -385,11 +415,12 @@ def _metrics(rows: list[Complaint]) -> dict:
         python, genai, val = _latest(row)
         if val:
             analyzed += 1
-        categories[python.get("issue_category") or "Unanalyzed"] += 1
-        departments[python.get("department") or "Unassigned"] += 1
-        priorities[python.get("priority") or "n/a"] += 1
-        urgencies[python.get("urgency") or "n/a"] += 1
-        sentiments[str(genai.get("sentiment") or "n/a").lower()] += 1
+        # Effective classification (Python ground truth, or a reviewer's reclassification).
+        categories[row.category or "Unanalyzed"] += 1
+        departments[row.assigned_department.name if row.assigned_department else "Unassigned"] += 1
+        priorities[row.priority or "n/a"] += 1
+        urgencies[row.urgency or "n/a"] += 1
+        sentiments[row.sentiment or "n/a"] += 1
         if row.product_or_service:
             products[row.product_or_service] += 1
         cmp = row.comparisons[-1] if row.comparisons else None
@@ -401,8 +432,8 @@ def _metrics(rows: list[Complaint]) -> dict:
                 scores.append(val.verification_score)
         if val and val.requires_manual_review:
             reviews += 1
-        pending += pending_review(row)
-        escalations += bool(row.status == ComplaintStatus.escalated or python.get("escalation_required"))
+        pending += bool(row.pending_review)
+        escalations += bool(row.status == ComplaintStatus.escalated or row.escalation_required)
         repeats += bool(row.is_repeat)
         sla_risks += bool(row.sla_risk)
         h = _resolution_hours(row)

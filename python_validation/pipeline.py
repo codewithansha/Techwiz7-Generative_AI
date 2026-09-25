@@ -11,8 +11,12 @@ from comparison_engine.compare import compare_outputs
 from database.models import Complaint, ComplaintCategory, Department, PriorityRule
 from escalation_rules.engine import evaluate_escalation
 from hallucination_checks.detector import detect_hallucinations, detect_unsupported_promises
-from knowledge_base.precedence import policy_status
+from knowledge_base.precedence import policy_status, relies_on_conflict, resolve_precedence
+from knowledge_base.retrieval import outdated_claims
 from python_validation.schema import coerce_enums, validate_schema
+from document_processing.attachments import evidence_summary
+from python_validation.eligibility import evaluate_eligibility
+from python_validation.sentiment import estimate_sentiment
 from routing_rules.engine import recommend_departments
 from security.prompt_injection import detect_prompt_injection
 
@@ -43,11 +47,17 @@ def run_python_validation(
     Nothing here calls a GenAI API, and GenAI output never changes the Python result.
     """
     text = f"{complaint.title}\n{complaint.description}"
+    # Attachments are evidence, not classification input: an invoice full of product words
+    # must not change the category, but its order number, amounts and dates are used below.
+    evidence = evidence_summary(complaint.attachments)
+    evidence_text = "\n".join(a.extracted_text for a in complaint.attachments or [] if a.extracted_text)
+    evidence_date = _parse_date(evidence.get("purchase_date"))
     python_class = classify_from_rules(db, text)
     routing = recommend_departments(db, text, python_class)
     escalation = evaluate_escalation(
         db,
-        text=text,
+        # Amounts on an attached invoice or statement count toward the high-value threshold.
+        text=f"{text}\n{' '.join(evidence.get('amounts') or [])}",
         category=python_class.get("issue_category", ""),
         customer_type=complaint.customer_type.value,
         is_repeat=is_repeat,
@@ -63,8 +73,17 @@ def run_python_validation(
         rule_priority=python_class.get("priority"),
         vip=complaint.customer_type.value in {"vip", "enterprise"},
     )
-    missing = detect_missing_information(complaint, python_class.get("issue_category"))
+    missing = detect_missing_information(complaint, python_class.get("issue_category"), evidence)
     rule_policy = policy_status(db, python_class.get("policy_id"))
+    eligibility = evaluate_eligibility(
+        db,
+        complaint,
+        text=f"{text} {complaint.requested_resolution or ''}",
+        category=python_class.get("issue_category"),
+        refund=python_class.get("refund_eligible"),
+        replacement=python_class.get("replacement_eligible"),
+        evidence_date=evidence_date,
+    )
     python_output = {
         "complaint_id": complaint.complaint_code,
         "issue_category": python_class.get("issue_category"),
@@ -87,17 +106,30 @@ def run_python_validation(
         "required_actions": python_class.get("required_actions", []),
         "prohibited_actions": python_class.get("prohibited_actions", []),
         "follow_up_required": python_class.get("follow_up_required", True),
-        "refund_eligible": python_class.get("refund_eligible"),
-        "replacement_eligible": python_class.get("replacement_eligible"),
+        "refund_eligible": eligibility["refund_eligible"],
+        "replacement_eligible": eligibility["replacement_eligible"],
+        "eligibility": eligibility,
         "compensation_permitted": python_class.get("compensation_permitted", False),
         "rule_code": python_class.get("rule_code"),
         "rule_matched": python_class.get("matched", False),
         "missing_information": missing,
+        "clarification_questions": clarification_questions(missing),
         "entities": extract_metadata(text),
+        # Tone only (lexicon estimate); shown when GenAI is unavailable, never used for urgency.
+        "sentiment_estimate": estimate_sentiment(f"{text}\n{complaint.requested_resolution or ''}"),
+        "urgency_basis": {
+            "rule": python_class.get("rule_code"),
+            "rule_urgency": python_class.get("urgency") or "medium",
+            "escalation_rules": [r["rule_code"] for r in escalation.get("matched_rules", [])],
+            "escalation_force_urgency": escalation.get("force_urgency"),
+            "inputs": ["rule matrix", "escalation rules", "priority table", "customer type"],
+        },
         "prompt_injection": detect_prompt_injection(
             f"{text}\n{complaint.requested_resolution or ''}"
         ),
+        "evidence": {k: v for k, v in evidence.items() if k != "items"},
     }
+    python_output["evidence"]["satisfies"] = [a for a in python_output["required_actions"] if satisfied_by_evidence(a, python_output["evidence"])]
     if python_class.get("escalation_required") and not escalation["escalation_required"]:
         python_output["escalation_reasons"] = [f"Rule {python_class.get('rule_code')} mandates escalation."]
     if python_output["escalation_required"] and python_output["escalation_level"] == "no_escalation":
@@ -119,8 +151,9 @@ def run_python_validation(
         )
         comparison = compare_outputs(canonical, python_output)
         response = canonical.get("customer_response") or ""
-        flags.extend(detect_unsupported_promises(response, python_output))
-        flags.extend(detect_hallucinations(canonical, text, policy_chunks, python_output))
+        flags.extend(detect_unsupported_promises(response, python_output, " ".join(c.get("content", "") for c in policy_chunks)))
+        # Facts copied from an attachment (an invoice number, an amount) are grounded, not invented.
+        flags.extend(detect_hallucinations(canonical, f"{text}\n{evidence_text}", policy_chunks, python_output))
         flags.extend(_resolution_flags(canonical, python_output))
         if canonical.get("compensation_recommended") and not python_output.get("compensation_permitted"):
             flags.append({"code": "unsupported_compensation", "detail": "Compensation is not permitted."})
@@ -158,7 +191,45 @@ def run_python_validation(
     if _policy_conflict(policy_chunks):
         flags.append({"code": "policy_conflict", "detail": "Retrieved excerpts mix active and outdated versions of one policy."})
         reasons.append("Policy contradiction exists")
+    for claim in outdated_claims(db, f"{text}\n{complaint.requested_resolution or ''}"):
+        # The customer relies on a superseded, draft or expired rule; the active policy wins.
+        flags.append({
+            "code": "cites_outdated_policy",
+            "value": f"{claim['document_code']} v{claim['version']} ({claim['status']})",
+            "detail": f"Quoted: “{claim['sentence'][:160]}”. Apply the active version instead.",
+        })
+        reasons.append("Policy contradiction exists")
 
+    precedence = resolve_precedence(policy_chunks, python_output.get("policy_id"))
+    draft = str((canonical or {}).get("customer_response") or "") if genai_output else ""
+    for conflict in precedence["conflicts"]:
+        source = "complaint" if relies_on_conflict(f"{text} {complaint.requested_resolution or ''}", conflict) else "reply" if relies_on_conflict(draft, conflict) else None
+        conflict["relied_on_by"] = source
+        if source:
+            governing = precedence["governing"]
+            flags.append({
+                "code": "lower_precedence_conflict",
+                "value": f"{conflict['document_code']} vs {governing['document_code']}",
+                "detail": f"The {source} relies on {conflict['document_code']} ({conflict['category']}: {', '.join(conflict['lower_says'])} {conflict['unit']}); {governing['document_code']} takes precedence ({', '.join(conflict['governing_says'])} {conflict['unit']}).",
+            })
+            reasons.append("Policy contradiction exists")
+    cited_code = str((canonical or {}).get("policy_id") or "").strip() if genai_output else ""
+    if cited_code and precedence["governing"] and any(o["document_code"] == cited_code for o in precedence["overridden"]):
+        flags.append({"code": "lower_precedence_citation", "value": cited_code, "detail": f"{precedence['governing']['document_code']} governs this case."})
+
+    reference = (complaint.previous_complaint_reference or "").strip().upper()
+    if reference and not db.query(Complaint.id).filter(Complaint.complaint_code == reference).first():
+        flags.append({"code": "unknown_previous_reference", "value": reference, "detail": "The cited earlier complaint is not in this system; confirm it with the customer."})
+
+    if evidence["injection_in"]:
+        flags.append({"code": "prompt_injection_in_attachment", "value": ", ".join(evidence["injection_in"]), "detail": "An attached file contains instruction-like text; it was passed to GenAI only as data."})
+        reasons.append("Adversarial or manipulative content")
+    if complaint.order_reference and evidence["order_ids"] and complaint.order_reference.upper() not in evidence["order_ids"]:
+        flags.append({
+            "code": "attachment_order_mismatch",
+            "value": ", ".join(evidence["order_ids"]),
+            "detail": f"The attachment shows {', '.join(evidence['order_ids'])} but the complaint is about {complaint.order_reference}. Confirm which order is affected.",
+        })
     injection = python_output["prompt_injection"]
     if injection.get("detected"):
         flags.append({"code": "prompt_injection", "patterns": injection.get("patterns")})
@@ -174,8 +245,6 @@ def run_python_validation(
         reasons.append("Mandatory escalation")
     if (python_output["issue_category"] or "").lower() in SENSITIVE_CATEGORIES:
         reasons.append("Sensitive complaint")
-    if missing:
-        reasons.append("Missing information")
     if flags and not reasons:
         reasons.append("Validation flags raised")
 
@@ -208,9 +277,9 @@ def run_python_validation(
         "policy": {
             "rule_policy": {"code": python_output["policy_id"], **rule_policy},
             "genai_policy": genai_policy,
+            "precedence": precedence,
         },
         "policy_traceable": not any(f["code"] in {"invalid_policy_id", "ungrounded_policy_reference"} for f in flags),
-        "sentiment_does_not_drive_urgency": True,
         "review_reasons": sorted(set(reasons)),
     }
     return {
@@ -238,10 +307,48 @@ def canonicalize_genai(db: Session, genai_output: dict) -> dict:
     return data
 
 
-def detect_missing_information(complaint: Complaint, category: str | None = None) -> list[str]:
+CLARIFICATION = {
+    "order_number": "Could you share your order number (it starts with NC-, for example NC-104512)?",
+    "product": "Which product or service is this about?",
+    "problem_description": "Could you describe what happened in a little more detail, including when it started?",
+    "evidence": "Could you attach a photo or document showing the problem (for example the damage or the error)?",
+    "purchase_date": "When did you buy or receive the item?",
+}
+DATE_CATEGORIES = {"warranty", "product defect", "refund"}
+
+
+EVIDENCE_ACTIONS = [
+    (re.compile(r"\b(photo|photos|picture|image|unboxing)\b", re.I), lambda ev: ev.get("photos", 0) > 0),
+    (re.compile(r"\b(invoice|receipt|proof of purchase|statement)\b", re.I), lambda ev: bool(ev.get("documents") and (ev.get("order_ids") or ev.get("purchase_date") or ev.get("amounts")))),
+]
+
+
+def satisfied_by_evidence(action: str, evidence: dict) -> bool:
+    """A 'request X from the customer' step is already done when X is attached."""
+    if not re.search(r"\b(request|ask|collect|obtain|get)\b", action, re.I):
+        return False
+    return any(pattern.search(action) and check(evidence) for pattern, check in EVIDENCE_ACTIONS)
+
+
+def _parse_date(value: str | None):
+    from datetime import date
+
+    try:
+        return date.fromisoformat(value) if value else None
+    except ValueError:
+        return None
+
+
+def clarification_questions(missing: list[str]) -> list[str]:
+    """Focused questions instead of guessing (SRS step 43); used when GenAI has none."""
+    return [CLARIFICATION[m] for m in missing if m in CLARIFICATION]
+
+
+def detect_missing_information(complaint: Complaint, category: str | None = None, evidence: dict | None = None) -> list[str]:
     missing = []
+    evidence = evidence or {}
     text = f"{complaint.title} {complaint.description} {complaint.order_reference} {complaint.product_or_service}"
-    if not complaint.order_reference and not re.search(r"\bNC-\d{6,}\b", text, re.I):
+    if not complaint.order_reference and not re.search(r"\bNC-\d{6,}\b", text, re.I) and not evidence.get("order_ids"):
         missing.append("order_number")
     if not complaint.product_or_service.strip():
         missing.append("product")
@@ -249,6 +356,8 @@ def detect_missing_information(complaint: Complaint, category: str | None = None
         missing.append("problem_description")
     if (category or "").lower() in EVIDENCE_CATEGORIES and not complaint.attachments:
         missing.append("evidence")
+    if (category or "").lower() in DATE_CATEGORIES and not complaint.incident_date and not extract_metadata(text).get("dates") and not evidence.get("purchase_date"):
+        missing.append("purchase_date")
     return missing
 
 
@@ -260,6 +369,8 @@ def _resolution_flags(genai_output: dict, python_output: dict) -> list[dict]:
     response = str(genai_output.get("customer_response") or "")
     candidates = steps + guidance + [response]
     for required in python_output.get("required_actions") or []:
+        if satisfied_by_evidence(required, python_output.get("evidence") or {}):
+            continue  # e.g. "Request unboxing photos" when the customer already attached a photo
         if not any(_similar(required, item) for item in candidates):
             flags.append({"code": "missing_mandatory_action", "action": required})
     offered = [s for s in steps if not s.strip().lower().startswith(NEGATIONS)] + [response]

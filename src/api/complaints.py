@@ -1,11 +1,14 @@
 import uuid
+from pathlib import Path
 from datetime import date, datetime, time, timedelta, timezone
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
-from sqlalchemy import or_
+from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile
+from fastapi.responses import FileResponse
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session, selectinload
 
-from complaint_processing.preprocess import content_hash, sanitize_input, validate_complaint_payload
+from complaint_processing.preprocess import sanitize_input
+from complaint_processing.sla import mark_first_response
 from config.settings import get_settings
 from database.models import (
     AuditLog,
@@ -13,6 +16,8 @@ from database.models import (
     ComplaintAttachment,
     ComplaintStatus,
     Customer,
+    ComplaintFeedback,
+    ComplaintMessage,
     Department,
     FollowUp,
     ReviewAction,
@@ -21,16 +26,18 @@ from database.models import (
     UserRole,
 )
 from database.session import get_db
+from document_processing.attachments import extract_attachment
 from document_processing.validate import safe_filename, validate_complaint_attachment
 from security.audit import write_audit
 from security.auth import CurrentUser, ReviewerUser, StaffUser
-from src.api.schemas import AnalyzeRequest, AssignRequest, ComplaintCreate, CustomerDecision, ReviewRequest, StatusUpdate
+from src.services.access import customer_for, scope_complaints, visibility_error
+from src.services.intake import IntakeError, create_complaint
+from src.api.schemas import AnalyzeRequest, AssignRequest, ComplaintCreate, CustomerDecision, MessageCreate, ReviewRequest, StatusUpdate
+from src.services.messaging import reply_flags
 from src.services.analysis import (
     analyze_complaint,
-    ensure_not_duplicate_block,
-    complaint_code_for,
     customer_update,
-    pending_review,
+    sync_classification,
     serialize_complaint,
 )
 
@@ -38,7 +45,7 @@ router = APIRouter(prefix="/api/v1/complaints", tags=["complaints"])
 
 
 def _customer_for_user(db: Session, user: User) -> Customer | None:
-    return db.query(Customer).filter(Customer.user_id == user.id).first()
+    return customer_for(db, user)
 
 
 def _audience(user: User) -> str:
@@ -58,6 +65,8 @@ def _loaders():
         selectinload(Complaint.customer),
         selectinload(Complaint.duplicate_of),
         selectinload(Complaint.followups),
+        selectinload(Complaint.messages).selectinload(ComplaintMessage.author),
+        selectinload(Complaint.feedback),
     )
 
 
@@ -74,11 +83,6 @@ def submit_complaint(
     user: CurrentUser,
     db: Session = Depends(get_db),
 ):
-    errors = validate_complaint_payload(payload.model_dump())
-    if errors:
-        raise HTTPException(status_code=422, detail=errors)
-    title = sanitize_input(payload.title)
-    description = sanitize_input(payload.description)
     customer = _customer_for_user(db, user)
     if user.role == UserRole.customer and not customer:
         raise HTTPException(status_code=400, detail="Customer profile is missing.")
@@ -86,35 +90,10 @@ def submit_complaint(
         customer = db.query(Customer).filter(Customer.customer_code == payload.customer_code.strip()).first()
         if not customer:
             raise HTTPException(status_code=422, detail=[f"Unknown customer reference {payload.customer_code}."])
-    previous = payload.previous_complaint_reference.strip().upper()
-    if previous:
-        cited = db.query(Complaint).filter(Complaint.complaint_code == previous).first()
-        if not cited or (customer and cited.customer_id not in (None, customer.id)):
-            raise HTTPException(status_code=422, detail=[f"Previous complaint {previous} was not found for this customer."])
-    # A customer cannot promote themselves to VIP; the type comes from the profile.
-    customer_type = customer.customer_type if customer else payload.customer_type
-    duplicate = ensure_not_duplicate_block(db, f"{title}\n{description}", customer.id if customer else None)
-    complaint = Complaint(
-        # Placeholder until the insert assigns an id; replaced before commit.
-        complaint_code=f"TMP-{uuid.uuid4().hex[:24]}",
-        customer_id=customer.id if customer else None,
-        submitted_by_id=user.id,
-        title=title,
-        description=description,
-        normalized_text=f"{title} {description}".lower(),
-        content_hash=content_hash(f"{title}\n{description}"),
-        product_or_service=sanitize_input(payload.product_or_service),
-        order_reference=payload.order_reference.strip().upper(),
-        previous_complaint_reference=previous,
-        customer_type=customer_type,
-        preferred_contact_channel=sanitize_input(payload.preferred_contact_channel) or "email",
-        requested_resolution=sanitize_input(payload.requested_resolution),
-        duplicate_of_id=duplicate.get("match_id"),
-    )
-    db.add(complaint)
-    db.flush()
-    complaint.complaint_code = complaint_code_for(complaint.id)
-    write_audit(db, actor_id=user.id, entity_type="complaint", entity_id=complaint.complaint_code, action="submit")
+    try:
+        complaint, duplicate = create_complaint(db, payload.model_dump(), customer=customer, submitted_by_id=user.id)
+    except IntakeError as exc:
+        raise HTTPException(status_code=exc.status, detail=exc.errors if exc.status == 422 else exc.errors[0]) from exc
     db.commit()
     complaint = _get_complaint(db, complaint.id)
     return {
@@ -139,21 +118,62 @@ def add_attachment(
     original = safe_filename(file.filename or "", "attachment.bin")
     dest = dest_dir / f"{uuid.uuid4().hex[:8]}_{original}"
     dest.write_bytes(content)
+    evidence = extract_attachment(original, content)
     row = ComplaintAttachment(
         complaint_id=complaint.id,
         filename=original,
         content_type=file.content_type or "application/octet-stream",
         storage_path=str(dest),
         size_bytes=len(content),
+        extracted_text=evidence["text"] or None,
+        facts=evidence["facts"],
     )
     db.add(row)
-    write_audit(db, actor_id=user.id, entity_type="complaint", entity_id=complaint.complaint_code, action="attachment", details={"filename": original})
+    if complaint.validation_results:
+        # New evidence can change eligibility, missing information and the GenAI draft.
+        complaint.needs_reanalysis = True
+    write_audit(
+        db,
+        actor_id=user.id,
+        entity_type="complaint",
+        entity_id=complaint.complaint_code,
+        action="attachment",
+        details={"filename": original, "kind": evidence["facts"].get("kind"), "characters": evidence["facts"].get("characters", 0)},
+    )
     db.commit()
-    return {"id": row.id, "filename": row.filename, "size_bytes": row.size_bytes}
+    return {"id": row.id, "filename": row.filename, "size_bytes": row.size_bytes, "kind": evidence["facts"].get("kind"), "facts": evidence["facts"]}
+
+
+INLINE_TYPES = {".pdf": "application/pdf", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".txt": "text/plain; charset=utf-8"}
+
+
+@router.get("/{complaint_id}/attachments/{attachment_id}")
+def get_attachment(complaint_id: int, attachment_id: int, user: CurrentUser, db: Session = Depends(get_db), download: bool = False):
+    """Serve an attachment to anyone who may see the complaint (the customer who filed it, or staff)."""
+    complaint = _get_visible_complaint(db, user, complaint_id)
+    row = next((a for a in complaint.attachments if a.id == attachment_id), None)
+    if row is None:
+        raise HTTPException(status_code=404, detail="Attachment not found")
+    path = Path(row.storage_path)
+    root = (get_settings().upload_path / "complaints").resolve()
+    if not path.is_file() or root not in path.resolve().parents:
+        raise HTTPException(status_code=404, detail="The stored file is missing.")
+    ext = path.suffix.lower()
+    media = INLINE_TYPES.get(ext, "application/octet-stream")
+    disposition = "attachment" if download or ext not in INLINE_TYPES else "inline"
+    return FileResponse(
+        path,
+        media_type=media,
+        filename=row.filename,
+        content_disposition_type=disposition,
+        # Uploaded content is served as a file, never interpreted as a page of this app.
+        headers={"X-Content-Type-Options": "nosniff", "Content-Security-Policy": "sandbox", "Cache-Control": "private, no-store"},
+    )
 
 
 @router.get("")
 def list_complaints(
+    response: Response,
     user: CurrentUser,
     db: Session = Depends(get_db),
     status: str | None = None,
@@ -166,16 +186,17 @@ def list_complaints(
     sla_risk: bool | None = None,
     escalated: bool | None = None,
     review: bool | None = None,
+    reanalysis: bool | None = None,
     date_from: date | None = None,
     date_to: date | None = None,
     limit: int = 200,
+    offset: int = 0,
 ):
-    query = db.query(Complaint).options(*_loaders())
-    if user.role == UserRole.customer:
-        customer = _customer_for_user(db, user)
-        query = query.filter(Complaint.customer_id == (customer.id if customer else -1))
-    elif user.role == UserRole.agent:
-        query = query.filter(or_(Complaint.assigned_to_id == user.id, Complaint.assigned_to_id.is_(None)))
+    """Search and filter in SQL on the denormalized classification columns, then paginate.
+
+    The total match count is returned in the ``X-Total-Count`` header.
+    """
+    query = scope_complaints(db, user, db.query(Complaint))
     if status:
         try:
             query = query.filter(Complaint.status == ComplaintStatus(status))
@@ -196,40 +217,78 @@ def list_complaints(
                 Customer.customer_code.ilike(like),
             )
         )
-    rows = query.order_by(Complaint.id.desc()).limit(max(1, min(limit, 1000))).all()
+    if sla_risk is True:
+        # Same rule as refresh_sla_risk: the configured share of the window has elapsed.
+        query = query.filter(
+            Complaint.sla_resolution_due.isnot(None),
+            ~Complaint.status.in_([ComplaintStatus.resolved, ComplaintStatus.closed]),
+            func.now() >= Complaint.created_at + (Complaint.sla_resolution_due - Complaint.created_at) * (func.coalesce(Complaint.sla_risk_percent, 75) / 100.0),
+        )
+    if user.role != UserRole.customer:
+        if category:
+            query = query.filter(Complaint.category == category)
+        if department:
+            query = query.join(Department, Complaint.assigned_department_id == Department.id).filter(Department.name == department)
+        if priority:
+            query = query.filter(Complaint.priority == priority)
+        if urgency:
+            query = query.filter(Complaint.urgency == urgency)
+        if sentiment:
+            query = query.filter(Complaint.sentiment == sentiment.lower())
+        escalated_expr = or_(Complaint.status == ComplaintStatus.escalated, Complaint.escalation_required.is_(True))
+        if escalated is True:
+            query = query.filter(escalated_expr)
+        elif escalated is False:
+            query = query.filter(~escalated_expr)
+        if review is True:
+            query = query.filter(Complaint.pending_review.is_(True))
+        if reanalysis is True:
+            query = query.filter(Complaint.needs_reanalysis.is_(True))
+    response.headers["X-Total-Count"] = str(query.count())
+    rows = (
+        query.options(*_loaders())
+        .order_by(Complaint.id.desc())
+        .offset(max(0, offset))
+        .limit(max(1, min(limit, 1000)))
+        .all()
+    )
     audience = _audience(user)
-    payload = []
-    for row in rows:
-        item = serialize_complaint(row, audience=audience)
-        python = item.get("python") or {}
-        genai = item.get("genai") or {}
-        if sla_risk is True and not item["sla_risk"]:
-            continue
-        if audience == "staff":
-            if category and python.get("issue_category") != category:
-                continue
-            if department and python.get("department") != department:
-                continue
-            if priority and python.get("priority") != priority:
-                continue
-            if urgency and python.get("urgency") != urgency:
-                continue
-            if sentiment and str(genai.get("sentiment") or "").lower() != sentiment.lower():
-                continue
-            if escalated is True and not (row.status == ComplaintStatus.escalated or python.get("escalation_required")):
-                continue
-            if escalated is False and (row.status == ComplaintStatus.escalated or python.get("escalation_required")):
-                continue
-            if review is True and not item.get("pending_review"):
-                continue
-        payload.append(item)
-    return payload
+    return [serialize_complaint(row, audience=audience) for row in rows]
 
 
 @router.get("/queue/manual-review")
-def manual_review_queue(user: ReviewerUser, db: Session = Depends(get_db)):
-    rows = db.query(Complaint).options(*_loaders()).order_by(Complaint.id.desc()).all()
-    return [serialize_complaint(row) for row in rows if pending_review(row)]
+def manual_review_queue(user: ReviewerUser, db: Session = Depends(get_db), limit: int = 200):
+    rows = (
+        db.query(Complaint)
+        .options(*_loaders())
+        .filter(Complaint.pending_review.is_(True))
+        .order_by(Complaint.priority.asc().nulls_last(), Complaint.id.desc())
+        .limit(max(1, min(limit, 1000)))
+        .all()
+    )
+    return [serialize_complaint(row) for row in rows]
+
+
+@router.post("/reanalyze-flagged")
+def reanalyze_flagged(user: ReviewerUser, payload: AnalyzeRequest, db: Session = Depends(get_db), limit: int = 25):
+    """Re-run both pipelines for open complaints a policy change marked as needing it."""
+    rows = (
+        db.query(Complaint)
+        .filter(Complaint.needs_reanalysis.is_(True))
+        .order_by(Complaint.priority.asc().nulls_last(), Complaint.id)
+        .limit(max(1, min(limit, 100)))
+        .all()
+    )
+    done, failed = [], []
+    for row in rows:
+        try:
+            analyze_complaint(db, row, tone=payload.tone, skip_genai=payload.skip_genai, actor_id=user.id)
+            done.append(row.complaint_code)
+        except HTTPException as exc:
+            db.rollback()
+            failed.append({"complaint_code": row.complaint_code, "error": str(exc.detail)})
+    remaining = db.query(func.count(Complaint.id)).filter(Complaint.needs_reanalysis.is_(True)).scalar() or 0
+    return {"reanalyzed": done, "failed": failed, "remaining": remaining}
 
 
 @router.get("/{complaint_id}")
@@ -303,6 +362,7 @@ def update_status(complaint_id: int, payload: StatusUpdate, user: StaffUser, db:
     complaint.status = new_status
     # A typed note is written for the customer (the UI says so); otherwise use standard wording.
     complaint.latest_update = sanitize_input(payload.note) or customer_update(new_status)
+    mark_first_response(complaint)
     if new_status in (ComplaintStatus.resolved, ComplaintStatus.closed):
         _settle_followups(db, complaint, confirm_resolution=new_status == ComplaintStatus.resolved)
     write_audit(
@@ -392,6 +452,8 @@ def review_complaint(complaint_id: int, payload: ReviewRequest, user: ReviewerUs
     if action not in (ReviewActionType.comment, ReviewActionType.regenerate):
         dept = db.query(Department).filter(Department.id == complaint.assigned_department_id).first()
         complaint.latest_update = customer_update(complaint.status, dept.name if dept else None)
+    db.flush()
+    sync_classification(complaint)
     write_audit(
         db,
         actor_id=user.id,
@@ -419,6 +481,8 @@ def customer_decision(complaint_id: int, payload: CustomerDecision, user: Curren
         complaint.status = ComplaintStatus.closed
         complaint.latest_update = "Thank you for confirming. Your complaint is closed."
         _settle_followups(db, complaint, confirm_resolution=False)
+        if payload.rating:
+            db.add(ComplaintFeedback(complaint_id=complaint.id, rating=payload.rating, comment=comment))
     elif payload.action == "reopen":
         if len(comment) < 10:
             raise HTTPException(status_code=422, detail="Please tell us briefly what is still wrong (at least 10 characters).")
@@ -437,10 +501,97 @@ def customer_decision(complaint_id: int, payload: CustomerDecision, user: Curren
         entity_type="complaint",
         entity_id=complaint.complaint_code,
         action=f"customer_{payload.action}",
-        details={"comment": comment},
+        details={"comment": comment, "rating": payload.rating},
     )
     db.commit()
     return serialize_complaint(_get_complaint(db, complaint_id), audience="customer")
+
+
+@router.get("/{complaint_id}/messages")
+def list_messages(complaint_id: int, user: CurrentUser, db: Session = Depends(get_db)):
+    """The conversation. Customers never see internal notes."""
+    complaint = _get_visible_complaint(db, user, complaint_id)
+    customer = user.role == UserRole.customer
+    rows = [m for m in complaint.messages if not (customer and m.direction == "internal")]
+    if customer:
+        for m in rows:
+            if m.direction == "to_customer" and not m.read_by_customer:
+                m.read_by_customer = True
+        db.commit()
+    return [_message_out(m, customer) for m in rows]
+
+
+@router.post("/{complaint_id}/messages/check")
+def check_message(complaint_id: int, payload: MessageCreate, user: StaffUser, db: Session = Depends(get_db)):
+    """Validate a draft before sending: unsupported promises and invented facts."""
+    complaint = _get_visible_complaint(db, user, complaint_id)
+    return {"flags": [] if payload.internal else reply_flags(complaint, payload.body)}
+
+
+@router.post("/{complaint_id}/messages")
+def post_message(complaint_id: int, payload: MessageCreate, user: CurrentUser, db: Session = Depends(get_db)):
+    complaint = _get_visible_complaint(db, user, complaint_id)
+    body = sanitize_input(payload.body)
+    if not body:
+        raise HTTPException(status_code=422, detail="Message is empty.")
+    flags: list[dict] = []
+    if user.role == UserRole.customer:
+        if complaint.status == ComplaintStatus.closed:
+            raise HTTPException(status_code=409, detail="This complaint is closed. Please submit a new complaint.")
+        direction, source = "from_customer", "customer"
+        if complaint.status == ComplaintStatus.awaiting_customer:
+            complaint.status = ComplaintStatus.in_progress
+            complaint.latest_update = customer_update(ComplaintStatus.in_progress)
+    elif payload.internal:
+        direction, source = "internal", "agent"
+    else:
+        direction = "to_customer"
+        source = "genai_draft" if payload.source == "genai_draft" else "agent"
+        flags = reply_flags(complaint, body)
+        if flags and not payload.override:
+            raise HTTPException(
+                status_code=422,
+                detail=["This message needs changes before it can be sent: "]
+                + [f"{f['code'].replace('_', ' ')} — {f.get('detail') or f.get('value') or ''}".strip(" —") for f in flags],
+            )
+        if flags and user.role not in (UserRole.reviewer, UserRole.manager, UserRole.administrator):
+            raise HTTPException(status_code=403, detail="Only a reviewer can send a message with validation flags.")
+        if payload.request_information:
+            complaint.status = ComplaintStatus.awaiting_customer
+        complaint.latest_update = (
+            customer_update(ComplaintStatus.awaiting_customer) if payload.request_information else "You have a new message from our support team."
+        )
+    if direction == "to_customer":
+        mark_first_response(complaint)
+    message = ComplaintMessage(complaint_id=complaint.id, author_id=user.id, direction=direction, body=body, source=source, flags=flags)
+    db.add(message)
+    write_audit(
+        db,
+        actor_id=user.id,
+        entity_type="complaint",
+        entity_id=complaint.complaint_code,
+        action=f"message_{direction}",
+        details={"source": source, "flags": [f["code"] for f in flags], "override": bool(flags)},
+    )
+    db.commit()
+    db.refresh(message)
+    return _message_out(message, user.role == UserRole.customer)
+
+
+def _message_out(m: ComplaintMessage, for_customer: bool) -> dict:
+    author = m.author.full_name if m.author else "System"
+    if for_customer and m.direction == "to_customer":
+        author = "NimbusCarta Support"
+    return {
+        "id": m.id,
+        "direction": m.direction,
+        "body": m.body,
+        "author": author,
+        "source": None if for_customer else m.source,
+        "flags": [] if for_customer else m.flags,
+        "created_at": m.created_at,
+        "read_by_customer": m.read_by_customer,
+    }
 
 
 def _settle_followups(db: Session, complaint: Complaint, *, confirm_resolution: bool) -> None:
@@ -463,12 +614,8 @@ def _settle_followups(db: Session, complaint: Complaint, *, confirm_resolution: 
 
 def _get_visible_complaint(db: Session, user: User, complaint_id: int) -> Complaint:
     complaint = _get_complaint(db, complaint_id)
-    if user.role == UserRole.customer:
-        customer = _customer_for_user(db, user)
-        if not customer or complaint.customer_id != customer.id:
-            raise HTTPException(status_code=403, detail="Not allowed")
-    elif user.role == UserRole.agent and complaint.assigned_to_id not in (None, user.id):
-        # Agents work their own queue: unassigned cases or cases assigned to them.
-        raise HTTPException(status_code=403, detail="This complaint is assigned to another agent.")
+    error = visibility_error(db, user, complaint)
+    if error:
+        raise HTTPException(status_code=403, detail=error)
     return complaint
 

@@ -370,6 +370,20 @@ class Complaint(Base, TimestampMixin):
     sla_risk: Mapped[bool] = mapped_column(Boolean, default=False)
     follow_up_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     latest_update: Mapped[str] = mapped_column(Text, default="Submitted")
+    incident_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    # SLA bookkeeping: first staff reply, and the risk threshold of the SLA policy applied.
+    first_responded_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    sla_risk_percent: Mapped[int] = mapped_column(Integer, default=75)
+    # Current classification, denormalized from the latest validation (or a reviewer's
+    # reclassification) so filters, queues and dashboards are plain indexed SQL.
+    category: Mapped[Optional[str]] = mapped_column(String(128), nullable=True, index=True)
+    subcategory: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
+    urgency: Mapped[Optional[str]] = mapped_column(String(16), nullable=True)
+    priority: Mapped[Optional[str]] = mapped_column(String(4), nullable=True, index=True)
+    sentiment: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
+    escalation_required: Mapped[bool] = mapped_column(Boolean, default=False)
+    pending_review: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    needs_reanalysis: Mapped[bool] = mapped_column(Boolean, default=False)
 
     customer: Mapped[Optional[Customer]] = relationship(back_populates="complaints")
     assigned_department: Mapped[Optional[Department]] = relationship(foreign_keys=[assigned_department_id])
@@ -387,6 +401,8 @@ class Complaint(Base, TimestampMixin):
         back_populates="complaint", order_by="ComparisonResult.id"
     )
     reviews: Mapped[list["ReviewAction"]] = relationship(back_populates="complaint", order_by="ReviewAction.id")
+    messages: Mapped[list["ComplaintMessage"]] = relationship(order_by="ComplaintMessage.id")
+    feedback: Mapped[Optional["ComplaintFeedback"]] = relationship(uselist=False)
     followups: Mapped[list["FollowUp"]] = relationship(back_populates="complaint")
 
 
@@ -399,6 +415,9 @@ class ComplaintAttachment(Base, TimestampMixin):
     content_type: Mapped[str] = mapped_column(String(128))
     storage_path: Mapped[str] = mapped_column(String(512))
     size_bytes: Mapped[int] = mapped_column(Integer)
+    # Evidence read from the file (document_processing/attachments.py); untrusted customer data.
+    extracted_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    facts: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
 
     complaint: Mapped[Complaint] = relationship(back_populates="attachments")
 
@@ -490,3 +509,106 @@ class FollowUp(Base, TimestampMixin):
     completed: Mapped[bool] = mapped_column(Boolean, default=False)
 
     complaint: Mapped[Complaint] = relationship(back_populates="followups")
+
+
+class ComplaintMessage(Base, TimestampMixin):
+    """Conversation on a complaint. Internal notes never reach the customer."""
+
+    __tablename__ = "complaint_messages"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    complaint_id: Mapped[int] = mapped_column(ForeignKey("complaints.id"), index=True)
+    author_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
+    # to_customer | from_customer | internal
+    direction: Mapped[str] = mapped_column(String(16))
+    body: Mapped[str] = mapped_column(Text)
+    # agent | genai_draft | customer | system
+    source: Mapped[str] = mapped_column(String(16), default="agent")
+    flags: Mapped[list[Any]] = mapped_column(JSONB, default=list)
+    read_by_customer: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    author: Mapped[Optional[User]] = relationship()
+
+
+class ComplaintFeedback(Base, TimestampMixin):
+    """Customer satisfaction (CSAT) captured when the customer confirms a resolution."""
+
+    __tablename__ = "complaint_feedback"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    complaint_id: Mapped[int] = mapped_column(ForeignKey("complaints.id"), unique=True)
+    rating: Mapped[int] = mapped_column(Integer)
+    comment: Mapped[str] = mapped_column(Text, default="")
+
+
+class ChatSession(Base, TimestampMixin):
+    __tablename__ = "chat_sessions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    title: Mapped[str] = mapped_column(String(255), default="Conversation")
+
+    messages: Mapped[list["ChatMessage"]] = relationship(back_populates="session", order_by="ChatMessage.id")
+
+
+class ChatMessage(Base, TimestampMixin):
+    __tablename__ = "chat_messages"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    session_id: Mapped[int] = mapped_column(ForeignKey("chat_sessions.id"), index=True)
+    role: Mapped[str] = mapped_column(String(16))  # user | assistant
+    content: Mapped[str] = mapped_column(Text)
+    meta: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+
+    session: Mapped[ChatSession] = relationship(back_populates="messages")
+
+
+class EvaluationRun(Base, TimestampMixin):
+    """A batch of imported complaints (e.g. the hidden evaluation pack) scored against expected labels."""
+
+    __tablename__ = "evaluation_runs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(255))
+    created_by_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
+    use_genai: Mapped[bool] = mapped_column(Boolean, default=False)
+    status: Mapped[str] = mapped_column(String(16), default="queued")  # queued | running | done | failed
+    total: Mapped[int] = mapped_column(Integer, default=0)
+    processed: Mapped[int] = mapped_column(Integer, default=0)
+    error: Mapped[str] = mapped_column(Text, default="")
+
+    items: Mapped[list["EvaluationItem"]] = relationship(back_populates="run", order_by="EvaluationItem.id")
+
+
+class EvaluationItem(Base, TimestampMixin):
+    __tablename__ = "evaluation_items"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    run_id: Mapped[int] = mapped_column(ForeignKey("evaluation_runs.id"), index=True)
+    complaint_id: Mapped[Optional[int]] = mapped_column(ForeignKey("complaints.id"), nullable=True)
+    row_number: Mapped[int] = mapped_column(Integer)
+    expected: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    error: Mapped[str] = mapped_column(Text, default="")
+
+    run: Mapped[EvaluationRun] = relationship(back_populates="items")
+    complaint: Mapped[Optional[Complaint]] = relationship()
+
+
+class NotificationState(Base):
+    """When each user last opened their notifications, so unread counts are per user."""
+
+    __tablename__ = "notification_state"
+
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class AppSetting(Base):
+    """Runtime-editable thresholds (SRS 1.8 #14): the .env value is the default, this row wins."""
+
+    __tablename__ = "app_settings"
+
+    key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    value: Mapped[Any] = mapped_column(JSONB)
+    updated_by_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

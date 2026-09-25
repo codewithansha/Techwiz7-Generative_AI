@@ -123,14 +123,33 @@ What the system does, in order:
 | 3 | **Sanitize:** Unicode normalization, control characters removed, whitespace collapsed, `<` `>` stripped | — | `sanitize_input`, `normalize_text` |
 | 4 | Previous complaint reference must exist and belong to the same customer | 422 | `submit_complaint` |
 | 5 | **Customer type comes from the customer's profile.** A customer cannot claim to be VIP. | — | `submit_complaint` |
-| 6 | **Exact duplicate:** SHA-256 of the normalized text already exists | 409 "Exact duplicate of CMP-…" | `complaint_processing/duplicates.py::find_duplicates` |
+| 6 | **Exact duplicate:** SHA-256 of the normalized text already exists *for the same customer* (another customer using the same words is not blocked, and is never shown someone else's code) | 409 "Exact duplicate of CMP-…" | `complaint_processing/duplicates.py::find_duplicates` |
 | 7 | **Near duplicate:** fuzzy similarity ≥ 88 % with one of the customer's last 50 complaints | Accepted, but linked (`duplicate_of`) and the user is warned | same |
 | 8 | Save with status `new`; the code is `CMP-<id>` | — | `complaint_code_for()` |
 | 9 | Attachments are checked (extension, size, file signature, so a renamed `.exe` is rejected) and stored under `uploads/complaints/<id>/` with a safe filename | 400 per bad file | `document_processing/validate.py` |
-| 10 | Audit entries `submit` and `attachment` are written | — | `security/audit.py` |
+| 10 | **Attachments are read** as evidence: PDF text (PyMuPDF), DOCX text and tables (python-docx), TXT; order numbers, amounts, dates, the purchase date and instruction-like text are extracted. Photos get size and camera date, but their content is not machine-read. Adding a file to an already analyzed case sets `needs_reanalysis`. | a broken file is kept, with a note | `document_processing/attachments.py` |
+| 11 | Audit entries `submit` and `attachment` are written | — | `security/audit.py` |
 
 The customer lands on the complaint page, which shows status **New**, department
-"Being assigned", and nothing internal.
+"Being assigned", and nothing internal. **Supporting documents** lists the files. Clicking
+one opens a preview (image, PDF, text) or downloads it (`GET /api/v1/complaints/{id}/attachments/{attachment_id}`).
+Files are served only to the owner and staff, with `nosniff` and a sandbox CSP.
+
+#### How attachments are used in analysis
+
+| Where | Effect |
+|---|---|
+| Missing information | *evidence*, *order number* and *purchase date* are not asked for when a file provides them |
+| Eligibility | the invoice date stands in for a missing purchase date (replacement window, return window, warranty) |
+| Mandatory rule steps | "Request photos / proof of purchase" counts as done when that evidence is attached |
+| Escalation | amounts on invoices or statements count toward the high-value threshold |
+| Consistency | a file for a different order raises `attachment_order_mismatch` |
+| Security | instruction-like text in a file raises `prompt_injection_in_attachment` → review |
+| GenAI prompt | file facts plus a 1,500-character PII-masked excerpt, wrapped as untrusted data (prompt v3 asks the reply to acknowledge the files) |
+| Hallucination check | IDs and amounts that appear in an attachment are grounded, not invented |
+| Staff view | **Attachment evidence** panel on the Overview tab |
+
+A screenshot-by-screenshot run of the whole flow is in [walkthrough/WALKTHROUGH.md](walkthrough/WALKTHROUGH.md).
 
 ### Step 2 — An agent picks it up
 
@@ -184,8 +203,10 @@ escalation rules.
 
 #### 3b. Policy retrieval — `knowledge_base/retrieval.py`
 
-The complaint text is matched (token overlap) against chunks of the uploaded policy
-documents. The top 6 chunks are returned, each with document code, version, section,
+The complaint text is ranked with **BM25** (a cached index, rebuilt whenever a chunk or
+document status changes) against the numbered sections of the policy documents. The
+complaint is also checked for quotes of superseded, draft or expired rules
+(`outdated_claims` → `cites_outdated_policy`). The top 6 chunks are returned, each with document code, version, section,
 page and status. **Active, in-date** documents rank first; `previous` versions are
 heavily down-weighted; `draft` and `superseded` are excluded.
 
@@ -215,12 +236,13 @@ heavily down-weighted; `draft` and `superseded` are excluded.
 |---|---|---|
 | **Classify** | Each active rule's keywords are matched as **whole words** ("issue" does not match "sue"; "overheat" matches "overheating"). The best score is the **primary issue**. A rule that mandates escalation (safety, privacy, account takeover) always wins, so a critical issue is never demoted to secondary. Ties go to the issue mentioned first. Other matched categories become **secondary issues** and their departments **supporting departments**. Categories configured without a rule are matched by their subcategory keywords. No match gives `Unclassified`, which goes to review. | `complaint_rules/engine.py`, `complaint_rules/matching.py` |
 | **Route** | Rule department codes are mapped to department names | `routing_rules/engine.py` |
-| **Escalate** | Every active escalation rule is evaluated independently: keywords, categories, customer type, repeat history. Disputed amounts ≥ `HIGH_VALUE_THRESHOLD` (200,000) escalate to a department manager. The highest level wins; rules can force a minimum urgency. | `escalation_rules/engine.py` |
+| **Escalate** | Every active escalation rule is evaluated independently: keywords, categories, customer type, repeat history. Disputed amounts at or above the high-value threshold (default 200,000, editable live in Settings → Pipelines) escalate to a department manager. Amounts with or without a currency count ("PKR 250,000", "charged 250000"). The highest level wins; rules can force a minimum urgency. | `escalation_rules/engine.py`, `config/runtime.py` |
 | **Urgency** | Taken from the rule and raised by escalation rules. **Sentiment is never used**, so an angry complaint about a scratched box stays low and a calm report of sparks is critical. | `run_python_validation` |
 | **Priority** | Urgency is mapped through the configurable priority table (low → P3 … critical → P0), never lower than the rule's own priority. VIP / enterprise customers get at least P2, but a minor VIP issue is not inflated. | `_priority()` |
-| **Eligibility** | Refund, replacement and compensation eligibility come from the rule, never from GenAI | rule matrix |
+| **Eligibility** | The rule says whether a remedy can apply. The policy conditions are then checked from facts on the complaint: 30-day replacement window and original condition (RPL-POL-01 §1), no earlier replacement on the order (§2), 14-day return window or 12-month warranty (REF-POL-01 §2, WAR-POL-03), damage after delivery (WAR-POL-03 §4). A failed condition makes the remedy *not eligible*. A condition that can't be checked (for example no purchase date) is listed as *needs check* for the agent. Shown as **Policy conditions** on the complaint. | `python_validation/eligibility.py` |
 | **Policy status** | The cited policy is checked: is there an **active, in-date** version (`applicable`), only old versions (`outdated`), or none (`not_applicable`)? The active version number is recorded. | `knowledge_base/precedence.py::policy_status` |
-| **Missing info** | Order number, product, a substantial description, and evidence for defect or warranty claims | `detect_missing_information` |
+| **Precedence** | Among the retrieved documents, the governing one is the rule's policy (or the best-ranked usable document). A related lower-ranked document (FAQ, guideline, template, older SOP) that states a different timeline, rate or automatic entitlement is recorded as a conflict. If the complaint or the draft reply *relies* on that statement (for example "your FAQ says card refunds are instant" against REF-POL-01's 7–10 business days), the flag `lower_precedence_conflict` is raised and the case goes to review. Shown as **Policy precedence** under Validation controls. | `knowledge_base/precedence.py::resolve_precedence` |
+| **Missing info** | Order number, product, a substantial description, evidence for defect or warranty claims, and the purchase date where the policy depends on it. Each gap maps to a configured clarification question. | `detect_missing_information` |
 
 #### 3e. Cross-checks — GenAI against Python
 
@@ -329,7 +351,20 @@ Reviewer comments are internal. The customer only sees a neutral status message.
 **API:** `PATCH /api/v1/complaints/{id}/status`, `POST /api/v1/complaints/{id}/assign`.
 
 - The agent follows the guidance: mandatory actions, prohibited actions, the policy
-  source, and the draft reply.
+  source, and the draft reply (or the reviewer-approved version if a reviewer used **Modify**).
+- **Conversation tab** (`GET/POST /api/v1/complaints/{id}/messages`):
+  - **Internal note:** staff only, never shown to the customer.
+  - **Reply to customer:** before sending, `reply_flags` (`src/services/messaging.py`) checks the text for:
+    - refund, compensation or replacement promises the rule does not allow;
+    - timelines that are not in the governing policy text (for example "within 24 hours");
+    - invented order or transaction IDs and amounts.
+
+    A flagged reply is **blocked** (422) and the flags are shown. Only a reviewer or above can send it anyway, and that override is audited.
+  - **Request information:** sends the question and sets the status to `awaiting_customer`. When the customer replies, the status returns to `in_progress`.
+  - The first staff reply records `first_responded_at` against the first-response SLA.
+  - Customers see replies from "NimbusCarta Support", and staff names are hidden.
+- **Nova** (the chat button) can draft a policy-safe reply, summarize the case, explain its
+  flags, find similar complaints and show the SLA. **Use draft** places the text in the reply box.
 - They can set **Awaiting customer** when information is missing, or reassign the
   department.
 - They set **Resolved** with an *update note*. That note is written for the customer and
@@ -344,7 +379,7 @@ Reviewer comments are internal. The customer only sees a neutral status message.
 
 | Choice | Effect |
 |---|---|
-| **Yes, close it** | Status → `closed`; all follow-ups complete; nothing scheduled |
+| **Yes, close it** | The customer can rate the resolution 1–5 stars with a comment (CSAT, stored in `complaint_feedback`). Status → `closed`; all follow-ups complete; nothing scheduled. CSAT shows on the Reports page. |
 | **Not resolved — reopen** (a reason is required) | Status → `reopened`; the case is marked as a repeat; the reason is added as an open item, and the owning agent sees it as a red alert: *"Reopened by the customer: …"*. The agent then works it again (Step 5). |
 
 Only the customer who raised the complaint can do this, and only while it is `resolved`.
@@ -410,14 +445,25 @@ escalated it and flagged `missed_mandatory_escalation`.
    - file signature, size ≤ 15 MB, not empty
    - exact duplicate content (checksum)
    - document ID + version already exists
-2. **Parse:** PDF by page (PyMuPDF), DOCX by heading (python-docx).
+2. **Parse:** PDF (PyMuPDF) and DOCX (python-docx) are split on numbered headings
+   (`5.2 Delayed shipments`), running headers and footers are removed, and page numbers
+   are kept, so a rule citing DEL-POL-04 §5.2 points at real text.
 3. **Chunk:** ≤ 1,200 characters per chunk. Each chunk keeps its chunk ID, document ID,
    section, heading, page and version.
 4. **Version control:** uploading an *active* version marks the previous active version
    `previous` (superseded by the new one).
-5. **Impact check (hidden policy update):**
+5. **Impact check (hidden policy update)** (`knowledge_base/impact.py`):
+   - A **Policy change impact** panel lists:
+     - the previous versions that are now obsolete;
+     - sections added, removed and reworded;
+     - timelines and rates that changed (for example `day: 5 → 2`);
+     - the resolution rules that cite the document, highlighting any that point to a section that no longer exists;
+     - the escalation rules that name the document.
    - Open complaints that cited this policy, or were grounded on an older version, get a
-     `policy_changed` audit entry and are listed back to the admin for re-analysis.
+     `policy_changed` audit entry and `needs_reanalysis = true`. They show a
+     *"A policy this case relies on changed"* banner and can be filtered with `reanalysis=true`.
+   - **Re-analyze affected complaints** (reviewer and above, `POST /api/v1/complaints/reanalyze-flagged`)
+     re-runs both pipelines for them and clears the flag.
    - Instruction-like text inside a document triggers a warning; documents are only ever
      passed to GenAI as reference data.
 6. **Precedence:** Policy > Compliance > SLA > SOP > Escalation > Routing > Guideline >
@@ -430,16 +476,64 @@ escalated it and flagged `missed_mandatory_escalation`.
 the next analysis:
 
 - **Resolution rules:** add a rule (keywords, department, urgency, priority, policy,
-  escalation, mandatory and prohibited actions), or enable or disable one.
+  escalation, mandatory and prohibited actions, refund / replacement / compensation
+  eligibility), **edit** an existing rule in place (`PATCH /config/rules/{code}`), or
+  enable or disable one. An escalating rule must be high or critical.
 - **Escalation rules:** add a condition, or change the level, the forced urgency, the
   repeat threshold, or whether it is active.
-- **Categories & departments:** add a department or a category with subcategory
-  keywords. It is classified immediately, even before a rule exists (the case then goes
+- **Categories & departments:** add a department, a category with subcategory
+  keywords, or a **new subcategory** under an existing category. It is classified immediately, even before a rule exists (the case then goes
   to review).
 - **SLA & priority:** change SLA hours and the urgency → priority mapping.
 - **Users:** create staff or customer accounts; activate or deactivate them.
-- **Pipelines:** see the provider chain, prompt version and thresholds, and resume
-  paused providers.
+- **Pipelines:** see the provider chain and prompt version, resume paused providers, and
+  edit the **high-value threshold** and **repeat similarity threshold**. They are stored in
+  `app_settings`, apply to the next analysis, and are audited.
+
+### Nova, the assistant (every role)
+
+The **Ask Nova** button opens a chat panel (`frontend/src/Assistant.tsx` → `POST /api/v1/assistant/chat` → `chatbot/assistant.py`). A deterministic intent router handles each message:
+
+| Intent | Customer | Staff |
+|---|---|---|
+| File a complaint | Detects the issue, order number and product, then opens the complaint form **prefilled** | — |
+| Track / list | Status of *their* complaints only | Any complaint they may see |
+| Policy question | Answer quoted from the active policy with the document and section cited; staff-only sentences and internal documents are filtered out | Full policy text |
+| Summarize / explain / similar / SLA | — | Summary, why it was flagged, similar cases, SLA state |
+| Queue | — | Review queue (reviewer and above) |
+| Draft reply | — | Policy-grounded draft that passes the promise guard; **Use draft** puts it in the Conversation tab |
+| Handoff | Connects to a human | — |
+
+Safety rules:
+
+- Prompt-injection attempts are refused (`blocked`).
+- Customers get at most 30 messages every 5 minutes.
+- PII is masked before any GenAI call.
+- GenAI only rephrases the grounded answer. The promise and hallucination guards run on its wording, and if they object the extractive answer is used instead.
+- Conversations are stored per user, and nobody can open another user's session.
+
+### Hidden complaint pack (Manager / Administrator)
+
+*Evaluation* page → drop a CSV or JSON file (`POST /api/v1/evaluation/import`, `src/services/evaluation.py`).
+
+1. Columns are checked. `title` and `description` are required; `expected_*` labels are optional. See `hidden_test_ready/README.md`.
+2. Every row goes through the normal intake path. Rows sharing a `customer_ref` share a customer, so repeats are detected. A previous-complaint reference that is not in this system is kept and flagged (`unknown_previous_reference`) instead of rejecting the row.
+3. Analysis runs in file order in the background. It is Python-only unless *Also run GenAI* is ticked (up to 150 rows).
+4. The page shows:
+   - Python (and GenAI) accuracy per field against the labels;
+   - accuracy by case type;
+   - every mismatch.
+5. **Download report** gives the SRS comparison columns (CSV / XLSX). `scripts/run_evaluation.py` does the same from the command line into `reports/`.
+
+### Notifications
+
+The bell in the header (`GET /api/v1/notifications`) is built from the audit log, plus live SLA-risk and review-queue items, and is scoped by role:
+
+- **Customers** see status changes and messages on their complaints.
+- **Agents** see customer replies, reopens and SLA risk on their cases.
+- **Reviewers** see new review items.
+
+Opening the bell marks items seen (`POST /seen`).
 
 ### When GenAI is unavailable
 

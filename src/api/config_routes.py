@@ -16,6 +16,7 @@ from database.models import (
     SlaPolicy,
     UrgencyLevel,
 )
+from config.runtime import THRESHOLDS, all_thresholds, set_threshold
 from database.session import get_db
 from genai_pipeline.client import paused_providers, provider_chain, reset_provider_pauses
 from prompt_templates.loader import PROMPT_NAME, active_prompt_version, available_versions
@@ -29,8 +30,10 @@ from src.api.schemas import (
     EscalationRuleUpdate,
     PriorityRuleUpdate,
     RuleCreate,
+    RuleUpdate,
     SlaUpdate,
     SubcategoryCreate,
+    ThresholdUpdate,
 )
 
 router = APIRouter(prefix="/api/v1/config", tags=["config"])
@@ -188,6 +191,37 @@ def create_rule(payload: RuleCreate, user: AdminUser, db: Session = Depends(get_
     return {"id": row.id, "rule_code": row.rule_code, "warnings": warnings}
 
 
+@router.patch("/rules/{rule_code}")
+def update_rule(rule_code: str, payload: RuleUpdate, user: AdminUser, db: Session = Depends(get_db)):
+    row = db.query(ResolutionRule).filter(ResolutionRule.rule_code == rule_code).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Rule not found")
+    changes = payload.model_dump(exclude_unset=True)
+    for code in [changes.get("department_code"), *(changes.get("supporting_department_codes") or [])]:
+        if code and not db.query(Department).filter(Department.code == code).first():
+            raise HTTPException(status_code=422, detail=f"Unknown department code {code}")
+    before = {}
+    if "keywords" in changes:
+        keywords = [k.strip().lower() for k in changes.pop("keywords") or [] if k.strip()]
+        if not keywords:
+            raise HTTPException(status_code=422, detail="A rule needs at least one keyword condition.")
+        before["keywords"] = (row.conditions or {}).get("keywords")
+        row.conditions = {**(row.conditions or {}), "keywords": keywords}
+    enums = {"urgency": UrgencyLevel, "priority": PriorityCode, "escalation_level": EscalationLevel}
+    for field, value in changes.items():
+        current = getattr(row, field)
+        before[field] = current.value if hasattr(current, "value") else current
+        setattr(row, field, _enum(enums[field], value, field) if field in enums else value)
+    if row.escalation_required and row.urgency not in (UrgencyLevel.high, UrgencyLevel.critical):
+        raise HTTPException(status_code=422, detail="An escalating rule must have high or critical urgency.")
+    warnings = []
+    if row.policy_code and not db.query(KnowledgeDocument).filter(KnowledgeDocument.document_code == row.policy_code).first():
+        warnings.append(f"Policy {row.policy_code} is not in the knowledge base yet.")
+    write_audit(db, actor_id=user.id, entity_type="config", entity_id=rule_code, action="update_rule", details={"before": before, "after": payload.model_dump(exclude_unset=True)})
+    db.commit()
+    return {"rule_code": rule_code, "updated": sorted(payload.model_dump(exclude_unset=True)), "warnings": warnings}
+
+
 @router.patch("/rules/{rule_code}/active")
 def toggle_rule(rule_code: str, payload: ActiveToggle, user: AdminUser, db: Session = Depends(get_db)):
     row = db.query(ResolutionRule).filter(ResolutionRule.rule_code == rule_code).first()
@@ -317,7 +351,7 @@ def update_priority(urgency: str, payload: PriorityRuleUpdate, user: AdminUser, 
 
 
 @router.get("/genai")
-def genai_config(user: StaffUser):
+def genai_config(user: StaffUser, db: Session = Depends(get_db)):
     """Pipeline 1 configuration for the settings screen. Never returns key material."""
     settings = get_settings()
     chain = provider_chain(settings)
@@ -326,6 +360,8 @@ def genai_config(user: StaffUser):
         "gemini": settings.gemini_model,
         "anthropic": settings.anthropic_model,
         "grok": settings.grok_model,
+        "groq": settings.groq_model,
+        "ollama": f"{settings.ollama_model} · local",
     }
     return {
         "primary": settings.genai_provider,
@@ -337,8 +373,7 @@ def genai_config(user: StaffUser):
         "total_budget_seconds": settings.genai_total_budget_seconds,
         "prompt": {"name": PROMPT_NAME, "active_version": active_prompt_version(), "versions": available_versions()},
         "thresholds": {
-            "high_value_threshold": settings.high_value_threshold,
-            "repeat_similarity_threshold": settings.repeat_similarity_threshold,
+            **all_thresholds(db),
             "default_department_code": settings.default_department_code,
         },
     }
@@ -352,3 +387,23 @@ def reset_genai(user: AdminUser, db: Session = Depends(get_db)):
     write_audit(db, actor_id=user.id, entity_type="config", entity_id="genai", action="reset_provider_pauses", details={"paused": paused})
     db.commit()
     return {"reset": sorted(paused)}
+
+
+@router.get("/thresholds")
+def list_thresholds(user: StaffUser, db: Session = Depends(get_db)):
+    values = all_thresholds(db)
+    return [{"key": key, "value": values[key], "min": low, "max": high, "description": note} for key, (_, low, high, note) in THRESHOLDS.items()]
+
+
+@router.put("/thresholds/{key}")
+def update_threshold(key: str, payload: ThresholdUpdate, user: AdminUser, db: Session = Depends(get_db)):
+    if key not in THRESHOLDS:
+        raise HTTPException(status_code=404, detail=f"Unknown threshold '{key}'.")
+    before = all_thresholds(db)[key]
+    try:
+        value = set_threshold(db, key, payload.value, user.id)
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    write_audit(db, actor_id=user.id, entity_type="config", entity_id=key, action="threshold_update", details={"from": before, "to": value})
+    db.commit()
+    return {"key": key, "value": value}

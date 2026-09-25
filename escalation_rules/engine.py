@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from complaint_processing.preprocess import extract_metadata
 from complaint_rules.matching import keyword_hits
-from config.settings import get_settings
+from config.runtime import get_threshold
 from database.models import EscalationLevel, EscalationRule, UrgencyLevel
 
 RANK = {
@@ -64,7 +64,7 @@ def evaluate_escalation(
             force_urgency = rule.force_urgency
 
     amount = _largest_amount(text)
-    threshold = get_settings().high_value_threshold
+    threshold = get_threshold(db, "high_value_threshold")
     if amount is not None and amount >= threshold:
         matched.append({"rule_code": "ESC-HIGH-VALUE", "name": "High-value dispute", "amount": amount})
         reasons.append(f"Disputed amount {amount:,.0f} meets the high-value threshold of {threshold:,.0f}.")

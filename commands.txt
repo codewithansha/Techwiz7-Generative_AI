@@ -1,0 +1,32 @@
+Run these in PowerShell. The first time, start the database:
+
+docker start support-nova-db-1
+
+Go to the project folder:
+
+cd D:\Techwiz-7\support-nova
+
+The first time only, create a virtual environment and install the dependencies:
+
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+
+Start the backend:
+
+uvicorn src.main:app --reload --host 127.0.0.1 --port 8000
+
+Instead of the last step, you can run the project's start script. It finds Python on its own:
+
+D:\Techwiz-7\support-nova\scripts\run-api.cmd
+
+Once it's up:
+
+API: http://localhost:8000
+Swagger docs: http://localhost:8000/docs
+Health check: http://localhost:8000/health
+
+Tables, migrations and seed data are set up automatically on first start.
+
+If python isn't recognised: Python isn't on your PATH. Use the full path, C:\Users\Rohan\AppData\Local\Programs\Python\Python312\python.exe, in place of python.
+If port 8000 is busy: the backend is probably already running. I started it in the app's browser pane earlier.

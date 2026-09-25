@@ -39,12 +39,42 @@ def provider_chain(settings: Settings | None = None) -> list[str]:
 
 
 def generate_structured(system_prompt: str, user_prompt: str) -> dict[str, Any]:
+    """Pipeline 1: a complaint-intelligence object that passes the JSON schema."""
+
+    def parse(raw: str) -> dict[str, Any]:
+        parsed = coerce_enums(extract_json(raw))
+        # Incomplete output (missing required fields, wrong types) is retried like a
+        # transport error rather than passed downstream as if it were usable.
+        problems = structural_errors(parsed)
+        if problems:
+            raise InvalidOutputError("Schema-invalid output: " + "; ".join(problems[:5]))
+        echoed = _echoed_instruction(str(parsed.get("customer_response") or ""), system_prompt)
+        if echoed:
+            # Small local models sometimes return the writing instructions instead of a reply.
+            raise InvalidOutputError(f"customer_response repeats the prompt instructions: {echoed[:80]!r}")
+        return parsed
+
+    return _run_chain(system_prompt, user_prompt, parse)
+
+
+def generate_json(system_prompt: str, user_prompt: str, *, budget_seconds: float | None = None) -> dict[str, Any]:
+    """Any JSON object reply (used by the assistant); same retries, deadline and cooldown."""
+    return _run_chain(system_prompt, user_prompt, extract_json, budget_seconds=budget_seconds)
+
+
+def _run_chain(system_prompt: str, user_prompt: str, parse, *, budget_seconds: float | None = None) -> dict[str, Any]:
     settings = get_settings()
     configured = provider_chain(settings)
     if not configured:
         raise GenAIError("No GenAI provider API key is configured.")
     chain = [p for p in configured if not _cooling_down(p)]
     paused = [p for p in configured if p not in chain]
+    if budget_seconds is not None and budget_seconds < getattr(settings, "ollama_timeout_seconds", 90):
+        # Short, interactive calls (the assistant) cannot wait for a local CPU model; they fall
+        # back to their grounded extractive answer instead of making the user wait.
+        chain = [p for p in chain if p != "ollama"]
+        if not chain:
+            raise GenAIError("No hosted GenAI provider is available for a short interactive call.")
     if not chain:
         raise GenAIError(
             "All GenAI providers are paused after permanent errors (credits, key or permission): "
@@ -53,23 +83,22 @@ def generate_structured(system_prompt: str, user_prompt: str) -> dict[str, Any]:
 
     errors: list[str] = [f"{p}: paused after a permanent error" for p in paused]
     attempt_log: list[dict[str, Any]] = []
-    deadline = time.perf_counter() + settings.genai_total_budget_seconds
+    budget = budget_seconds or settings.genai_total_budget_seconds
+    deadline = time.perf_counter() + budget
     for provider in chain:
         provider_error = "unknown error"
+        if provider == "ollama" and budget_seconds is None:
+            # Last-resort local model: give it its own allowance even if hosted providers used the budget.
+            deadline = max(deadline, time.perf_counter() + getattr(settings, "ollama_timeout_seconds", 90) + 2)
         for attempt in range(1, settings.genai_max_retries + 1):
             remaining = deadline - time.perf_counter()
             if remaining < 1:
-                provider_error = f"time budget of {settings.genai_total_budget_seconds}s exhausted"
+                provider_error = f"time budget of {budget}s exhausted"
                 break
             started = time.perf_counter()
             try:
                 raw = _call_with_deadline(provider, system_prompt, user_prompt, settings, remaining)
-                parsed = coerce_enums(extract_json(raw))
-                # Incomplete output (missing required fields, wrong types) is retried like a
-                # transport error rather than passed downstream as if it were usable.
-                problems = structural_errors(parsed)
-                if problems:
-                    raise InvalidOutputError("Schema-invalid output: " + "; ".join(problems[:5]))
+                parsed = parse(raw)
                 attempt_log.append({"provider": provider, "attempt": attempt, "ok": True})
                 return {
                     "raw": raw,
@@ -98,6 +127,17 @@ def generate_structured(system_prompt: str, user_prompt: str) -> dict[str, Any]:
     raise GenAIError("All GenAI providers failed — " + " | ".join(errors), attempts=len(attempt_log))
 
 
+def _echoed_instruction(response: str, system_prompt: str) -> str:
+    """The reply, if it is (mostly) copied from the system prompt rather than written for the customer."""
+    reply = " ".join(response.lower().split())
+    if not reply:
+        return ""
+    prompt = " ".join(system_prompt.lower().split())
+    sentences = [s.strip(" -") for s in re.split(r"(?<=[.!?])\s+", reply) if len(s.strip(" -")) > 25]
+    copied = [s for s in sentences if s in prompt]
+    return reply if sentences and len(copied) * 2 >= len(sentences) else ""
+
+
 class InvalidOutputError(ValueError):
     """The model answered, but not with a usable structured result."""
 
@@ -112,7 +152,8 @@ _paused_until: dict[str, float] = {}
 
 
 def _call_with_deadline(provider: str, system_prompt: str, user_prompt: str, settings: Settings, remaining: float) -> str:
-    timeout = max(1.0, min(settings.genai_timeout_seconds, remaining))
+    limit = getattr(settings, "ollama_timeout_seconds", 90) if provider == "ollama" else settings.genai_timeout_seconds
+    timeout = max(1.0, min(limit, remaining))
     future = _EXECUTOR.submit(_dispatch, provider, system_prompt, user_prompt, settings, timeout)
     try:
         return future.result(timeout=timeout + 0.5)
@@ -156,6 +197,8 @@ def _model_name(provider: str, settings: Settings) -> str:
         "grok": settings.grok_model,
         "xai": settings.grok_model,
         "openai": settings.openai_model,
+        "groq": getattr(settings, "groq_model", ""),
+        "ollama": getattr(settings, "ollama_model", ""),
     }.get(provider, settings.openai_model)
 
 
@@ -166,6 +209,10 @@ def _dispatch(provider: str, system_prompt: str, user_prompt: str, settings: Set
         return _anthropic(system_prompt, user_prompt, settings, timeout)
     if provider in {"grok", "xai"}:
         return _grok(system_prompt, user_prompt, settings, timeout)
+    if provider == "groq":
+        return _groq(system_prompt, user_prompt, settings, timeout)
+    if provider == "ollama":
+        return _ollama(system_prompt, user_prompt, settings, timeout)
     return _openai(system_prompt, user_prompt, settings, timeout)
 
 
@@ -261,6 +308,35 @@ def _grok(system_prompt: str, user_prompt: str, settings: Settings, timeout: flo
         user_prompt=user_prompt,
         timeout=timeout,
     )
+
+
+def _groq(system_prompt: str, user_prompt: str, settings: Settings, timeout: float) -> str:
+    if not settings.groq_api_key:
+        raise GenAIError("GROQ_API_KEY is not configured.")
+    return _openai_compatible(
+        url="https://api.groq.com/openai/v1/chat/completions",
+        api_key=settings.groq_api_key,
+        model=settings.groq_model,
+        system_prompt=system_prompt,
+        user_prompt=user_prompt,
+        timeout=timeout,
+    )
+
+
+def _ollama(system_prompt: str, user_prompt: str, settings: Settings, timeout: float) -> str:
+    """Local Ollama through its OpenAI-compatible endpoint (JSON mode supported)."""
+    try:
+        return _openai_compatible(
+            url=settings.ollama_base_url.rstrip("/") + "/v1/chat/completions",
+            api_key="ollama",
+            model=settings.ollama_model,
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            timeout=timeout,
+        )
+    except httpx.ConnectError as exc:
+        # The container is not running: retrying in a second will not start it.
+        raise GenAIError(f"Ollama is not reachable at {settings.ollama_base_url} (is the container running?)", permanent=True) from exc
 
 
 def _gemini(system_prompt: str, user_prompt: str, settings: Settings, timeout: float) -> str:

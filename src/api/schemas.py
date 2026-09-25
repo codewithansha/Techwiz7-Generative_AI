@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
@@ -45,6 +45,8 @@ class ComplaintCreate(BaseModel):
     preferred_contact_channel: str = "email"
     requested_resolution: str = ""
     customer_code: str | None = None
+    channel: str = "web"
+    incident_date: date | None = None
 
 
 class ComplaintOut(BaseModel):
@@ -84,6 +86,15 @@ class StatusUpdate(BaseModel):
 class CustomerDecision(BaseModel):
     action: str  # "confirm" closes a resolved complaint, "reopen" says the fix did not work
     comment: str = ""
+    rating: int | None = Field(default=None, ge=1, le=5)  # CSAT, only with "confirm"
+
+
+class MessageCreate(BaseModel):
+    body: str = Field(min_length=1, max_length=5000)
+    internal: bool = False
+    source: str = "agent"  # agent | genai_draft
+    override: bool = False  # send despite validation flags (reviewer and above only)
+    request_information: bool = False  # also move the case to awaiting_customer
 
 
 class AssignRequest(BaseModel):
@@ -174,3 +185,27 @@ class SlaUpdate(BaseModel):
 
 class PriorityRuleUpdate(BaseModel):
     priority: str
+
+
+class ThresholdUpdate(BaseModel):
+    value: float
+
+
+class RuleUpdate(BaseModel):
+    """Every field optional: only what is sent changes."""
+
+    keywords: list[str] | None = None
+    department_code: str | None = None
+    supporting_department_codes: list[str] | None = None
+    urgency: str | None = None
+    priority: str | None = None
+    policy_code: str | None = None
+    policy_section: str | None = None
+    escalation_required: bool | None = None
+    escalation_level: str | None = None
+    required_actions: list[str] | None = None
+    prohibited_actions: list[str] | None = None
+    follow_up_required: bool | None = None
+    refund_eligible: bool | None = None
+    replacement_eligible: bool | None = None
+    compensation_permitted: bool | None = None

@@ -1,5 +1,10 @@
 import type {
   AnalysisResult,
+  AssistantReply,
+  ComplaintMessage,
+  EvaluationResult,
+  EvaluationRunSummary,
+  NotificationItem,
   BriefComplaint,
   Category,
   Complaint,
@@ -17,9 +22,10 @@ import type {
   StaffMember,
   Trends,
   User,
+  PolicyImpact,
 } from './types'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 export const UNAUTHORIZED_EVENT = 'supportnova:unauthorized'
 
 class ApiError extends Error {
@@ -121,6 +127,13 @@ export const api = {
   me: () => request<User>('/api/v1/auth/me'),
 
   complaints: (query = '') => request<Complaint[]>(`/api/v1/complaints${query}`),
+  /** One page of complaints plus the total number of matches (X-Total-Count). */
+  async complaintsPage(query = '') {
+    const token = localStorage.getItem('supportnova_token')
+    const response = await fetch(`${API_URL}/api/v1/complaints${query}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+    if (!response.ok) throw new ApiError(response.status, `Could not load complaints (${response.status})`)
+    return { rows: (await response.json()) as Complaint[], total: Number(response.headers.get('X-Total-Count') || 0) }
+  },
   complaint: (id: number) => request<Complaint>(`/api/v1/complaints/${id}`),
   history: (id: number) => request<ComplaintHistory>(`/api/v1/complaints/${id}/history`),
   submitComplaint: (draft: ComplaintDraft) =>
@@ -128,7 +141,14 @@ export const api = {
   uploadAttachment: (id: number, file: File) => {
     const form = new FormData()
     form.append('file', file)
-    return request<{ id: number; filename: string }>(`/api/v1/complaints/${id}/attachments`, { method: 'POST', body: form })
+    return request<{ id: number; filename: string; kind?: string; facts?: Record<string, unknown> }>(`/api/v1/complaints/${id}/attachments`, { method: 'POST', body: form })
+  },
+  /** Attachment bytes with the bearer token (an <img src> or link cannot send it). */
+  attachmentBlob: async (complaintId: number, attachmentId: number): Promise<Blob> => {
+    const token = localStorage.getItem('supportnova_token')
+    const response = await fetch(`${API_URL}/api/v1/complaints/${complaintId}/attachments/${attachmentId}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+    if (!response.ok) throw new Error(response.status === 404 ? 'The file could not be found.' : `Could not open the file (${response.status}).`)
+    return response.blob()
   },
   analyze: (id: number, tone = 'professional', skipGenAI = false) =>
     request<AnalysisResult>(`/api/v1/complaints/${id}/analyze`, json('POST', { tone, skip_genai: skipGenAI })),
@@ -137,8 +157,31 @@ export const api = {
   review: (id: number, action: string, comments: string, finalDecision: Record<string, unknown> = {}) =>
     request<Complaint>(`/api/v1/complaints/${id}/review`, json('POST', { action, comments, final_decision: finalDecision })),
   manualReview: () => request<Complaint[]>('/api/v1/complaints/queue/manual-review'),
-  customerDecision: (id: number, action: 'confirm' | 'reopen', comment = '') =>
-    request<Complaint>(`/api/v1/complaints/${id}/customer-decision`, json('POST', { action, comment })),
+  reanalyzeFlagged: (skip_genai = false) => request<{ reanalyzed: string[]; failed: Array<{ complaint_code: string; error: string }>; remaining: number }>('/api/v1/complaints/reanalyze-flagged', { method: 'POST', body: JSON.stringify({ skip_genai }) }),
+  messages: (id: number) => request<ComplaintMessage[]>(`/api/v1/complaints/${id}/messages`),
+  checkMessage: (id: number, body: string) => request<{ flags: Array<{ code?: string; detail?: string; value?: string }> }>(`/api/v1/complaints/${id}/messages/check`, json('POST', { body })),
+  sendMessage: (id: number, body: { body: string; internal?: boolean; source?: string; override?: boolean; request_information?: boolean }) =>
+    request<ComplaintMessage>(`/api/v1/complaints/${id}/messages`, json('POST', body)),
+  assistantChat: (message: string, sessionId: number | null, complaintId?: number) =>
+    request<AssistantReply>('/api/v1/assistant/chat', json('POST', { message, session_id: sessionId, complaint_id: complaintId })),
+  notifications: () => request<{ unread: number; items: NotificationItem[] }>('/api/v1/notifications'),
+  markNotificationsSeen: () => request<{ ok: boolean }>('/api/v1/notifications/seen', { method: 'POST' }),
+  evaluationRuns: () => request<EvaluationRunSummary[]>('/api/v1/evaluation/runs'),
+  evaluationRun: (id: number) => request<EvaluationResult>(`/api/v1/evaluation/runs/${id}`),
+  importEvaluation: (form: FormData) => request<{ id: number; total: number; status: string }>('/api/v1/evaluation/import', { method: 'POST', body: form }),
+  downloadEvaluationReport: async (id: number, fmt: 'csv' | 'xlsx') => {
+    const token = localStorage.getItem('supportnova_token')
+    const response = await fetch(`${API_URL}/api/v1/evaluation/runs/${id}/report?fmt=${fmt}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+    if (!response.ok) throw new ApiError(response.status, 'Could not download the comparison report')
+    const url = URL.createObjectURL(await response.blob())
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = `comparison-report-run-${id}.${fmt}`
+    anchor.click()
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+  },
+  customerDecision: (id: number, action: 'confirm' | 'reopen', comment = '', rating?: number) =>
+    request<Complaint>(`/api/v1/complaints/${id}/customer-decision`, json('POST', { action, comment, rating })),
 
   adminMetrics: () => request<Metrics>('/api/v1/dashboards/admin'),
   analytics: () => request<Metrics>('/api/v1/analytics'),
@@ -161,6 +204,10 @@ export const api = {
   createDepartment: (body: { code: string; name: string; description?: string }) => request<Department>('/api/v1/config/departments', json('POST', body)),
   createCategory: (body: { code: string; name: string; default_department_code: string; subcategories: Array<{ code: string; name: string; keywords: string[] }> }) =>
     request<{ id: number }>('/api/v1/config/categories', json('POST', body)),
+  updateRule: (code: string, body: Record<string, unknown>) => request<{ rule_code: string; updated: string[]; warnings: string[] }>(`/api/v1/config/rules/${encodeURIComponent(code)}`, json('PATCH', body)),
+  addSubcategory: (categoryCode: string, body: { code: string; name: string; keywords: string[] }) => request<{ code: string }>(`/api/v1/config/categories/${encodeURIComponent(categoryCode)}/subcategories`, json('POST', body)),
+  thresholds: () => request<Array<{ key: string; value: number; min: number; max: number; description: string }>>('/api/v1/config/thresholds'),
+  updateThreshold: (key: string, value: number) => request<{ key: string; value: number }>(`/api/v1/config/thresholds/${key}`, json('PUT', { value })),
   createRule: (body: Record<string, unknown>) => request<{ rule_code: string; warnings: string[] }>('/api/v1/config/rules', json('POST', body)),
   toggleRule: (code: string, isActive: boolean) => request<{ is_active: boolean }>(`/api/v1/config/rules/${encodeURIComponent(code)}/active`, json('PATCH', { is_active: isActive })),
   createEscalationRule: (body: Record<string, unknown>) => request<EscalationRule>('/api/v1/config/escalation-rules', json('POST', body)),
@@ -178,7 +225,7 @@ export const api = {
   setDocumentStatus: (id: number, status: string) =>
     request<{ status: string; superseded_versions: string[]; affected_complaint_codes: string[] }>(`/api/v1/knowledge-base/documents/${id}/status?status=${status}`, { method: 'PATCH' }),
   uploadDocument: (form: FormData) =>
-    request<{ id: number; document_code: string; chunks: number; affected_open_complaints: number; affected_complaint_codes: string[]; superseded_versions: string[]; warnings: string[] }>(
+    request<{ id: number; document_code: string; version: string; chunks: number; affected_open_complaints: number; affected_complaint_codes: string[]; superseded_versions: string[]; warnings: string[]; impact: PolicyImpact | null }>(
       '/api/v1/knowledge-base/documents',
       { method: 'POST', body: form },
     ),

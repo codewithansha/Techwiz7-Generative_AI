@@ -29,6 +29,16 @@ def sanitize_input(text: str) -> str:
 
 def extract_metadata(text: str) -> dict:
     amounts = re.findall(r"(?:PKR|USD|Rs\.?|\$)\s?\d[\d,]*", text, flags=re.I)
+    # Amounts written without a prefix: "250,000 rupees", or after a money verb ("charged 250000").
+    amounts += re.findall(r"(?<![-\w,])(?:\d{1,3}(?:,\d{3})+|\d{3,})(?:\.\d+)?\s?(?:PKR|rupees|rs\b|USD|dollars)", text, flags=re.I)
+    amounts += [
+        m.group(1)
+        for m in re.finditer(
+            r"\b(?:charged|paid|debited|billed|deducted|overcharged|refund of|worth|costs?|price of|amount of|invoice of)\s+(?:me\s+|us\s+|for\s+)?(\d[\d,]{3,}(?:\.\d+)?)\b(?!\s*(?:days?|hours?|units?|items?|laptops?|pieces?))",
+            text,
+            flags=re.I,
+        )
+    ]
     dates = re.findall(r"\b\d{1,2}[-/]\d{1,2}[-/]\d{2,4}\b", text)
     order_ids = re.findall(r"\bNC-\d{6,}\b", text, flags=re.I)
     emails = re.findall(r"\b[\w.+-]+@[\w-]+\.[\w.-]+\b", text)

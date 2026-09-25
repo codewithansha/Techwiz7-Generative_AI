@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from 'react'
+import { Fragment, useCallback, useEffect, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 import {
+  Scale, PencilLine, Image as ImageIcon,
   Activity, AlertTriangle, ArrowLeft, ArrowRight, BarChart3, BookOpen, Bot,
   BrainCircuit, Check, CheckCircle2, ChevronDown, Clock3, Download, FileText,
-  Filter, History, Inbox, LayoutDashboard, LogOut, Menu, MessageSquareText, Paperclip, Plus,
+  FlaskConical, Filter, History, Inbox, LayoutDashboard, LogOut, Menu, MessageSquareText, Plus,
   RefreshCw, Search, Send, Settings2, ShieldAlert, ShieldCheck, Sparkles, TrendingUp, Upload,
   UserRoundCheck, Users, X, XCircle,
 } from 'lucide-react'
@@ -18,17 +19,15 @@ import { toast, Toaster } from 'sonner'
 import { api, ApiError, queryString, UNAUTHORIZED_EVENT } from './api'
 import type { ReportKey } from './api'
 import { useAppStore } from './store'
+import Assistant from './Assistant'
+import { Conversation, EvaluationPage, NotificationBell, StarRating } from './Engagement'
+import { STATUS_LABEL, Page, PageHeader, Panel, Metric, StatusBadge, Priority, Field, EmptyState, Skeleton, labelize, date, dateTime, messageOf, entries } from './ui'
 import type {
   BriefComplaint, Category, Complaint, ComplaintDraft, ComplaintHistory, ComplaintIntelligence, Department,
   DocumentChunk, EscalationRule, GenAIConfig, KnowledgeDocument, Metrics, PriorityRule, Role, Rule, SlaPolicy,
-  Trends, User,
+  Attachment, PolicyImpact, Trends, User,
 } from './types'
 
-const STATUS_LABEL: Record<string, string> = {
-  new: 'New', analyzed: 'Analyzed', assigned: 'Assigned', in_progress: 'In progress',
-  awaiting_customer: 'Awaiting customer', escalated: 'Escalated', resolved: 'Resolved',
-  closed: 'Closed', reopened: 'Reopened',
-}
 const COLORS = ['#6558f5', '#9b8cff', '#26b6a0', '#f59f47', '#f15c6d', '#7196f3', '#b28be8', '#4fb3d9']
 const TONES = ['professional', 'empathetic', 'concise', 'formal']
 const DOC_CATEGORIES = ['policy', 'sop', 'faq', 'sla', 'routing', 'escalation', 'compliance', 'guideline', 'template']
@@ -149,7 +148,7 @@ function AppShell() {
     <div className="main-column">
       <header className="topbar">
         <div className="topbar-title"><button className="mobile-menu" onClick={() => setSidebarOpen(true)}><Menu /></button><div><span>Workspace</span><b>{pageName}</b></div></div>
-        <div className="topbar-actions"><form className="search-shell" onSubmit={runSearch}><Search /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={role === 'customer' ? 'Search my complaints…' : 'Search ID, title, order or customer…'} /></form><Link className="button primary compact" to="/complaints/new"><Plus /> New complaint</Link></div>
+        <div className="topbar-actions"><form className="search-shell" onSubmit={runSearch}><Search /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={role === 'customer' ? 'Search my complaints…' : 'Search ID, title, order or customer…'} /></form><NotificationBell /><Link className="button primary compact" to="/complaints/new"><Plus /> New complaint</Link></div>
       </header>
       <main className="workspace"><Routes>
         <Route index element={role === 'customer' ? <CustomerDashboard /> : <DashboardPage />} />
@@ -159,10 +158,12 @@ function AppShell() {
         {role && REVIEWER_ROLES.includes(role) && <Route path="review" element={<ReviewQueuePage />} />}
         {role !== 'customer' && <Route path="knowledge" element={<KnowledgePage />} />}
         {(role === 'manager' || role === 'administrator') && <Route path="reports" element={<ReportsPage />} />}
+        {(role === 'manager' || role === 'administrator') && <Route path="evaluation" element={<EvaluationPage />} />}
         {role === 'administrator' && <Route path="settings" element={<SettingsPage />} />}
         <Route path="*" element={<Navigate to="/" />} />
       </Routes></main>
     </div>
+    <Assistant />
   </div>
 }
 
@@ -231,7 +232,9 @@ function ComplaintsPage() {
   const staff = role !== 'customer'
   const [params, setParams] = useSearchParams()
   const [rows, setRows] = useState<Complaint[]>([])
+  const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [categories, setCategories] = useState<Category[]>([])
   const [departments, setDepartments] = useState<Department[]>([])
   const [showMore, setShowMore] = useState(() => ['category', 'department', 'priority', 'sentiment', 'escalated', 'sla_risk', 'review', 'date_from', 'date_to'].some((k) => params.get(k)))
@@ -241,12 +244,20 @@ function ComplaintsPage() {
   useEffect(() => { setQ(params.get('q') || '') }, [params])
   useEffect(() => { if (staff) { api.categories().then(setCategories).catch(() => undefined); api.departments().then(setDepartments).catch(() => undefined) } }, [staff])
   const query = params.toString()
+  const pageQuery = (offset: number) => `?${query ? `${query}&` : ''}limit=50&offset=${offset}`
   useEffect(() => {
     let active = true
     setLoading(true)
-    api.complaints(query ? `?${query}` : '').then((data) => { if (active) setRows(data) }).catch((e) => toast.error(messageOf(e))).finally(() => { if (active) setLoading(false) })
+    api.complaintsPage(pageQuery(0)).then((page) => { if (active) { setRows(page.rows); setTotal(page.total) } }).catch((e) => toast.error(messageOf(e))).finally(() => { if (active) setLoading(false) })
     return () => { active = false }
+    // pageQuery only depends on query
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query])
+  const loadMore = async () => {
+    setLoadingMore(true)
+    try { const page = await api.complaintsPage(pageQuery(rows.length)); setRows((r) => [...r, ...page.rows]); setTotal(page.total) }
+    catch (e) { toast.error(messageOf(e)) } finally { setLoadingMore(false) }
+  }
   const activeCount = ['category', 'department', 'priority', 'sentiment', 'escalated', 'sla_risk', 'review', 'date_from', 'date_to'].filter((k) => params.get(k)).length
   return <Page>
     <PageHeader eyebrow="Complaint operations" title={staff ? 'All complaints' : 'My complaints'} description="Search, filter and follow every complaint through resolution." action={<Link className="button primary" to="/complaints/new"><Plus /> New complaint</Link>} />
@@ -255,7 +266,7 @@ function ComplaintsPage() {
       <select value={filters.status || ''} onChange={(e) => setFilter('status', e.target.value)}><option value="">All statuses</option>{Object.entries(STATUS_LABEL).map(([v, l]) => <option value={v} key={v}>{l}</option>)}</select>
       {staff && <button className="button secondary" onClick={() => setShowMore(!showMore)}><Filter /> Filters{activeCount ? ` (${activeCount})` : ''}</button>}
       {query && <button className="text-button" onClick={() => setParams(new URLSearchParams(), { replace: true })}>Clear</button>}
-      <span className="result-count">{rows.length} {rows.length === 1 ? 'result' : 'results'}</span>
+      <span className="result-count">{total} {total === 1 ? 'result' : 'results'}</span>
     </div>
     {staff && showMore && <div className="filter-panel card">
       <label>Category<select value={filters.category || ''} onChange={(e) => setFilter('category', e.target.value)}><option value="">Any</option>{categories.map((c) => <option key={c.code} value={c.name}>{c.name}</option>)}<option value="Unclassified">Unclassified</option></select></label>
@@ -268,25 +279,26 @@ function ComplaintsPage() {
       <label className="check"><input type="checkbox" checked={filters.sla_risk === 'true'} onChange={(e) => setFilter('sla_risk', e.target.checked ? 'true' : '')} /> SLA at risk</label>
       <label className="check"><input type="checkbox" checked={filters.review === 'true'} onChange={(e) => setFilter('review', e.target.checked ? 'true' : '')} /> Awaiting review</label>
     </div>}
-    <div className="card table-card"><ComplaintTable rows={rows} loading={loading} customer={!staff} /></div>
+    <div className="card table-card"><ComplaintTable rows={rows} loading={loading} customer={!staff} />{!loading && rows.length < total && <div className="load-more"><span className="muted">Showing {rows.length} of {total}</span><button className="button secondary" disabled={loadingMore} onClick={loadMore}>{loadingMore ? <RefreshCw className="spin" /> : <ChevronDown />} Load more</button></div>}</div>
   </Page>
 }
 
 function NewComplaintPage() {
   const navigate = useNavigate()
+  const prefill = (useLocation().state as { prefill?: Partial<ComplaintDraft> } | null)?.prefill
   const role = useAppStore((s) => s.role)
   const staff = role !== 'customer'
   const [step, setStep] = useState(1)
   const [busy, setBusy] = useState(false)
   const [files, setFiles] = useState<File[]>([])
-  const [draft, setDraft] = useState<ComplaintDraft>({ title: '', description: '', product_or_service: '', order_reference: '', previous_complaint_reference: '', customer_type: 'standard', customer_code: '', preferred_contact_channel: 'email', requested_resolution: '' })
+  const [draft, setDraft] = useState<ComplaintDraft>({ title: '', description: '', product_or_service: '', order_reference: '', previous_complaint_reference: '', customer_type: 'standard', customer_code: '', preferred_contact_channel: 'email', requested_resolution: '', channel: 'web', incident_date: '', ...(prefill || {}) })
   const set = (field: keyof ComplaintDraft, value: string) => setDraft((d) => ({ ...d, [field]: value }))
   const orderValid = !draft.order_reference || /^NC-\d{6,}$/i.test(draft.order_reference.trim())
   const previousValid = !draft.previous_complaint_reference || /^CMP-\d{5,}$/i.test(draft.previous_complaint_reference.trim())
   const submit = async () => {
     setBusy(true)
     try {
-      const payload = { ...draft, customer_code: staff ? draft.customer_code?.trim() || undefined : undefined }
+      const payload = { ...draft, customer_code: staff ? draft.customer_code?.trim() || undefined : undefined, incident_date: draft.incident_date || undefined, channel: staff ? draft.channel : 'web' }
       const result = await api.submitComplaint(payload)
       const failed: string[] = []
       for (const file of files) { try { await api.uploadAttachment(result.complaint.id, file) } catch (e) { failed.push(`${file.name}: ${messageOf(e)}`) } }
@@ -309,6 +321,8 @@ function NewComplaintPage() {
       {step === 2 && <FormSection icon={BookOpen} title="Add relevant context" description="This helps detect repeats and choose the right policy.">
         {staff && <Field label="Customer reference" note="Optional · e.g. CUST-10001"><input value={draft.customer_code} onChange={(e) => set('customer_code', e.target.value)} placeholder="CUST-10001" /></Field>}
         {staff && <Field label="Customer type" note="Ignored when a customer reference is given"><select value={draft.customer_type} onChange={(e) => set('customer_type', e.target.value)}><option value="standard">Standard</option><option value="vip">VIP</option><option value="wholesale">Wholesale</option><option value="enterprise">Enterprise</option></select></Field>}
+        {staff && <Field label="Received via" note="Channel the complaint arrived on"><select value={draft.channel} onChange={(e) => set('channel', e.target.value)}>{['web', 'email', 'chat', 'portal', 'messaging'].map((c) => <option key={c} value={c}>{labelize(c)}</option>)}</select></Field>}
+        <Field label="When did it happen?" note="Optional · purchase or incident date"><input type="date" max={new Date().toISOString().slice(0, 10)} value={draft.incident_date} onChange={(e) => set('incident_date', e.target.value)} /></Field>
         <Field label="Preferred contact"><select value={draft.preferred_contact_channel} onChange={(e) => set('preferred_contact_channel', e.target.value)}><option value="email">Email</option><option value="chat">Chat</option><option value="phone">Phone</option></select></Field>
         <Field label="Previous complaint reference" note={previousValid ? 'Optional · links a repeat complaint' : 'Use the format CMP-00000'}><input className={previousValid ? '' : 'invalid'} value={draft.previous_complaint_reference} onChange={(e) => set('previous_complaint_reference', e.target.value)} placeholder="CMP-00000" /></Field>
         <Field label="Requested resolution" full><textarea value={draft.requested_resolution} onChange={(e) => set('requested_resolution', e.target.value)} rows={3} placeholder="What would a fair resolution look like?" /></Field>
@@ -339,10 +353,11 @@ function ComplaintDetailPage() {
 function CustomerComplaintView({ complaint, reload }: { complaint: Complaint; reload: () => Promise<void> }) {
   const [reopening, setReopening] = useState(false)
   const [reason, setReason] = useState('')
+  const [rating, setRating] = useState(0)
   const [busy, setBusy] = useState(false)
   const decide = async (action: 'confirm' | 'reopen') => {
     setBusy(true)
-    try { await api.customerDecision(complaint.id, action, reason); toast.success(action === 'confirm' ? 'Thanks — your complaint is closed.' : 'Your complaint has been reopened.'); setReopening(false); setReason(''); await reload() }
+    try { await api.customerDecision(complaint.id, action, reason, action === 'confirm' && rating ? rating : undefined); toast.success(action === 'confirm' ? 'Thanks — your complaint is closed.' : 'Your complaint has been reopened.'); setReopening(false); setReason(''); await reload() }
     catch (e) { toast.error(messageOf(e)) } finally { setBusy(false) }
   }
   return <Page>
@@ -350,20 +365,23 @@ function CustomerComplaintView({ complaint, reload }: { complaint: Complaint; re
     {complaint.status === 'resolved' && <div className="resolution-check card">
       <div><CheckCircle2 /><span><b>Did this resolve your issue?</b>Confirm to close the complaint, or reopen it if the problem is not fixed.</span></div>
       {reopening ? <div className="reopen-form"><textarea rows={3} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="What is still wrong?" /><div><button className="button ghost" onClick={() => setReopening(false)}>Cancel</button><button className="button danger-outline" disabled={busy || reason.trim().length < 10} onClick={() => decide('reopen')}><RefreshCw /> Reopen complaint</button></div></div>
-        : <div className="resolution-actions"><button className="button secondary" onClick={() => setReopening(true)}>Not resolved — reopen</button><button className="button primary" disabled={busy} onClick={() => decide('confirm')}><Check /> Yes, close it</button></div>}
+        : <div className="resolution-actions"><div className="csat"><small>How satisfied are you?</small><StarRating value={rating} onChange={setRating} /></div><button className="button secondary" onClick={() => setReopening(true)}>Not resolved — reopen</button><button className="button primary" disabled={busy} onClick={() => decide('confirm')}><Check /> Yes, close it</button></div>}
     </div>}
     <div className="detail-grid">
       <Panel className="span-2" title="Latest update" subtitle="What is happening with your complaint"><div className="intelligence-grid"><Data label="Status" value={STATUS_LABEL[complaint.status] || complaint.status} /><Data label="Department" value={complaint.department || 'Being assigned'} /><Data label="Resolution" value={['resolved', 'closed'].includes(complaint.status) ? 'Resolved' : 'Open'} /><Data label="Last change" value={complaint.updated_at ? dateTime(complaint.updated_at) : '—'} /></div><p className="complaint-copy update-copy">{complaint.latest_update}</p></Panel>
       <Panel title="Timing" subtitle="Service targets"><div className="timeline-metric"><Clock3 /><span><small>Target resolution</small><b>{complaint.sla_resolution_due ? dateTime(complaint.sla_resolution_due) : 'Set after triage'}</b></span></div><div className="timeline-metric"><RefreshCw /><span><small>Next follow-up</small><b>{complaint.follow_up_at ? dateTime(complaint.follow_up_at) : 'Not scheduled'}</b></span></div></Panel>
       <Panel className="span-2" title="Your complaint" subtitle="As submitted"><p className="complaint-copy">{complaint.description}</p><div className="metadata-row"><span>Product <b>{complaint.product_or_service || '—'}</b></span><span>Order <b>{complaint.order_reference || '—'}</b></span><span>Requested <b>{complaint.requested_resolution || '—'}</b></span></div></Panel>
       <Panel title="Supporting documents" subtitle="Evidence you have shared"><Attachments complaint={complaint} reload={reload} /></Panel>
+      <Panel className="span-3" title="Messages" subtitle={complaint.unread_messages ? `${complaint.unread_messages} new message(s) from support` : 'Your conversation with the support team'}><Conversation complaint={complaint} role="customer" reload={reload} /></Panel>
+      {complaint.feedback && <Panel title="Your feedback" subtitle="Thank you"><StarRating value={complaint.feedback.rating} readOnly />{complaint.feedback.comment && <p className="muted">{complaint.feedback.comment}</p>}</Panel>}
     </div>
   </Page>
 }
 
 function StaffComplaintView({ complaint, reload, role }: { complaint: Complaint; reload: () => Promise<void>; role: Role | null }) {
   const user = useAppStore((s) => s.user)
-  const [tab, setTab] = useState('overview')
+  const handoff = useLocation().state as { draft?: string; tab?: string } | null
+  const [tab, setTab] = useState(handoff?.tab || 'overview')
   const [analyzing, setAnalyzing] = useState(false)
   const [tone, setTone] = useState('professional')
   const [pythonOnly, setPythonOnly] = useState(false)
@@ -390,6 +408,8 @@ function StaffComplaintView({ complaint, reload, role }: { complaint: Complaint;
       <div className="analyze-controls"><select value={tone} onChange={(e) => setTone(e.target.value)} title="Response tone">{TONES.map((t) => <option key={t} value={t}>{labelize(t)} tone</option>)}</select><label className="check"><input type="checkbox" checked={pythonOnly} onChange={(e) => setPythonOnly(e.target.checked)} /> Python only</label><button className="button primary" disabled={analyzing} onClick={analyze}>{analyzing ? <RefreshCw className="spin" /> : <Sparkles />} {complaint.python ? 'Re-run analysis' : 'Analyze complaint'}</button></div>
     </div>
     <div className="case-alerts">
+      {complaint.needs_reanalysis && <div className="alert info"><RefreshCw /><span><b>A policy this case relies on changed</b>Re-run the analysis so the recommendation and reply use the current version.</span><button className="button secondary compact" disabled={analyzing} onClick={analyze}>Re-analyze</button></div>}
+      {complaint.classification?.overridden && <div className="alert purple"><UserRoundCheck /><span><b>Reclassified by a reviewer</b>Now {complaint.classification.category}{complaint.classification.subcategory ? ` / ${complaint.classification.subcategory}` : ''}{complaint.classification.priority ? ` · ${complaint.classification.priority}` : ''}; the original Python result is kept on the Structured JSON and History tabs.</span></div>}
       {(complaint.open_followups || []).filter((f) => f.type === 'customer_reopened').slice(-1).map((f) => <div key={f.scheduled_at} className="alert danger"><RefreshCw /><span><b>Reopened by the customer · {dateTime(f.scheduled_at)}</b>“{f.message}”</span></div>)}
       {complaint.pending_review && <div className="alert warning"><AlertTriangle /><span><b>Manual review required</b>{reasons.join(' · ') || 'GenAI and Python require a human decision.'}</span>{role && REVIEWER_ROLES.includes(role) && <Link to="/review">Open queue</Link>}</div>}
       {py.escalation_required && <div className="alert danger"><ShieldAlert /><span><b>Mandatory escalation · {labelize(py.escalation_level || 'required')}</b>{(py.escalation_reasons || []).join(' ') || 'Escalation rules matched.'}</span></div>}
@@ -405,29 +425,31 @@ function StaffComplaintView({ complaint, reload, role }: { complaint: Complaint;
       {user && complaint.assigned_to_id !== user.id && <button className="button secondary" onClick={() => act(() => api.assign(complaint.id, { agent_id: user.id }), 'Assigned to you')}><UserRoundCheck /> Assign to me</button>}
       <label>Department<select value={complaint.assigned_department_id || ''} onChange={(e) => e.target.value && act(() => api.assign(complaint.id, { department_id: Number(e.target.value) }), 'Department updated')}><option value="">—</option>{departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select></label>
     </div>
-    <div className="tabs">{['overview', 'comparison', 'response', 'json', 'history'].map((value) => <button className={tab === value ? 'active' : ''} onClick={() => setTab(value)} key={value}>{value === 'json' ? 'Structured JSON' : labelize(value)}</button>)}</div>
+    <div className="tabs">{['overview', 'conversation', 'comparison', 'response', 'json', 'history'].map((value) => <button className={tab === value ? 'active' : ''} onClick={() => setTab(value)} key={value}>{value === 'json' ? 'Structured JSON' : labelize(value)}{value === 'conversation' && (complaint.open_followups || []).some((f) => f.type === 'customer_reopened') ? ' •' : ''}</button>)}</div>
     {tab === 'overview' && <div className="detail-grid">
       <Panel className="span-2" title="Complaint intelligence" subtitle="Python-verified classification and routing" action={complaint.verification_score != null ? <Verification score={complaint.verification_score} /> : undefined}>
         {complaint.python ? <>
-          <div className="intelligence-grid"><Data label="Category" value={py.issue_category} /><Data label="Subcategory" value={py.subcategory} /><Data label="Department" value={py.department} /><Data label="Supporting" value={(py.supporting_departments || []).join(', ') || 'None'} /><Data label="Urgency" value={py.urgency} badge /><Data label="Priority" value={py.priority} badge /><Data label="Sentiment" value={ai.sentiment ? labelize(ai.sentiment) : 'GenAI not available'} /><Data label="Escalation" value={py.escalation_required ? labelize(py.escalation_level || 'required') : 'Not required'} /><Data label="Policy source" value={[py.policy_id, py.policy_section && `§${py.policy_section}`, py.policy_version && `v${py.policy_version}`].filter(Boolean).join(' · ') || 'Not matched'} /><Data label="Policy status" value={py.policy_applicability ? labelize(py.policy_applicability) : 'Not recorded'} /><Data label="Rule" value={py.rule_code || 'No rule matched'} /></div>
-          <div className="kv-list"><span>Primary issue</span><b>{ai.primary_issue || py.issue_category}</b><span>Secondary issues</span><b>{secondaryText(py.secondary_issues) || secondaryText(ai.secondary_issues) || 'None'}</b><span>Eligibility</span><div className="chip-row">{eligibility(py).map(([label, state]) => <span key={label} className={`chip ${state}`}>{label}: {state === 'yes' ? 'eligible' : state === 'no' ? 'not eligible' : 'needs check'}</span>)}</div>{ai.emotion_indicators?.length ? <><span>Emotion indicators</span><b>{ai.emotion_indicators.join(', ')} <small className="muted">(do not affect urgency)</small></b></> : null}</div>
+          <div className="intelligence-grid"><Data label="Category" value={py.issue_category} /><Data label="Subcategory" value={py.subcategory} /><Data label="Department" value={py.department} /><Data label="Supporting" value={(py.supporting_departments || []).join(', ') || 'None'} /><Data label="Urgency" value={py.urgency} badge /><Data label="Priority" value={py.priority} badge /><Data label="Sentiment" value={ai.sentiment ? labelize(ai.sentiment) : complaint.classification?.sentiment ? `${labelize(complaint.classification.sentiment)} (Python estimate)` : '—'} /><Data label="Escalation" value={py.escalation_required ? labelize(py.escalation_level || 'required') : 'Not required'} /><Data label="Policy source" value={[py.policy_id, py.policy_section && `§${py.policy_section}`, py.policy_version && `v${py.policy_version}`].filter(Boolean).join(' · ') || 'Not matched'} /><Data label="Policy status" value={py.policy_applicability ? labelize(py.policy_applicability) : 'Not recorded'} /><Data label="Rule" value={py.rule_code || 'No rule matched'} /></div>
+          <div className="kv-list"><span>Primary issue</span><b>{ai.primary_issue || py.issue_category}</b><span>Secondary issues</span><b>{secondaryText(py.secondary_issues) || secondaryText(ai.secondary_issues) || 'None'}</b><span>Eligibility</span><div className="chip-row">{eligibility(py).map(([label, state]) => <span key={label} className={`chip ${state}`}>{label}: {state === 'yes' ? 'eligible' : state === 'no' ? 'not eligible' : 'needs check'}</span>)}</div>{py.eligibility?.checks?.length ? <><span>Policy conditions</span><ul className="condition-list">{py.eligibility.checks.map((c) => <li key={c.check} className={c.passed === true ? 'pass' : c.passed === false ? 'fail' : 'unknown'}>{c.passed === true ? <Check /> : c.passed === false ? <XCircle /> : <AlertTriangle />}<span><b>{labelize(c.check)}</b> {c.detail} <small>{c.policy}</small></span></li>)}</ul></> : null}{ai.emotion_indicators?.length ? <><span>Emotion indicators</span><b>{ai.emotion_indicators.join(', ')} <small className="muted">(do not affect urgency)</small></b></> : null}</div>
         </> : <AnalysisEmpty onAnalyze={analyze} />}
       </Panel>
-      <Panel title="SLA & follow-up" subtitle="Resolution timing"><div className="timeline-metric"><Clock3 /><span><small>Resolution due</small><b>{complaint.sla_resolution_due ? dateTime(complaint.sla_resolution_due) : 'Pending analysis'}</b></span></div><div className="progress"><i style={{ width: `${slaProgress(complaint)}%` }} /></div><p className="muted">{complaint.sla_risk ? 'SLA risk: over 75% of the window used' : complaint.sla_resolution_due ? 'Within target window' : 'No SLA until analyzed'}</p><div className="timeline-metric"><RefreshCw /><span><small>Follow-up</small><b>{complaint.follow_up_at ? dateTime(complaint.follow_up_at) : 'Not scheduled'}</b></span></div></Panel>
+      <Panel title="SLA & follow-up" subtitle="Resolution timing"><div className="timeline-metric"><Clock3 /><span><small>Resolution due</small><b>{complaint.sla_resolution_due ? dateTime(complaint.sla_resolution_due) : 'Pending analysis'}</b></span></div><div className="progress"><i style={{ width: `${slaProgress(complaint)}%` }} /></div><p className="muted">{complaint.sla_risk ? 'SLA risk: over the risk threshold of the window' : complaint.sla_resolution_due ? 'Within target window' : 'No SLA until analyzed'}</p><div className="timeline-metric"><Send /><span><small>First response</small><b>{complaint.first_responded_at ? `${dateTime(complaint.first_responded_at)} · ${complaint.first_response === 'met' ? 'on time' : 'late'}` : complaint.sla_first_response_due ? `Due ${dateTime(complaint.sla_first_response_due)}${complaint.first_response === 'overdue' ? ' · overdue' : ''}` : '—'}</b></span></div><div className="timeline-metric"><RefreshCw /><span><small>Follow-up</small><b>{complaint.follow_up_at ? dateTime(complaint.follow_up_at) : 'Not scheduled'}</b></span></div></Panel>
       <Panel className="span-2" title="Customer complaint" subtitle="Original submitted content (untrusted input)"><p className="complaint-copy">{complaint.description}</p><div className="metadata-row"><span>Product <b>{complaint.product_or_service || '—'}</b></span><span>Order <b>{complaint.order_reference || '—'}</b></span><span>Customer <b>{labelize(complaint.customer_type)}</b></span><span>Previous <b>{complaint.previous_complaint_reference || '—'}</b></span><span>Contact <b>{labelize(complaint.preferred_contact_channel || '—')}</b></span></div>{complaint.requested_resolution && <p className="muted requested">Requested resolution: {complaint.requested_resolution}</p>}{py.missing_information?.length ? <p className="missing-info"><AlertTriangle /> Missing: {py.missing_information.map(labelize).join(', ')}</p> : null}<Attachments complaint={complaint} reload={reload} /></Panel>
-      <Panel title="Validation controls" subtitle="Python-enforced checks">{complaint.flags?.length ? <div className="flag-list">{complaint.flags.map((f, i) => <p key={i}><XCircle /><span><b>{labelize(String(f.code || 'issue'))}</b>{f.detail || f.action || f.value || (f.patterns ? `${f.patterns.length} pattern(s)` : '')}</span></p>)}</div> : complaint.python ? <div className="all-clear"><ShieldCheck /><span><b>No validation flags</b>Python validation raised no issues.</span></div> : <p className="muted">Run analysis to validate.</p>}</Panel>
+      <Panel title="Validation controls" subtitle="Python-enforced checks">{complaint.flags?.length ? <div className="flag-list">{complaint.flags.map((f, i) => <p key={i}><XCircle /><span><b>{labelize(String(f.code || 'issue'))}</b>{f.detail || f.action || f.value || (f.patterns ? `${f.patterns.length} pattern(s)` : '')}</span></p>)}</div> : complaint.python ? <div className="all-clear"><ShieldCheck /><span><b>No validation flags</b>Python validation raised no issues.</span></div> : <p className="muted">Run analysis to validate.</p>}{complaint.checks?.policy?.precedence?.governing && <p className="precedence-note"><Scale /><span><b>Policy precedence</b>{complaint.checks.policy.precedence.governing.document_code} governs{complaint.checks.policy.precedence.overridden?.length ? ` over ${complaint.checks.policy.precedence.overridden.map((o) => `${o.document_code} (${o.category})`).join(', ')}` : ''}.{complaint.checks.policy.precedence.conflicts?.length ? ` ${complaint.checks.policy.precedence.conflicts.length} lower-precedence statement(s) differ and are ignored.` : ''}</span></p>}</Panel>
+      <EvidencePanel complaint={complaint} />
     </div>}
     {tab === 'comparison' && <Comparison complaint={complaint} />}
     {tab === 'response' && <div className="response-layout">
       <Panel className="span-2" title="Customer response draft" subtitle={complaint.genai_meta?.available ? `Generated by ${complaint.genai_meta.provider} · ${complaint.genai_meta.model} · prompt ${complaint.genai_meta.prompt_version}` : 'GenAI draft'}>
+        {typeof complaint.latest_review?.final_decision?.customer_response === 'string' && <><h4 className="section-title">Reviewer-approved response <small className="muted">({labelize(complaint.latest_review.action)} · {dateTime(complaint.latest_review.created_at)})</small></h4><div className="response-letter approved">{complaint.latest_review.final_decision.customer_response}</div><h4 className="section-title">Original GenAI draft</h4></>}
         {ai.customer_response ? <div className="response-letter">{ai.customer_response}</div> : <AnalysisEmpty />}
         {ai.follow_up_communication && <><h4 className="section-title">Follow-up communication</h4><div className="response-letter small">{ai.follow_up_communication}</div></>}
-        {ai.clarification_questions?.length ? <List title="Clarification questions" items={ai.clarification_questions} /> : null}
+        {(ai.clarification_questions?.length ? ai.clarification_questions : py.clarification_questions || []).length ? <List title="Clarification questions" items={ai.clarification_questions?.length ? ai.clarification_questions : py.clarification_questions || []} /> : null}
       </Panel>
       <Panel title="Agent guidance" subtitle="Internal only">
         <List title="GenAI recommended steps" items={ai.resolution_steps || []} />
         <List title="Agent guidance" items={ai.agent_guidance || []} />
-        <List title="Mandatory actions (rule matrix)" items={py.required_actions || []} />
+        <List title="Mandatory actions (rule matrix)" items={(py.required_actions || []).map((a) => py.evidence?.satisfies?.includes(a) ? `${a} (already provided: see attachments)` : a)} />
         <List title="Prohibited actions (rule matrix)" items={py.prohibited_actions || []} icon={XCircle} />
         {ai.escalation_notes && <><h4 className="section-title">Escalation notes</h4><p className="note-copy">{ai.escalation_notes}</p></>}
         <div className="policy-source"><BookOpen /><span><small>Grounded source</small><b>{py.policy_id || ai.policy_id || 'No source'}</b><p>Section {py.policy_section || ai.policy_section || '—'}{ai.policy_id && ai.policy_id !== py.policy_id ? ` · GenAI cited ${ai.policy_id}` : ''}</p></span></div>
@@ -438,20 +460,65 @@ function StaffComplaintView({ complaint, reload, role }: { complaint: Complaint;
       <Panel title="Pipeline 2 · Python ground truth" subtitle={complaint.analyzed_at ? `Validated ${dateTime(complaint.analyzed_at)}` : 'Not run'}><pre className="json-view">{complaint.python ? JSON.stringify(complaint.python, null, 2) : 'No validation recorded.'}</pre></Panel>
     </div>}
     {tab === 'history' && <HistoryPanel id={complaint.id} />}
+    {tab === 'conversation' && <div className="card conversation-card"><Conversation complaint={complaint} role={role} reload={reload} initialDraft={handoff?.draft} /></div>}
   </Page>
 }
 
 function Attachments({ complaint, reload }: { complaint: Complaint; reload: () => Promise<void> }) {
   const [busy, setBusy] = useState(false)
+  const [preview, setPreview] = useState<{ attachment: Attachment; url: string; type: string; text?: string } | null>(null)
   const upload = async (file?: File) => {
     if (!file) return
     setBusy(true)
     try { await api.uploadAttachment(complaint.id, file); toast.success(`${file.name} attached`); await reload() } catch (e) { toast.error(messageOf(e)) } finally { setBusy(false) }
   }
+  const open = async (a: Attachment) => {
+    try {
+      const blob = await api.attachmentBlob(complaint.id, a.id)
+      const text = blob.type.startsWith('text/') ? await blob.text() : undefined
+      setPreview({ attachment: a, url: URL.createObjectURL(blob), type: blob.type, text })
+    } catch (e) { toast.error(messageOf(e)) }
+  }
+  const save = async (a: Attachment) => {
+    try {
+      const url = URL.createObjectURL(await api.attachmentBlob(complaint.id, a.id))
+      const link = document.createElement('a'); link.href = url; link.download = a.filename; link.click()
+      setTimeout(() => URL.revokeObjectURL(url), 1000)
+    } catch (e) { toast.error(messageOf(e)) }
+  }
+  const close = () => { if (preview) URL.revokeObjectURL(preview.url); setPreview(null) }
+  const docx = preview?.attachment.filename.toLowerCase().endsWith('.docx')
   return <div className="attachments">
-    {(complaint.attachments || []).map((a) => <span key={a.id}><Paperclip />{a.filename}<small>{Math.max(1, Math.round(a.size_bytes / 1024))} KB</small></span>)}
-    <label className="text-button">{busy ? <RefreshCw className="spin" /> : <Plus />} Add file<input hidden type="file" accept=".pdf,.docx,.png,.jpg,.jpeg,.txt" onChange={(e) => { upload(e.target.files?.[0]); e.target.value = '' }} /></label>
+    {(complaint.attachments || []).map((a) => <div className="attachment-chip" key={a.id}>
+      <button className="attachment-open" onClick={() => open(a)} title="View">{a.kind === 'image' ? <ImageIcon /> : <FileText />}<span><b>{a.filename}</b><small>{Math.max(1, Math.round(a.size_bytes / 1024))} KB{a.kind === 'image' ? ' · photo' : ''}</small></span></button>
+      <button className="icon-button small" onClick={() => save(a)} title="Download"><Download /></button>
+    </div>)}
+    {!complaint.attachments?.length && <p className="muted">No files attached yet.</p>}
+    {!['resolved', 'closed'].includes(complaint.status) && <label className="text-button">{busy ? <RefreshCw className="spin" /> : <Plus />} Add file<input hidden type="file" accept=".pdf,.docx,.png,.jpg,.jpeg,.txt" onChange={(e) => { upload(e.target.files?.[0]); e.target.value = '' }} /></label>}
+    {preview && <Modal title={preview.attachment.filename} close={close}><div className="attachment-preview">
+      {preview.type.startsWith('image/') && <img src={preview.url} alt={preview.attachment.filename} />}
+      {preview.type === 'application/pdf' && <iframe src={preview.url} title={preview.attachment.filename} />}
+      {preview.text !== undefined && <pre>{preview.text}</pre>}
+      {docx && <p className="muted">Word documents can't be previewed in the browser. Download the file to open it{complaint.evidence ? '; the text Nova read from it is shown under Evidence.' : '.'}</p>}
+      <div className="modal-actions"><button className="button ghost" onClick={close}>Close</button><button className="button primary" onClick={() => save(preview.attachment)}><Download /> Download</button></div>
+    </div></Modal>}
   </div>
+}
+
+function EvidencePanel({ complaint }: { complaint: Complaint }) {
+  const ev = complaint.evidence
+  if (!ev?.count) return <Panel title="Attachment evidence" subtitle="What the customer's files show"><p className="muted">No attachments. Ask the customer for a photo, invoice or statement if the claim needs proof.</p></Panel>
+  const order = complaint.order_reference
+  const orderMatch = order && ev.order_ids.length ? ev.order_ids.includes(order.toUpperCase()) : null
+  return <Panel title="Attachment evidence" subtitle={`${ev.documents} document(s), ${ev.photos} photo(s) · used by both pipelines`}>
+    <div className="evidence-facts">
+      <div><small>Order on file</small><b className={orderMatch === false ? 'bad' : ''}>{ev.order_ids.join(', ') || '—'}{orderMatch === true ? ' ✓ matches' : orderMatch === false ? ` ≠ ${order}` : ''}</b></div>
+      <div><small>Amounts</small><b>{[...new Set(ev.amounts)].join(', ') || '—'}</b></div>
+      <div><small>Purchase date</small><b>{ev.purchase_date ? date(ev.purchase_date) : '—'}{ev.purchase_date && !complaint.incident_date ? ' (from invoice)' : ''}</b></div>
+    </div>
+    {ev.injection_in.length > 0 && <p className="missing-info"><AlertTriangle /> Instruction-like text found in {ev.injection_in.join(', ')}. It is treated as data only.</p>}
+    <ul className="evidence-list">{ev.items.map((item) => <li key={item.id}>{item.kind === 'image' ? <ImageIcon /> : <FileText />}<span><b>{item.filename}</b><small>{item.kind === 'image' ? `Photo ${item.width}×${item.height}${item.taken_at ? ` · taken ${dateTime(item.taken_at)}` : ''}` : `${item.pages ? `${item.pages} page(s) · ` : ''}${item.characters || 0} characters read`}{item.note ? ` · ${item.note}` : ''}</small></span></li>)}</ul>
+  </Panel>
 }
 
 function HistoryPanel({ id }: { id: number }) {
@@ -475,17 +542,18 @@ function ReviewQueuePage() {
   const [departmentId, setDepartmentId] = useState('')
   const [category, setCategory] = useState('')
   const [busy, setBusy] = useState(false)
+  const [modifying, setModifying] = useState(false)
   const load = useCallback(async () => { try { setRows(await api.manualReview()) } catch (e) { toast.error(messageOf(e)) } }, [])
   useEffect(() => { load(); api.departments().then(setDepartments).catch(() => undefined); api.categories().then(setCategories).catch(() => undefined) }, [load])
   const act = async (action: string, decision: Record<string, unknown> = {}) => {
     if (!selected) return
     setBusy(true)
-    try { await api.review(selected.id, action, comment, decision); toast.success(`${labelize(action)} recorded`); setSelected(null); setComment(''); setDepartmentId(''); setCategory(''); await load() } catch (e) { toast.error(messageOf(e)) } finally { setBusy(false) }
+    try { await api.review(selected.id, action, comment, decision); toast.success(`${labelize(action)} recorded`); setSelected(null); setComment(''); setDepartmentId(''); setCategory(''); setModifying(false); await load() } catch (e) { toast.error(messageOf(e)) } finally { setBusy(false) }
   }
   return <Page>
     <PageHeader eyebrow="Human oversight" title="Manual review queue" description="Resolve ambiguity while preserving the original AI recommendation in the audit trail." />
     <div className="review-layout">
-      <div className="review-list card"><div className="review-list-head"><span>{rows.length} cases pending</span><button onClick={load} title="Refresh"><RefreshCw /></button></div>{rows.length ? rows.map((row) => <button key={row.id} className={selected?.id === row.id ? 'selected' : ''} onClick={() => setSelected(row)}><div><b>{row.complaint_code}</b><StatusBadge status={row.status} /></div><strong>{row.title}</strong><p>{(row.checks?.review_reasons || []).join(' · ') || row.comparison?.explanation || 'Requires a human decision.'}</p><span><Priority value={row.python?.priority} /><small>{date(row.created_at)}</small></span></button>) : <EmptyState icon={ShieldCheck} title="Queue is clear" description="No complaints currently require manual review." />}</div>
+      <div className="review-list card"><div className="review-list-head"><span>{rows.length} cases pending</span><button onClick={load} title="Refresh"><RefreshCw /></button></div>{rows.length ? rows.map((row) => <button key={row.id} className={selected?.id === row.id ? 'selected' : ''} onClick={() => { setSelected(row); setModifying(false) }}><div><b>{row.complaint_code}</b><StatusBadge status={row.status} /></div><strong>{row.title}</strong><p>{(row.checks?.review_reasons || []).join(' · ') || row.comparison?.explanation || 'Requires a human decision.'}</p><span><Priority value={row.python?.priority} /><small>{date(row.created_at)}</small></span></button>) : <EmptyState icon={ShieldCheck} title="Queue is clear" description="No complaints currently require manual review." />}</div>
       <div className="review-workspace card">{selected ? <>
         <div className="review-case-head"><div><span>{selected.complaint_code}</span><h2>{selected.title}</h2></div><Link to={`/complaints/${selected.id}`} className="text-button">Full case <ArrowRight /></Link></div>
         <p className="complaint-copy compact">{selected.description}</p>
@@ -493,10 +561,67 @@ function ReviewQueuePage() {
         <div className="split-comparison"><Intelligence title="GenAI recommendation" icon={Bot} data={selected.genai} note={genaiNote(selected)} /><Intelligence title="Python ground truth" icon={ShieldCheck} data={selected.python} verified /></div>
         <Field label="Reviewer note" full><textarea rows={3} value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Document your reasoning for the audit trail…" /></Field>
         <div className="review-extra"><label>Reassign department<select value={departmentId} onChange={(e) => setDepartmentId(e.target.value)}><option value="">—</option>{departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select></label><button className="button secondary" disabled={busy || !departmentId} onClick={() => act('reassign', { department_id: Number(departmentId) })}>Reassign</button><label>Reclassify as<select value={category} onChange={(e) => setCategory(e.target.value)}><option value="">—</option>{categories.map((c) => <option key={c.code} value={c.name}>{c.name}</option>)}</select></label><button className="button secondary" disabled={busy || !category} onClick={() => act('reclassify', { issue_category: category, ...(departmentId ? { department_id: Number(departmentId) } : {}) })}>Reclassify</button></div>
-        <div className="review-actions"><button className="button ghost" disabled={busy || !comment.trim()} onClick={() => act('comment')}><MessageSquareText /> Comment</button><button className="button ghost" disabled={busy} onClick={() => act('regenerate')}><RefreshCw /> Regenerate</button><button className="button danger-outline" disabled={busy} onClick={() => act('reject')}><XCircle /> Reject</button><button className="button secondary" disabled={busy} onClick={() => act('escalate')}><ShieldAlert /> Escalate</button><button className="button primary" disabled={busy} onClick={() => act('approve')}><CheckCircle2 /> Approve</button></div>
+        <div className="review-actions"><button className="button ghost" disabled={busy || !comment.trim()} onClick={() => act('comment')}><MessageSquareText /> Comment</button><button className="button ghost" disabled={busy} onClick={() => act('regenerate')}><RefreshCw /> Regenerate</button><button className={`button ghost${modifying ? ' active' : ''}`} disabled={busy} onClick={() => setModifying((v) => !v)}><PencilLine /> Modify</button><button className="button danger-outline" disabled={busy} onClick={() => act('reject')}><XCircle /> Reject</button><button className="button secondary" disabled={busy} onClick={() => act('escalate')}><ShieldAlert /> Escalate</button><button className="button primary" disabled={busy} onClick={() => act('approve')}><CheckCircle2 /> Approve</button></div>
+        {modifying && <ModifyDecision key={selected.id} complaint={selected} departments={departments} categories={categories} busy={busy} onSubmit={(decision) => act('modify', decision)} onCancel={() => setModifying(false)} />}
       </> : <EmptyState icon={UserRoundCheck} title="Select a complaint" description="Choose a case to compare AI and Python decisions side by side." />}</div>
     </div>
   </Page>
+}
+
+
+function ModifyDecision({ complaint, departments, categories, busy, onSubmit, onCancel }: { complaint: Complaint; departments: Department[]; categories: Category[]; busy: boolean; onSubmit: (decision: Record<string, unknown>) => void; onCancel: () => void }) {
+  const py = complaint.python || {}
+  const [form, setForm] = useState({
+    issue_category: String(py.issue_category || ''),
+    subcategory: String(py.subcategory || ''),
+    urgency: String(py.urgency || ''),
+    priority: String(py.priority || ''),
+    department_id: String(complaint.assigned_department_id || ''),
+    escalation_required: Boolean(py.escalation_required),
+    customer_response: String(complaint.genai?.customer_response || ''),
+  })
+  const set = (key: keyof typeof form, value: string | boolean) => setForm((f) => ({ ...f, [key]: value }))
+  const subcategories = categories.find((c) => c.name === form.issue_category)?.subcategories || []
+  const submit = () => {
+    const decision: Record<string, unknown> = {}
+    ;(['issue_category', 'subcategory', 'urgency', 'priority'] as const).forEach((key) => { if (form[key] && form[key] !== String(py[key] || '')) decision[key] = form[key] })
+    if (form.department_id && Number(form.department_id) !== complaint.assigned_department_id) decision.department_id = Number(form.department_id)
+    if (form.escalation_required !== Boolean(py.escalation_required)) decision.escalation_required = form.escalation_required
+    if (form.customer_response.trim() && form.customer_response.trim() !== String(complaint.genai?.customer_response || '').trim()) decision.customer_response = form.customer_response.trim()
+    if (!Object.keys(decision).length) { toast.error('Change at least one field to record a modification.'); return }
+    onSubmit(decision)
+  }
+  return <div className="modify-panel">
+    <header><b>Modify the decision</b><small>Only changed fields are stored; the original recommendation stays in the audit trail.</small></header>
+    <div className="modify-grid">
+      <label>Category<select value={form.issue_category} onChange={(e) => { set('issue_category', e.target.value); set('subcategory', '') }}><option value="">—</option>{categories.map((c) => <option key={c.code} value={c.name}>{c.name}</option>)}</select></label>
+      <label>Subcategory<select value={form.subcategory} onChange={(e) => set('subcategory', e.target.value)}><option value="">—</option>{subcategories.map((s) => <option key={s.code} value={s.name}>{s.name}</option>)}{form.subcategory && !subcategories.some((s) => s.name === form.subcategory) && <option value={form.subcategory}>{form.subcategory}</option>}</select></label>
+      <label>Urgency<select value={form.urgency} onChange={(e) => set('urgency', e.target.value)}>{URGENCIES.map((u) => <option key={u} value={u}>{labelize(u)}</option>)}</select></label>
+      <label>Priority<select value={form.priority} onChange={(e) => set('priority', e.target.value)}>{PRIORITIES.map((p) => <option key={p} value={p}>{p}</option>)}</select></label>
+      <label>Department<select value={form.department_id} onChange={(e) => set('department_id', e.target.value)}><option value="">—</option>{departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select></label>
+      <label className="check-row"><input type="checkbox" checked={form.escalation_required} onChange={(e) => set('escalation_required', e.target.checked)} /> Escalation required</label>
+    </div>
+    <label className="modify-response">Approved customer response<textarea rows={5} value={form.customer_response} onChange={(e) => set('customer_response', e.target.value)} placeholder="Edit the draft the agent will send. Leave blank to keep the generated draft." /></label>
+    <div className="review-actions"><button className="button ghost" onClick={onCancel} disabled={busy}>Cancel</button><button className="button primary" onClick={submit} disabled={busy}><PencilLine /> Save modification</button></div>
+  </div>
+}
+
+function PolicyImpactPanel({ impact, busy, onReanalyze, onClose }: { impact: { code: string; version: string; affected: string[]; report: PolicyImpact }; busy: boolean; onReanalyze: () => void; onClose: () => void }) {
+  const r = impact.report
+  const rows: Array<[string, ReactNode]> = [
+    ['Previous version', r.previous_versions.length ? `v${r.previous_versions.join(', v')} is now obsolete (kept for audit)` : 'First version of this document'],
+    ['Sections changed', r.sections_changed.length ? r.sections_changed.map((s) => `§${s}`).join(', ') : r.previous_versions.length ? 'None' : '—'],
+    ['Sections added / removed', `${r.sections_added.map((s) => `+§${s}`).join(', ') || 'none added'} · ${r.sections_removed.map((s) => `−§${s}`).join(', ') || 'none removed'}`],
+    ['Timelines & rates', r.timeline_changes.length ? r.timeline_changes.map((c) => `${c.unit}: ${c.before.join('/') || '—'} → ${c.after.join('/') || '—'}`).join(' · ') : 'No change detected'],
+    ['Resolution rules citing it', r.resolution_rules.length ? <span className="chip-row">{r.resolution_rules.map((x) => <span key={x.rule_code} className={`chip ${!x.section_exists ? 'no' : x.section_changed ? 'warn' : ''}`}>{x.rule_code}{x.section ? ` §${x.section}` : ''}{!x.section_exists ? ' · section missing' : x.section_changed ? ' · changed' : ''}</span>)}</span> : 'None'],
+    ['Escalation rules', r.escalation_rules.length ? r.escalation_rules.map((x) => x.rule_code).join(', ') : 'No escalation rule names this document'],
+    ['Open complaints affected', impact.affected.length ? impact.affected.slice(0, 12).join(', ') + (impact.affected.length > 12 ? ` +${impact.affected.length - 12} more` : '') : 'None'],
+  ]
+  return <Panel className="impact-panel" title={`Policy change impact · ${impact.code} v${impact.version}`} subtitle={r.responses_need_revision ? 'Generated responses that relied on the old text need revision' : 'No wording change affects existing responses'} action={<button className="icon-button" onClick={onClose} title="Dismiss"><XCircle /></button>}>
+    <div className="kv-list">{rows.map(([label, value]) => <Fragment key={label}><span>{label}</span><b>{value}</b></Fragment>)}</div>
+    {r.rules_citing_missing_sections.length ? <p className="missing-info"><AlertTriangle /> {r.rules_citing_missing_sections.length} rule(s) cite a section that no longer exists. Update them in Settings → Rules.</p> : null}
+    {impact.affected.length ? <div className="review-actions"><button className="button primary" disabled={busy} onClick={onReanalyze}>{busy ? <RefreshCw className="spin" /> : <RefreshCw />} Re-analyze affected complaints</button></div> : null}
+  </Panel>
 }
 
 function KnowledgePage() {
@@ -508,6 +633,8 @@ function KnowledgePage() {
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
+  const [impact, setImpact] = useState<{ code: string; version: string; affected: string[]; report: PolicyImpact } | null>(null)
+  const [reanalyzing, setReanalyzing] = useState(false)
   const role = useAppStore((s) => s.role)
   const admin = role === 'administrator'
   const [meta, setMeta] = useState({ document_code: '', title: '', version: '1.0', category: 'policy', status: 'active', effective_date: '', expiry_date: '' })
@@ -526,6 +653,7 @@ function KnowledgePage() {
       if (result.superseded_versions.length) toast.info(`Previous version ${result.superseded_versions.join(', ')} is now marked previous.`)
       if (result.affected_complaint_codes.length) toast.warning(`${result.affected_complaint_codes.length} open complaint(s) cite this policy and should be re-analyzed: ${result.affected_complaint_codes.slice(0, 5).join(', ')}`)
       result.warnings.forEach((w) => toast.warning(w))
+      if (result.impact) setImpact({ code: result.document_code, version: result.version, affected: result.affected_complaint_codes, report: result.impact })
       setDialog(false); setFile(null); await load()
     } catch (error) { toast.error(messageOf(error)) } finally { setBusy(false) }
   }
@@ -537,10 +665,20 @@ function KnowledgePage() {
       await load()
     } catch (e) { toast.error(messageOf(e)) }
   }
+  const reanalyze = async () => {
+    setReanalyzing(true)
+    try {
+      const result = await api.reanalyzeFlagged()
+      toast.success(`Re-analyzed ${result.reanalyzed.length} complaint(s)${result.remaining ? `, ${result.remaining} still flagged` : ''}`)
+      result.failed.forEach((f) => toast.error(`${f.complaint_code}: ${f.error}`))
+      setImpact((current) => current && { ...current, affected: result.remaining ? current.affected : [] })
+    } catch (e) { toast.error(messageOf(e)) } finally { setReanalyzing(false) }
+  }
   const openChunks = async (doc: KnowledgeDocument) => { try { setChunks({ doc, rows: await api.documentChunks(doc.id) }) } catch (e) { toast.error(messageOf(e)) } }
   const visible = docs.filter((d) => (!categoryFilter || d.category === categoryFilter) && (!statusFilter || d.status === statusFilter) && `${d.document_code} ${d.title}`.toLowerCase().includes(search.toLowerCase()))
   return <Page>
     <PageHeader eyebrow="Grounded intelligence" title="Knowledge base" description="Approved policies, SOPs and FAQs with traceable, versioned chunks." action={admin ? <button className="button primary" onClick={() => setDialog(true)}><Upload /> Upload document</button> : undefined} />
+    {impact && <PolicyImpactPanel impact={impact} busy={reanalyzing} onReanalyze={reanalyze} onClose={() => setImpact(null)} />}
     <div className="kb-stats"><div><FileText /><span><b>{docs.length}</b>Document versions</span></div><div><BookOpen /><span><b>{docs.reduce((sum, d) => sum + d.chunk_count, 0)}</b>Traceable chunks</span></div><div><ShieldCheck /><span><b>{docs.filter((d) => d.status === 'active' && d.usable !== false).length}</b>Active & usable</span></div></div>
     <div className="toolbar card"><div className="search-field"><Search /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search document ID or title…" /></div><select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}><option value="">All categories</option>{DOC_CATEGORIES.map((c) => <option key={c} value={c}>{labelize(c)}</option>)}</select><select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}><option value="">All versions</option>{DOC_STATUSES.map((s) => <option key={s} value={s}>{labelize(s)}</option>)}</select><span className="result-count">{visible.length} shown</span></div>
     <div className="document-grid">{visible.map((doc) => <article className="document-card card" key={doc.id}><div className={`doc-icon ${doc.category}`}><FileText /></div><div className="doc-main"><div><span>{doc.document_code}</span><StatusBadge status={doc.status} /></div><h3>{doc.title}</h3><p>{labelize(doc.category)} · Version {doc.version}{doc.status === 'active' && doc.usable === false ? ' · outside effective window' : ''}</p><footer><button className="text-button" onClick={() => openChunks(doc)}><BookOpen /> {doc.chunk_count} chunks</button><span>Effective {doc.effective_date ? date(doc.effective_date) : '—'}{doc.expiry_date ? ` → ${date(doc.expiry_date)}` : ''}</span></footer></div>{admin && <select className="doc-status" value={doc.status} title="Change version status" onChange={(e) => changeStatus(doc, e.target.value)}>{DOC_STATUSES.map((s) => <option key={s} value={s}>{labelize(s)}</option>)}</select>}</article>)}</div>
@@ -565,9 +703,13 @@ function ReportsPage() {
     <div className="dashboard-grid">
       <Panel className="span-2" title="Department workload" subtitle="Complaints routed by Python rules"><ResponsiveContainer width="100%" height={310}><BarChart data={entries(data?.departments || {})} layout="vertical" margin={{ left: 20 }}><CartesianGrid horizontal={false} stroke="#ebeaf0" /><XAxis type="number" allowDecimals={false} /><YAxis dataKey="name" type="category" width={130} tick={{ fontSize: 11 }} /><Tooltip /><Bar dataKey="value" fill="#6558f5" radius={[0, 6, 6, 0]} barSize={18} /></BarChart></ResponsiveContainer></Panel>
       <Panel title="Trends" subtitle={`Last ${trends?.window_days ?? 7} days vs the week before`}>{trendItems.length ? <List title="Detected patterns" items={trendItems} icon={TrendingUp} /> : <div className="all-clear"><TrendingUp /><span><b>No emerging trends</b>No category rising, recurring product issue or escalation spike.</span></div>}</Panel>
-      <Panel title="Sentiment" subtitle="From GenAI (tone only)"><Donut data={entries(data?.sentiments || {})} /></Panel>
+      <Panel className="span-2" title="Complaint volume & escalations" subtitle="Last 14 days"><ResponsiveContainer width="100%" height={260}><AreaChart data={(data?.daily_volume || []).map((d) => ({ ...d, day: d.date.slice(5) }))}><defs><linearGradient id="vol" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#6558f5" stopOpacity={.28} /><stop offset="100%" stopColor="#6558f5" stopOpacity={0} /></linearGradient></defs><CartesianGrid strokeDasharray="4 4" vertical={false} stroke="#ebeaf0" /><XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 12 }} /><YAxis allowDecimals={false} axisLine={false} tickLine={false} /><Tooltip /><Area type="monotone" dataKey="complaints" name="Complaints" stroke="#6558f5" strokeWidth={2.5} fill="url(#vol)" /><Area type="monotone" dataKey="escalations" name="Escalations" stroke="#f15c6d" strokeWidth={2} fill="none" /></AreaChart></ResponsiveContainer></Panel>
+      <Panel title="Customer satisfaction" subtitle="CSAT from closed complaints">{data?.csat?.responses ? <div className="csat-summary"><strong>{data.csat.average}<small>/5</small></strong><StarRating value={Math.round(data.csat.average || 0)} readOnly /><p className="muted">{data.csat.responses} rating(s)</p><div className="csat-bars">{[5, 4, 3, 2, 1].map((n) => { const count = data.csat?.distribution[String(n)] || 0; return <div key={n}><span>{n}★</span><div><i style={{ width: `${(100 * count) / Math.max(1, data.csat?.responses || 1)}%` }} /></div><b>{count}</b></div> })}</div></div> : <p className="muted">No ratings yet. Customers rate when they confirm a resolution.</p>}</Panel>
+      <Panel title="Sentiment" subtitle="Tone only — never used for urgency"><Donut data={entries(data?.sentiments || {})} /></Panel>
       <Panel title="Urgency" subtitle="From Python rules"><Donut data={entries(data?.urgencies || {})} /></Panel>
       <Panel title="Status" subtitle="Complaint lifecycle"><Donut data={entries(data?.statuses || {})} /></Panel>
+      <Panel className="span-2" title="Top products" subtitle="Complaints by product or service"><ResponsiveContainer width="100%" height={260}><BarChart data={entries(data?.products || {})} margin={{ left: 0 }}><CartesianGrid vertical={false} stroke="#ebeaf0" /><XAxis dataKey="name" tick={{ fontSize: 11 }} interval={0} angle={-12} height={50} /><YAxis allowDecimals={false} /><Tooltip /><Bar dataKey="value" fill="#26b6a0" radius={[6, 6, 0, 0]} barSize={26} /></BarChart></ResponsiveContainer></Panel>
+      <Panel title="First response SLA" subtitle="First customer-visible reply"><div className="fr-summary"><strong>{data?.first_response?.compliance == null ? '—' : `${data.first_response.compliance}%`}</strong><p className="muted">on time</p><div className="health-list"><span><CheckCircle2 /> Met <b>{data?.first_response?.met ?? 0}</b></span><span><AlertTriangle /> Late <b>{data?.first_response?.breached ?? 0}</b></span><span><Clock3 /> Waiting <b>{data?.first_response?.pending ?? 0}</b></span><span><ShieldAlert /> Overdue, no reply <b>{data?.first_response?.overdue ?? 0}</b></span></div></div></Panel>
       <Panel className="span-3" title="Report library" subtitle="Export any report as CSV, Excel or PDF"><div className="report-table">{REPORTS.map(([key, name]) => <div key={key}><span><FileText /><b>{name}</b></span><div>{(['csv', 'xlsx', 'pdf'] as const).map((f) => <button key={f} className="button ghost compact" onClick={() => download(f, key)}><Download /> {f.toUpperCase()}</button>)}</div></div>)}</div></Panel>
     </div>
   </Page>
@@ -597,9 +739,25 @@ function PipelineSettings() {
   const paused = Object.entries(config.paused || {})
   return <div className="settings-grid">
     <Panel title="Pipeline 1 · GenAI" subtitle="Structured complaint writer"><Setting icon={Bot} label="Provider chain" value={config.chain.length ? config.chain.map((c) => `${c.provider} (${c.model})`).join(' → ') : 'No provider key configured — Python-only mode'} /><Setting icon={FileText} label="Prompt template" value={`${config.prompt.name} · active ${config.prompt.active_version} · versions ${config.prompt.versions.join(', ')}`} /><Setting icon={RefreshCw} label="Failure strategy" value={`${config.max_retries} tries per provider, ${config.timeout_seconds}s timeout, ${config.total_budget_seconds}s total, then manual review`} />{paused.length > 0 && <div className="alert warning paused-alert"><AlertTriangle /><span><b>Paused after permanent errors</b>{paused.map(([p, s]) => `${p} (${Math.ceil(s / 60)} min left)`).join(', ')}. Top up credits or fix the key, then resume.</span><button className="button secondary compact" onClick={resume}>Resume</button></div>}</Panel>
-    <Panel title="Pipeline 2 · Python" subtitle="Independent ground truth"><Setting icon={ShieldCheck} label="High-value threshold" value={`${config.thresholds.high_value_threshold.toLocaleString()} → department manager`} /><Setting icon={History} label="Repeat similarity" value={`${config.thresholds.repeat_similarity_threshold}% wording similarity or same order`} /><Setting icon={BookOpen} label="Unmatched complaints" value={`Routed to ${config.thresholds.default_department_code} and manual review`} /></Panel>
+    <Panel title="Pipeline 2 · Python" subtitle="Independent ground truth"><ThresholdEditor onSaved={load} /><Setting icon={History} label="Repeat rule" value={`${config.thresholds.repeat_similarity_threshold}% wording similarity or same order reference`} /><Setting icon={BookOpen} label="Unmatched complaints" value={`Routed to ${config.thresholds.default_department_code} and manual review`} /></Panel>
     <Panel title="Security" subtitle="Access and adversarial controls"><Setting icon={Users} label="Authentication" value="JWT + Argon2, role-based access" /><Setting icon={ShieldAlert} label="Prompt injection" value="Complaints and documents wrapped as untrusted data; patterns flagged" /><Setting icon={Activity} label="Privacy" value="Emails, phones and card numbers masked before GenAI" /></Panel>
   </div>
+}
+
+function ThresholdEditor({ onSaved }: { onSaved: () => void }) {
+  const [rows, setRows] = useState<Array<{ key: string; value: number; min: number; max: number; description: string }>>([])
+  const [draft, setDraft] = useState<Record<string, string>>({})
+  const admin = useAppStore((s) => s.role) === 'administrator'
+  const load = useCallback(() => { api.thresholds().then((r) => { setRows(r); setDraft(Object.fromEntries(r.map((x) => [x.key, String(x.value)]))) }).catch(() => undefined) }, [])
+  useEffect(() => { load() }, [load])
+  const save = async (key: string) => {
+    const value = Number(draft[key])
+    try { await api.updateThreshold(key, value); toast.success(`${labelize(key)} set to ${value.toLocaleString()} — applies to the next analysis`); load(); onSaved() } catch (e) { toast.error(messageOf(e)) }
+  }
+  return <div className="threshold-list">{rows.map((row) => {
+    const changed = draft[row.key] !== String(row.value)
+    return <div className="threshold-row" key={row.key}><span><b>{labelize(row.key)}</b><small>{row.description}</small></span>{admin ? <div className="threshold-input"><input type="number" min={row.min} max={row.max} value={draft[row.key] ?? ''} onChange={(e) => setDraft({ ...draft, [row.key]: e.target.value })} onKeyDown={(e) => e.key === 'Enter' && changed && save(row.key)} /><button className="button secondary compact" disabled={!changed} onClick={() => save(row.key)}>Save</button></div> : <b>{row.value.toLocaleString()}</b>}</div>
+  })}</div>
 }
 
 function RulesSettings() {
@@ -607,27 +765,46 @@ function RulesSettings() {
   const [categories, setCategories] = useState<Category[]>([])
   const [departments, setDepartments] = useState<Department[]>([])
   const [filter, setFilter] = useState('')
-  const [form, setForm] = useState({ rule_code: '', category_code: '', subcategory_code: '', keywords: '', department_code: '', supporting: '', urgency: 'medium', priority: 'P2', policy_code: '', policy_section: '', escalation_required: false, escalation_level: 'no_escalation', required_actions: '', prohibited_actions: '' })
+  const blank = { rule_code: '', category_code: '', subcategory_code: '', keywords: '', department_code: '', supporting: '', urgency: 'medium', priority: 'P2', policy_code: '', policy_section: '', escalation_required: false, escalation_level: 'no_escalation', required_actions: '', prohibited_actions: '', refund_eligible: '', replacement_eligible: '', compensation_permitted: false }
+  const [form, setForm] = useState(blank)
+  const [editing, setEditing] = useState<string | null>(null)
   const load = useCallback(() => { api.rules().then(setRules).catch((e) => toast.error(messageOf(e))) }, [])
   useEffect(() => { load(); api.categories().then(setCategories).catch(() => undefined); api.departments().then(setDepartments).catch(() => undefined) }, [load])
   const subcats = categories.find((c) => c.code === form.category_code)?.subcategories || []
+  const tri = (value: string) => value === '' ? null : value === 'yes'
   const create = async (e: FormEvent) => {
     e.preventDefault()
+    const { supporting, ...rest } = form
+    const body = { ...rest, keywords: splitList(form.keywords), supporting_department_codes: splitList(supporting), required_actions: splitLines(form.required_actions), prohibited_actions: splitLines(form.prohibited_actions), refund_eligible: tri(form.refund_eligible), replacement_eligible: tri(form.replacement_eligible), escalation_required: form.escalation_level !== 'no_escalation' }
     try {
-      const result = await api.createRule({ ...form, keywords: splitList(form.keywords), supporting_department_codes: splitList(form.supporting), required_actions: splitLines(form.required_actions), prohibited_actions: splitLines(form.prohibited_actions) })
-      toast.success(`Rule ${result.rule_code} created`); result.warnings.forEach((w) => toast.warning(w)); load()
+      if (editing) {
+        const { rule_code: _code, category_code: _cat, subcategory_code: _sub, ...changes } = body
+        const result = await api.updateRule(editing, changes)
+        toast.success(`Rule ${result.rule_code} updated — applies to the next analysis`); result.warnings.forEach((w) => toast.warning(w))
+        setEditing(null); setForm(blank)
+      } else {
+        const result = await api.createRule(body)
+        toast.success(`Rule ${result.rule_code} created`); result.warnings.forEach((w) => toast.warning(w))
+      }
+      load()
     } catch (err) { toast.error(messageOf(err)) }
+  }
+  const edit = (r: Rule) => {
+    const triText = (v: boolean | null | undefined) => v == null ? '' : v ? 'yes' : 'no'
+    setEditing(r.rule_code)
+    setForm({ rule_code: r.rule_code, category_code: r.category_code, subcategory_code: r.subcategory_code, keywords: (r.conditions.keywords || []).join(', '), department_code: r.department_code, supporting: (r.supporting_department_codes || []).join(', '), urgency: r.urgency, priority: r.priority, policy_code: r.policy_code || '', policy_section: r.policy_section || '', escalation_required: r.escalation_required, escalation_level: r.escalation_level, required_actions: (r.required_actions || []).join('\n'), prohibited_actions: (r.prohibited_actions || []).join('\n'), refund_eligible: triText(r.refund_eligible), replacement_eligible: triText(r.replacement_eligible), compensation_permitted: Boolean(r.compensation_permitted) })
+    document.querySelector('.rule-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
   const toggle = async (rule: Rule) => { try { await api.toggleRule(rule.rule_code, !rule.is_active); load() } catch (e) { toast.error(messageOf(e)) } }
   const visible = rules.filter((r) => `${r.rule_code} ${r.category_code} ${r.subcategory_code} ${(r.conditions.keywords || []).join(' ')}`.toLowerCase().includes(filter.toLowerCase()))
   return <div className="config-layout">
     <Panel title={`Rule matrix (${rules.length})`} subtitle="Complaint Resolution Rule Matrix" action={<div className="search-field compact"><Search /><input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Filter rules…" /></div>}>
-      <div className="table-scroll"><table className="data-table dense"><thead><tr><th>Rule</th><th>Category / sub</th><th>Keywords</th><th>Dept</th><th>Urg / pri</th><th>Policy</th><th>Escalation</th><th>Active</th></tr></thead><tbody>{visible.map((r) => <tr key={r.id} className={r.is_active ? '' : 'inactive'}><td><b>{r.rule_code}</b></td><td>{r.category_code} / {r.subcategory_code}</td><td className="muted">{(r.conditions.keywords || []).join(', ')}</td><td>{r.department_code}</td><td>{r.urgency} · {r.priority}</td><td>{r.policy_code} {r.policy_section && `§${r.policy_section}`}</td><td>{r.escalation_required ? labelize(r.escalation_level) : '—'}</td><td><input type="checkbox" checked={r.is_active} onChange={() => toggle(r)} /></td></tr>)}</tbody></table></div>
+      <div className="table-scroll"><table className="data-table dense"><thead><tr><th>Rule</th><th>Category / sub</th><th>Keywords</th><th>Dept</th><th>Urg / pri</th><th>Policy</th><th>Escalation</th><th>Active</th><th></th></tr></thead><tbody>{visible.map((r) => <tr key={r.id} className={`${r.is_active ? '' : 'inactive'}${editing === r.rule_code ? ' editing' : ''}`}><td><b>{r.rule_code}</b></td><td>{r.category_code} / {r.subcategory_code}</td><td className="muted">{(r.conditions.keywords || []).join(', ')}</td><td>{r.department_code}</td><td>{r.urgency} · {r.priority}</td><td>{r.policy_code} {r.policy_section && `§${r.policy_section}`}</td><td>{r.escalation_required ? labelize(r.escalation_level) : '—'}</td><td><input type="checkbox" checked={r.is_active} onChange={() => toggle(r)} /></td><td><button className="text-button" onClick={() => edit(r)}><PencilLine /> Edit</button></td></tr>)}</tbody></table></div>
     </Panel>
-    <Panel title="Add a rule" subtitle="Takes effect on the next analysis"><form className="inline-form" onSubmit={create}>
-      <Field label="Rule code"><input required value={form.rule_code} onChange={(e) => setForm({ ...form, rule_code: e.target.value.toUpperCase() })} placeholder="RR-200" /></Field>
-      <Field label="Category"><select required value={form.category_code} onChange={(e) => setForm({ ...form, category_code: e.target.value, subcategory_code: '' })}><option value="">Select…</option>{categories.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}</select></Field>
-      <Field label="Subcategory"><select required value={form.subcategory_code} onChange={(e) => setForm({ ...form, subcategory_code: e.target.value })}><option value="">Select…</option>{subcats.map((s) => <option key={s.code} value={s.code}>{s.name}</option>)}</select></Field>
+    <Panel className="rule-form" title={editing ? `Edit ${editing}` : 'Add a rule'} subtitle="Takes effect on the next analysis" action={editing ? <button className="button ghost compact" onClick={() => { setEditing(null); setForm(blank) }}>Cancel edit</button> : undefined}><form className="inline-form" onSubmit={create}>
+      <Field label="Rule code"><input required disabled={!!editing} value={form.rule_code} onChange={(e) => setForm({ ...form, rule_code: e.target.value.toUpperCase() })} placeholder="RR-200" /></Field>
+      <Field label="Category"><select required disabled={!!editing} value={form.category_code} onChange={(e) => setForm({ ...form, category_code: e.target.value, subcategory_code: '' })}><option value="">Select…</option>{categories.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}</select></Field>
+      <Field label="Subcategory"><select required disabled={!!editing} value={form.subcategory_code} onChange={(e) => setForm({ ...form, subcategory_code: e.target.value })}><option value="">Select…</option>{subcats.map((s) => <option key={s.code} value={s.code}>{s.name}</option>)}</select></Field>
       <Field label="Department"><select required value={form.department_code} onChange={(e) => setForm({ ...form, department_code: e.target.value })}><option value="">Select…</option>{departments.map((d) => <option key={d.code} value={d.code}>{d.name}</option>)}</select></Field>
       <Field label="Keywords" full note="Comma separated, matched as whole words"><input required value={form.keywords} onChange={(e) => setForm({ ...form, keywords: e.target.value })} placeholder="battery swelling, bulging battery" /></Field>
       <Field label="Supporting departments" full note="Codes, comma separated"><input value={form.supporting} onChange={(e) => setForm({ ...form, supporting: e.target.value.toUpperCase() })} placeholder="SAF, REL" /></Field>
@@ -638,7 +815,10 @@ function RulesSettings() {
       <Field label="Escalation level" full><select value={form.escalation_level} onChange={(e) => setForm({ ...form, escalation_level: e.target.value, escalation_required: e.target.value !== 'no_escalation' })}>{ESCALATION_LEVELS.map((l) => <option key={l} value={l}>{labelize(l)}</option>)}</select></Field>
       <Field label="Mandatory actions" full note="One per line"><textarea rows={2} value={form.required_actions} onChange={(e) => setForm({ ...form, required_actions: e.target.value })} /></Field>
       <Field label="Prohibited actions" full note="One per line"><textarea rows={2} value={form.prohibited_actions} onChange={(e) => setForm({ ...form, prohibited_actions: e.target.value })} /></Field>
-      <button className="button primary full"><Plus /> Add rule</button>
+      <Field label="Refund eligible"><select value={form.refund_eligible} onChange={(e) => setForm({ ...form, refund_eligible: e.target.value })}><option value="">Needs check</option><option value="yes">Yes</option><option value="no">No</option></select></Field>
+      <Field label="Replacement eligible"><select value={form.replacement_eligible} onChange={(e) => setForm({ ...form, replacement_eligible: e.target.value })}><option value="">Needs check</option><option value="yes">Yes</option><option value="no">No</option></select></Field>
+      <label className="check full"><input type="checkbox" checked={form.compensation_permitted} onChange={(e) => setForm({ ...form, compensation_permitted: e.target.checked })} /> Compensation permitted under policy</label>
+      <button className="button primary full">{editing ? <><Check /> Save changes</> : <><Plus /> Add rule</>}</button>
     </form></Panel>
   </div>
 }
@@ -674,6 +854,7 @@ function TaxonomySettings() {
   const [departments, setDepartments] = useState<Department[]>([])
   const [dept, setDept] = useState({ code: '', name: '' })
   const [cat, setCat] = useState({ code: '', name: '', default_department_code: '', sub_code: '', sub_name: '', keywords: '' })
+  const [sub, setSub] = useState({ category: '', code: '', name: '', keywords: '' })
   const load = useCallback(() => { api.categories().then(setCategories).catch((e) => toast.error(messageOf(e))); api.departments().then(setDepartments).catch(() => undefined) }, [])
   useEffect(() => { load() }, [load])
   const addDept = async (e: FormEvent) => { e.preventDefault(); try { await api.createDepartment(dept); toast.success(`${dept.name} added`); setDept({ code: '', name: '' }); load() } catch (err) { toast.error(messageOf(err)) } }
@@ -681,11 +862,16 @@ function TaxonomySettings() {
     e.preventDefault()
     try { await api.createCategory({ code: cat.code, name: cat.name, default_department_code: cat.default_department_code, subcategories: cat.sub_code ? [{ code: cat.sub_code, name: cat.sub_name || cat.sub_code, keywords: splitList(cat.keywords) }] : [] }); toast.success(`${cat.name} added. Complaints matching its keywords will route to it.`); load() } catch (err) { toast.error(messageOf(err)) }
   }
+  const addSub = async (e: FormEvent) => {
+    e.preventDefault()
+    try { await api.addSubcategory(sub.category, { code: sub.code, name: sub.name, keywords: splitList(sub.keywords) }); toast.success(`${sub.name} added. Add a resolution rule for it so it gets a policy and SLA.`); setSub({ category: sub.category, code: '', name: '', keywords: '' }); load() } catch (err) { toast.error(messageOf(err)) }
+  }
   return <div className="config-layout">
     <Panel title={`Categories (${categories.length})`} subtitle="Subcategories and their keywords"><div className="table-scroll"><table className="data-table dense"><thead><tr><th>Category</th><th>Default department</th><th>Subcategories</th></tr></thead><tbody>{categories.map((c) => <tr key={c.code}><td><b>{c.name}</b><span className="muted block">{c.code}</span></td><td>{c.default_department || '—'}</td><td className="muted">{c.subcategories.map((s) => s.name).join(', ')}</td></tr>)}</tbody></table></div></Panel>
     <div className="stack">
       <Panel title="Add a department" subtitle={`${departments.length} departments`}><form className="inline-form" onSubmit={addDept}><Field label="Code"><input required value={dept.code} onChange={(e) => setDept({ ...dept, code: e.target.value.toUpperCase() })} placeholder="ECO" /></Field><Field label="Name"><input required value={dept.name} onChange={(e) => setDept({ ...dept, name: e.target.value })} placeholder="Sustainability" /></Field><button className="button primary full"><Plus /> Add department</button></form></Panel>
       <Panel title="Add a category" subtitle="Works immediately via subcategory keywords"><form className="inline-form" onSubmit={addCat}><Field label="Code"><input required value={cat.code} onChange={(e) => setCat({ ...cat, code: e.target.value.toUpperCase() })} placeholder="ECO" /></Field><Field label="Name"><input required value={cat.name} onChange={(e) => setCat({ ...cat, name: e.target.value })} placeholder="Eco Packaging" /></Field><Field label="Default department" full><select required value={cat.default_department_code} onChange={(e) => setCat({ ...cat, default_department_code: e.target.value })}><option value="">Select…</option>{departments.map((d) => <option key={d.code} value={d.code}>{d.name}</option>)}</select></Field><Field label="Subcategory code"><input value={cat.sub_code} onChange={(e) => setCat({ ...cat, sub_code: e.target.value.toUpperCase() })} placeholder="PLASTIC" /></Field><Field label="Subcategory name"><input value={cat.sub_name} onChange={(e) => setCat({ ...cat, sub_name: e.target.value })} placeholder="Excess Plastic" /></Field><Field label="Keywords" full note="Comma separated"><input value={cat.keywords} onChange={(e) => setCat({ ...cat, keywords: e.target.value })} placeholder="plastic wrap, styrofoam" /></Field><button className="button primary full"><Plus /> Add category</button></form></Panel>
+      <Panel title="Add a subcategory" subtitle="Extend an existing category"><form className="inline-form" onSubmit={addSub}><Field label="Category" full><select required value={sub.category} onChange={(e) => setSub({ ...sub, category: e.target.value })}><option value="">Select…</option>{categories.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}</select></Field><Field label="Code"><input required value={sub.code} onChange={(e) => setSub({ ...sub, code: e.target.value.toUpperCase() })} placeholder="ECO-BOX" /></Field><Field label="Name"><input required value={sub.name} onChange={(e) => setSub({ ...sub, name: e.target.value })} placeholder="Oversized Box" /></Field><Field label="Keywords" full note="Comma separated"><input value={sub.keywords} onChange={(e) => setSub({ ...sub, keywords: e.target.value })} placeholder="huge box, too much packaging" /></Field><button className="button primary full"><Plus /> Add subcategory</button></form></Panel>
     </div>
   </div>
 }
@@ -743,15 +929,8 @@ function Donut({ data }: { data: Array<{ name: string; value: number }> }) {
 }
 
 function Brand({ light }: { light?: boolean }) { return <div className={`brand ${light ? 'brand-light' : ''}`}><div className="brand-mark"><Sparkles /></div><div><span>SupportNova</span><small>ResponseX AI</small></div></div> }
-function Page({ children, narrow }: { children: ReactNode; narrow?: boolean }) { return <div className={`page ${narrow ? 'narrow' : ''}`}>{children}</div> }
-function PageHeader({ eyebrow, title, description, action }: { eyebrow: string; title: string; description: string; action?: ReactNode }) { return <header className="page-header"><div><span className="eyebrow purple">{eyebrow}</span><h1>{title}</h1><p>{description}</p></div>{action}</header> }
-function Panel({ title, subtitle, children, action, className = '' }: { title: string; subtitle?: string; children: ReactNode; action?: ReactNode; className?: string }) { return <section className={`panel card ${className}`}><header><div><h2>{title}</h2>{subtitle && <p>{subtitle}</p>}</div>{action}</header><div className="panel-content">{children}</div></section> }
-function Metric({ label, value, icon: Icon, tone, note }: { label: string; value: string | number; icon: typeof Inbox; tone: string; note: string }) { return <article className="metric-card card"><div className={`metric-icon ${tone}`}><Icon /></div><div><span>{label}</span><strong>{value}</strong><small>{note}</small></div></article> }
-function StatusBadge({ status }: { status: string }) { return <span className={`status-badge ${status}`}>{status === 'active' && <CheckCircle2 />}{STATUS_LABEL[status] || labelize(status)}</span> }
-function Priority({ value }: { value?: string }) { return value ? <span className={`priority ${(value || '').toLowerCase()}`}><i />{value}</span> : <span className="muted">—</span> }
 function Verification({ score }: { score: number }) { return <span className={`verification ${score >= 80 ? 'good' : score >= 60 ? 'partial' : 'bad'}`}><ShieldCheck /> {Math.round(score)}% verified</span> }
 function Data({ label, value, badge }: { label: string; value?: string; badge?: boolean }) { return <div className="data-point"><span>{label}</span><b className={badge ? `value-badge ${(value || '').toLowerCase()}` : ''}>{value || '—'}</b></div> }
-function Field({ label, children, full, note }: { label: string; children: ReactNode; full?: boolean; note?: string }) { return <label className={`field ${full ? 'full' : ''}`}>{label}{children}{note && <small>{note}</small>}</label> }
 function FormSection({ icon: Icon, title, description, children }: { icon: typeof Inbox; title: string; description: string; children: ReactNode }) { return <section className="form-section"><header><div><Icon /></div><span><h2>{title}</h2><p>{description}</p></span></header><div className="form-grid">{children}</div></section> }
 function List({ title, items, icon: Icon = CheckCircle2 }: { title: string; items: string[]; icon?: typeof Inbox }) { if (!items.length) return null; return <div className="list-block"><h4>{title}</h4>{items.map((item, i) => <p key={i}><Icon />{item}</p>)}</div> }
 function genaiNote(complaint: Complaint): string | undefined {
@@ -769,11 +948,9 @@ function Intelligence({ title, icon: Icon, data, verified, note }: { title: stri
   return <div className={verified ? 'verified-column' : ''}><h3><Icon />{title}{verified && <CheckCircle2 />}</h3>{empty ? <p className="intelligence-empty">{note || 'No output recorded for this complaint.'}</p> : <>{items.map(([k, v]) => <p key={String(k)}><span>{String(k)}</span><b>{text(v)}</b></p>)}{note && <p className="intelligence-note">{note}</p>}</>}</div>
 }
 function Setting({ icon: Icon, label, value }: { icon: typeof Bot; label: string; value: string }) { return <div className="setting-row"><div><Icon /></div><span><b>{label}</b><small>{value}</small></span></div> }
-function EmptyState({ icon: Icon, title, description }: { icon: typeof Inbox; title: string; description: string }) { return <div className="empty-state"><div><Icon /></div><h3>{title}</h3><p>{description}</p></div> }
 function AnalysisEmpty({ onAnalyze }: { onAnalyze?: () => void }) { return <div className="analysis-empty"><div><BrainCircuit /></div><h3>Analysis is waiting</h3><p>Run both intelligence pipelines to classify, route, and validate this complaint.</p>{onAnalyze && <button className="button primary" onClick={onAnalyze}><Sparkles /> Analyze now</button>}</div> }
 function Modal({ title, children, close }: { title: string; children: ReactNode; close: () => void }) { return <div className="modal-backdrop" onMouseDown={close}><section className="modal card" onMouseDown={(e) => e.stopPropagation()}><header><h2>{title}</h2><button onClick={close}><X /></button></header>{children}</section></div> }
 function Avatar({ name }: { name: string }) { return <div className="avatar">{name.split(' ').map((part) => part[0]).slice(0, 2).join('').toUpperCase()}</div> }
-function Skeleton() { return <div className="skeleton-wrap">{[1, 2, 3, 4].map((i) => <i className="skeleton" key={i} />)}</div> }
 
 function navigationFor(role: Role | null) {
   type NavItem = { to: string; label: string; icon: typeof Inbox; end?: boolean }
@@ -781,7 +958,7 @@ function navigationFor(role: Role | null) {
   if (role === 'customer') return nav
   if (role && REVIEWER_ROLES.includes(role)) nav.push({ to: '/review', label: 'Review queue', icon: UserRoundCheck })
   nav.push({ to: '/knowledge', label: 'Knowledge base', icon: BookOpen })
-  if (role === 'manager' || role === 'administrator') nav.push({ to: '/reports', label: 'Reports', icon: BarChart3 })
+  if (role === 'manager' || role === 'administrator') nav.push({ to: '/reports', label: 'Reports', icon: BarChart3 }, { to: '/evaluation', label: 'Evaluation', icon: FlaskConical })
   if (role === 'administrator') nav.push({ to: '/settings', label: 'Settings', icon: Settings2 })
   return nav
 }
@@ -821,10 +998,5 @@ function summarizeDetails(details: Record<string, unknown>) {
 const shorten = (value?: string, max = 220) => !value ? '' : value.length > max ? `${value.slice(0, max)}… (full error in History)` : value
 const splitList = (value: string) => value.split(',').map((s) => s.trim()).filter(Boolean)
 const splitLines = (value: string) => value.split('\n').map((s) => s.trim()).filter(Boolean)
-const entries = (data: Record<string, number>) => Object.entries(data).map(([name, value]) => ({ name: labelize(name), value }))
-const labelize = (value: string) => String(value || '').replaceAll('_', ' ').replace(/\b\w/g, (x) => x.toUpperCase())
-const date = (value: string) => new Intl.DateTimeFormat('en', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(value))
-const dateTime = (value: string) => new Intl.DateTimeFormat('en', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(value))
 const text = (value: unknown) => value === true ? 'Yes' : value === false ? 'No' : value == null || value === '' ? '—' : Array.isArray(value) ? value.join(', ') : typeof value === 'object' ? JSON.stringify(value) : String(value)
 const greeting = () => new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 17 ? 'Good afternoon' : 'Good evening'
-const messageOf = (error: unknown) => error instanceof ApiError || error instanceof Error ? error.message : 'Something went wrong'

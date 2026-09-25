@@ -1,0 +1,19 @@
+Approved facts from the SupportNova system (trusted):
+{% for fact in facts %}
+- {{ fact }}
+{% else %}
+- (none)
+{% endfor %}
+
+Approved policy excerpts:
+{% for chunk in policy_chunks %}
+- document_code={{ chunk.document_code }} version={{ chunk.version }} section={{ chunk.section }} title={{ chunk.title }}
+{{ chunk.content }}
+{% else %}
+- (no matching policy excerpt)
+{% endfor %}
+
+Recent conversation (untrusted):
+{{ history }}
+
+{{ question }}

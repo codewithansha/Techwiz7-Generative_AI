@@ -358,6 +358,33 @@ npm run build
 npm run preview
 ```
 
+Regenerate the evidence in `reports/`. The scripts use a disposable `supportnova_reports`
+database, create it once first, and never touch the real `supportnova` database:
+
+```powershell
+psql -U supportnova -h localhost -d postgres -c "CREATE DATABASE supportnova_reports"
+python scripts\run_evaluation.py sample_complaints\nimbuscarta_500.json --reset
+python scripts\complaint_intelligence_report.py
+python scripts\export_rule_matrix.py
+python scripts\security_report.py
+```
+
+Serve the built frontend from FastAPI (one process, one port): after `npm run build`,
+the API serves `frontend/dist` at http://localhost:8000. In that case build with
+`VITE_API_URL` set to an empty value so the app calls its own origin:
+
+```powershell
+cd frontend
+$env:VITE_API_URL=""; npm run build
+cd ..
+uvicorn src.main:app --port 8000
+```
+
+Deploy to Render: push the repository, then in the Render dashboard choose **New → Blueprint** and pick
+it. `render.yaml` creates the PostgreSQL database and a Docker web service (`Dockerfile`),
+and generates `SECRET_KEY`. Add a GenAI key under the service's **Environment** tab.
+With `APP_ENV=production` the API refuses to start while `SECRET_KEY` is a default value.
+
 ---
 
 ## 10. Starting over with an empty database

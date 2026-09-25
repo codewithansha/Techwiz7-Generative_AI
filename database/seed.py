@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import csv
 from datetime import date, timedelta
+from pathlib import Path
 
 from sqlalchemy.orm import Session
 
@@ -94,25 +96,90 @@ def seed_reference_data(db: Session) -> None:
     if not db.query(Department).count():
         _seed_core(db)
     _ensure_rules(db)
+    _ensure_escalation_rules(db)
     _ensure_documents(db)
     _ensure_prompts(db)
     db.commit()
 
 
-# Rules added after the first release; inserted into existing databases by rule code.
-EXTRA_RULES = [
-    ("RR-121", dict(cat="DEFECT", sub="DAMAGED", dept="WAR", urg=UrgencyLevel.low, pri=PriorityCode.P3, policy="WAR-POL-03", section="2.2", esc=False, req=["Request photos of the damage", "Confirm the product itself works"], pro=["Offer compensation for cosmetic packaging damage"], kw=["scratch", "scuff", "cosmetic", "packaging", "box damaged", "dent in the box"], refund=False, repl=False, comp=False)),
-    ("RR-122", dict(cat="REFUND", sub="DELAYREF", dept="RET", urg=UrgencyLevel.medium, pri=PriorityCode.P2, policy="REF-POL-01", section="4.1", esc=False, req=["Verify order and refund eligibility"], pro=["Approve refund before verification", "Promise instant cash refund"], kw=["refund", "money back", "reimburse"], refund=None, repl=False, comp=False)),
-    ("RR-123", dict(cat="SERVICE", sub="WAIT", dept="REL", urg=UrgencyLevel.high, pri=PriorityCode.P1, policy="CMP-POL-01", section="1", esc=True, level=EscalationLevel.supervisor_review, req=["Review previous complaint history", "Assign a named owner"], pro=["Close without contacting the customer"], kw=["still not resolved", "third time", "no one has fixed", "complained before"], refund=False, repl=False, comp=False)),
-]
+# The Complaint Resolution Rule Matrix is reference data owned by this CSV.
+RULE_MATRIX_PATH = Path(__file__).resolve().parent.parent / "complaint_rules" / "rule_matrix.csv"
+# Keyword-variant filler rules (GEN-POL-01) seeded by earlier releases; retired, never deleted.
+RETIRED_FILLER_RANGE = (23, 120)
+
+
+def _split(value: str) -> list[str]:
+    return [part.strip() for part in (value or "").split("|") if part.strip()]
+
+
+def _flag(value: str) -> bool | None:
+    value = (value or "").strip().lower()
+    return None if value == "" else value == "true"
+
+
+def load_rule_matrix(path: Path = RULE_MATRIX_PATH) -> list[dict]:
+    """Read the rule matrix CSV into ResolutionRule column values, one dict per rule."""
+    with path.open(encoding="utf-8", newline="") as handle:
+        rows = list(csv.DictReader(handle))
+    return [
+        dict(
+            rule_code=row["rule_code"].strip(),
+            category_code=row["category_code"].strip(),
+            subcategory_code=row["subcategory_code"].strip(),
+            conditions={"keywords": [k.lower() for k in _split(row["keywords"])]},
+            department_code=row["department_code"].strip(),
+            supporting_department_codes=_split(row["supporting_department_codes"]),
+            urgency=UrgencyLevel(row["urgency"].strip()),
+            priority=PriorityCode(row["priority"].strip()),
+            policy_code=row["policy_code"].strip(),
+            policy_section=row["policy_section"].strip(),
+            escalation_required=bool(_flag(row["escalation_required"])),
+            escalation_level=EscalationLevel(row["escalation_level"].strip() or "no_escalation"),
+            required_actions=_split(row["required_actions"]),
+            prohibited_actions=_split(row["prohibited_actions"]),
+            follow_up_required=_flag(row["follow_up_required"]) is not False,
+            refund_eligible=_flag(row["refund_eligible"]),
+            replacement_eligible=_flag(row["replacement_eligible"]),
+            compensation_permitted=bool(_flag(row["compensation_permitted"])),
+        )
+        for row in rows
+    ]
+
+
+def _is_retired_filler(rule: ResolutionRule, matrix_codes: set[str]) -> bool:
+    low, high = RETIRED_FILLER_RANGE
+    number = rule.rule_code[3:] if rule.rule_code.startswith("RR-") else ""
+    return (
+        number.isdigit()
+        and low <= int(number) <= high
+        and rule.policy_code == "GEN-POL-01"
+        and rule.rule_code not in matrix_codes
+    )
 
 
 def _ensure_rules(db: Session) -> None:
+    """Upsert the matrix into an existing database and retire the old filler rules.
+
+    Rules in the CSV are inserted when missing and updated when their content differs
+    (their ``is_active`` flag is left alone so a rule switched off in Settings stays off).
+    Old GEN-POL-01 filler rules are deactivated, never deleted.
+    """
     if not db.query(Department).count():
         return
-    for code, template in EXTRA_RULES:
-        if not db.query(ResolutionRule).filter(ResolutionRule.rule_code == code).first():
-            db.add(_rule_from_template(code, template))
+    matrix = load_rule_matrix()
+    codes = {row["rule_code"] for row in matrix}
+    existing = {r.rule_code: r for r in db.query(ResolutionRule).all()}
+    for values in matrix:
+        rule = existing.get(values["rule_code"])
+        if rule is None:
+            db.add(ResolutionRule(**values))
+            continue
+        for field, value in values.items():
+            if getattr(rule, field) != value:
+                setattr(rule, field, value)
+    for rule in existing.values():
+        if rule.is_active and _is_retired_filler(rule, codes):
+            rule.is_active = False
     db.flush()
 
 
@@ -283,69 +350,44 @@ def _seed_escalation_rules(db: Session) -> None:
 
 
 def _seed_rules(db: Session) -> None:
-    templates = [
-        dict(cat="DELIVERY", sub="DELAY", dept="LOG", urg=UrgencyLevel.medium, pri=PriorityCode.P2, policy="DEL-POL-04", section="5.2", esc=False, req=["Verify shipment status", "Confirm expected delivery date"], pro=["Promise a delivery time that is not in tracking"], kw=["delayed", "late", "not arrived"], refund=False, repl=False, comp=False),
-        dict(cat="DELIVERY", sub="LOST", dept="LOG", urg=UrgencyLevel.high, pri=PriorityCode.P1, policy="DEL-POL-04", section="6.1", esc=False, req=["Open carrier investigation", "Offer replacement or refund per policy"], pro=["Guarantee next-day delivery"], kw=["lost package", "never delivered"], refund=True, repl=True, comp=False),
-        dict(cat="BILLING", sub="DUP", dept="BIL", urg=UrgencyLevel.high, pri=PriorityCode.P1, policy="BIL-POL-02", section="3.1", esc=False, req=["Verify duplicate transaction", "Reverse unauthorized duplicate if confirmed"], pro=["Refund unrelated charges"], kw=["charged twice", "duplicate"], refund=True, repl=False, comp=False),
-        dict(cat="BILLING", sub="WRONG", dept="BIL", urg=UrgencyLevel.medium, pri=PriorityCode.P2, policy="BIL-POL-02", section="3.4", esc=False, req=["Compare invoice to catalog price"], pro=["Issue goodwill credit above policy cap"], kw=["overcharged", "wrong amount"], refund=None, repl=False, comp=False),
-        dict(cat="REFUND", sub="DELAYREF", dept="RET", urg=UrgencyLevel.medium, pri=PriorityCode.P2, policy="REF-POL-01", section="4.1", esc=False, req=["Check refund batch status"], pro=["Promise instant cash refund"], kw=["refund delay", "waiting for refund"], refund=None, repl=False, comp=False),
-        dict(cat="DEFECT", sub="DAMAGED", dept="WAR", urg=UrgencyLevel.high, pri=PriorityCode.P1, policy="WAR-POL-03", section="2.2", esc=False, req=["Request unboxing photos", "Open replacement if eligible"], pro=["Approve refund before inspection"], kw=["damaged", "broken", "cracked"], refund=None, repl=True, comp=False),
-        dict(cat="DEFECT", sub="DOA", dept="WAR", urg=UrgencyLevel.high, pri=PriorityCode.P1, policy="WAR-POL-03", section="2.1", esc=False, req=["Verify purchase window", "Arrange DOA replacement"], pro=["Extend warranty unofficially"], kw=["will not turn on", "dead on arrival"], refund=False, repl=True, comp=False),
-        dict(cat="SAFETY", sub="OVERHEAT", dept="SAF", urg=UrgencyLevel.critical, pri=PriorityCode.P0, policy="SAF-POL-01", section="1.1", esc=True, req=["Instruct customer to unplug device", "Escalate to Safety"], pro=["Tell customer to keep using the device"], kw=["overheat", "burning smell", "sparks"], refund=None, repl=True, comp=False, level=EscalationLevel.critical_management),
-        dict(cat="PRIVACY", sub="LEAK", dept="CMP", urg=UrgencyLevel.high, pri=PriorityCode.P1, policy="PRI-POL-01", section="2.4", esc=True, req=["Preserve logs", "Escalate to Compliance"], pro=["Publicly confirm personal data contents"], kw=["privacy", "data leak", "personal data"], refund=False, repl=False, comp=False, level=EscalationLevel.compliance_review),
-        dict(cat="ACCOUNT", sub="HACK", dept="SEC", urg=UrgencyLevel.high, pri=PriorityCode.P1, policy="SEC-POL-01", section="3.0", esc=True, req=["Force password reset", "Review session history"], pro=["Share OTP over chat"], kw=["hacked", "unauthorized"], refund=False, repl=False, comp=False, level=EscalationLevel.specialist_team),
-        dict(cat="TECH", sub="APP", dept="TEC", urg=UrgencyLevel.medium, pri=PriorityCode.P2, policy="TEC-SOP-02", section="1.3", esc=False, req=["Capture error code", "Retry on latest app version"], pro=["Promise a custom app build"], kw=["app crash", "error code", "checkout"], refund=False, repl=False, comp=False),
-        dict(cat="WARRANTY", sub="DENIED", dept="WAR", urg=UrgencyLevel.medium, pri=PriorityCode.P2, policy="WAR-POL-03", section="5.0", esc=False, req=["Check warranty window and serial"], pro=["Override expired warranty"], kw=["warranty denied", "out of warranty"], refund=False, repl=False, comp=False),
-        dict(cat="STAFF", sub="RUDE", dept="REL", urg=UrgencyLevel.medium, pri=PriorityCode.P2, policy="REL-SOP-01", section="2.0", esc=False, req=["Apologize", "Coach named agent if identified"], pro=["Terminate staff without investigation"], kw=["rude", "unprofessional"], refund=False, repl=False, comp=False),
-        dict(cat="CANCEL", sub="HARD", dept="BIL", urg=UrgencyLevel.medium, pri=PriorityCode.P2, policy="CAN-POL-01", section="1.2", esc=False, req=["Confirm cooling-off window"], pro=["Cancel fulfilled digital content outside policy"], kw=["cannot cancel", "cancel subscription"], refund=None, repl=False, comp=False),
-        dict(cat="SERVICE", sub="WAIT", dept="REL", urg=UrgencyLevel.low, pri=PriorityCode.P3, policy="SLA-POL-01", section="2.1", esc=False, req=["Acknowledge delay", "Provide realistic next update"], pro=["Offer cash compensation automatically"], kw=["no response", "on hold", "ignored"], refund=False, repl=False, comp=False),
-        dict(cat="DELIVERY", sub="WRONGITEM", dept="LOG", urg=UrgencyLevel.high, pri=PriorityCode.P1, policy="DEL-POL-04", section="7.0", esc=False, req=["Arrange reverse pickup", "Ship correct SKU"], pro=["Let customer keep both items as default"], kw=["wrong item", "incorrect product"], refund=False, repl=True, comp=False),
-        dict(cat="ACCOUNT", sub="LOCK", dept="SEC", urg=UrgencyLevel.medium, pri=PriorityCode.P2, policy="SEC-POL-01", section="2.2", esc=False, req=["Verify identity", "Unlock if owner confirmed"], pro=["Unlock without verification"], kw=["locked out", "cannot login"], refund=False, repl=False, comp=False),
-        dict(cat="REFUND", sub="PARTIAL", dept="RET", urg=UrgencyLevel.low, pri=PriorityCode.P3, policy="REF-POL-01", section="5.3", esc=False, req=["Explain restocking conditions"], pro=["Waive restocking without eligibility"], kw=["partial refund", "restocking"], refund=False, repl=False, comp=False),
-        dict(cat="BILLING", sub="RENEW", dept="BIL", urg=UrgencyLevel.medium, pri=PriorityCode.P2, policy="BIL-POL-02", section="6.0", esc=False, req=["Confirm renewal notice window"], pro=["Refund all historical renewals"], kw=["auto renewed", "subscription renewal"], refund=None, repl=False, comp=False),
-        dict(cat="TECH", sub="PAIR", dept="TEC", urg=UrgencyLevel.low, pri=PriorityCode.P3, policy="TEC-SOP-02", section="4.0", esc=False, req=["Walk through pairing SOP"], pro=["Send a free replacement before troubleshooting"], kw=["bluetooth", "pairing", "wifi setup"], refund=False, repl=False, comp=False),
-        dict(cat="SAFETY", sub="INJURY", dept="SAF", urg=UrgencyLevel.critical, pri=PriorityCode.P0, policy="SAF-POL-01", section="1.4", esc=True, req=["Collect incident facts", "Escalate to Safety"], pro=["Admit legal liability"], kw=["injured", "shock", "burn"], refund=None, repl=True, comp=False, level=EscalationLevel.critical_management),
-        dict(cat="PRIVACY", sub="LEAK", dept="CMP", urg=UrgencyLevel.high, pri=PriorityCode.P0, policy="PRI-POL-01", section="2.1", esc=True, req=["Start privacy incident record"], pro=["Pay compensation automatically"], kw=["cnic", "passport", "otp shared"], refund=False, repl=False, comp=False, level=EscalationLevel.compliance_review),
+    """Fresh database: the rule matrix comes entirely from ``complaint_rules/rule_matrix.csv``."""
+    for values in load_rule_matrix():
+        db.add(ResolutionRule(**values))
+
+
+# Escalation conditions added after the first release; inserted by rule code when missing.
+# (code, name, keywords, categories, level, forced urgency, reason)
+NEW_ESCALATION_RULES = [
+    ("ESC-CRIT-01", "Critical customer impact", ["medical use", "clinic", "patients", "business is down", "cannot operate"], [], EscalationLevel.department_manager, UrgencyLevel.high, "Complaint affects health care or stops a customer's business."),
+    ("ESC-SAF-03", "Battery swelling", ["swollen battery", "bulging battery", "battery bulging", "battery swelling"], [], EscalationLevel.critical_management, UrgencyLevel.critical, "Swollen lithium battery is a fire hazard (SAF-POL-01 1.2)."),
+    ("ESC-SAF-04", "Child safety", ["choking hazard", "swallowed", "child safety"], [], EscalationLevel.critical_management, UrgencyLevel.critical, "Child-safety hazard escalates the same day (SAF-POL-01 1.3)."),
+    ("ESC-SAF-05", "Fire, melting or electrical fault", ["caught fire", "flames", "melted", "scorched", "too hot to touch", "short circuit", "electrical fault", "sparking"], ["Safety"], EscalationLevel.critical_management, UrgencyLevel.critical, "Fire or electrical hazard."),
+    ("ESC-SAF-06", "Physical injury or health reaction", ["electrocuted", "bleeding", "sharp edge", "allergic reaction", "skin rash"], ["Safety"], EscalationLevel.critical_management, UrgencyLevel.critical, "Injury or health reaction needs an incident record."),
+    ("ESC-HW-01", "Repeated hardware failure", ["second replacement", "replacement also", "replacement is faulty", "same fault"], [], EscalationLevel.supervisor_review, UrgencyLevel.high, "A second failure on the same order needs supervisor approval (RPL-POL-01 2)."),
+    ("ESC-FRD-01", "Chargeback or card fraud", ["chargeback", "card dispute", "fraudulent charge", "unauthorised charge", "unauthorized charge", "unauthorised transaction", "unauthorized transaction"], [], EscalationLevel.compliance_review, UrgencyLevel.high, "Card dispute or suspected fraud is reported to Compliance."),
+    ("ESC-SEC-02", "Account takeover signals", ["unauthorised", "account takeover", "unrecognised login", "unrecognized login", "suspicious login", "orders i never placed", "password was changed"], ["Account"], EscalationLevel.specialist_team, UrgencyLevel.high, "Account takeover indicators."),
+    ("ESC-PRI-02", "Customer data exposed", ["personal data", "sent to the wrong person", "someone else's details", "another customer's details", "public link", "cvv", "card number exposed"], ["Privacy"], EscalationLevel.compliance_review, UrgencyLevel.high, "Customer data reached the wrong person or the public."),
+]
+
+
+def new_escalation_rules() -> list[EscalationRule]:
+    return [
+        EscalationRule(
+            rule_code=code, name=name, keywords=keywords, categories=categories, min_repeat_count=0,
+            customer_types=[], escalation_level=level, reason=reason, force_urgency=urgency,
+        )
+        for code, name, keywords, categories, level, urgency, reason in NEW_ESCALATION_RULES
     ]
-    count = 0
-    for index, template in enumerate(templates, start=1):
-        count += 1
-        db.add(_rule_from_template(f"RR-{index:03d}", template))
-    # Expand to 100+ configurable rules without hard-coding complaint outcomes.
-    fillers = [
-        ("DELIVERY", "DELAY", "LOG", ["courier", "dispatch", "out for delivery", "eta"]),
-        ("BILLING", "WRONG", "BIL", ["invoice", "tax", "gst", "vat"]),
-        ("REFUND", "DELAYREF", "RET", ["bank", "wallet", "card reversal"]),
-        ("DEFECT", "DAMAGED", "WAR", ["screen", "port", "hinge", "camera"]),
-        ("TECH", "APP", "TEC", ["timeout", "blank screen", "payment gateway"]),
-        ("WARRANTY", "DENIED", "WAR", ["serial", "invoice missing", "water damage"]),
-        ("SERVICE", "WAIT", "REL", ["callback", "ticket ignored", "hold music"]),
-        ("CANCEL", "HARD", "BIL", ["cooling off", "trial ended", "bundle"]),
-    ]
-    extra_index = count + 1
-    for cat, sub, dept, kws in fillers:
-        for kw in kws:
-            for suffix in ("A", "B", "C"):
-                template = dict(
-                    cat=cat,
-                    sub=sub,
-                    dept=dept,
-                    urg=UrgencyLevel.medium,
-                    pri=PriorityCode.P2,
-                    policy="GEN-POL-01",
-                    section="1.0",
-                    esc=False,
-                    req=["Acknowledge complaint", "Apply matching SOP"],
-                    pro=["Invent a policy exception"],
-                    kw=[kw, f"{kw} {suffix.lower()}"],
-                    refund=False,
-                    repl=False,
-                    comp=False,
-                )
-                db.add(_rule_from_template(f"RR-{extra_index:03d}", template))
-                extra_index += 1
-                if extra_index > 120:
-                    return
+
+
+def _ensure_escalation_rules(db: Session) -> None:
+    if not db.query(Department).count():
+        return
+    existing = {code for (code,) in db.query(EscalationRule.rule_code).all()}
+    for rule in new_escalation_rules():
+        if rule.rule_code not in existing:
+            db.add(rule)
+    db.flush()
 
 
 def _rule_from_template(code: str, template: dict) -> ResolutionRule:
@@ -405,16 +447,70 @@ EXTRA_VERSIONS = [
 ]
 
 
+SAMPLE_DOCUMENTS = Path(__file__).resolve().parent.parent / "sample_documents"
+
+
+def _sample_file(code: str, version: str) -> Path | None:
+    """The full PDF/DOCX for a seeded document, when sample_documents/ ships one."""
+    matches = sorted(SAMPLE_DOCUMENTS.glob(f"{code}_v{version}_*.pdf")) + sorted(SAMPLE_DOCUMENTS.glob(f"{code}_v{version}_*.docx"))
+    return matches[0] if matches else None
+
+
+def _document_sections(code: str, version: str, title: str, body: str) -> tuple[list[dict], Path | None]:
+    """Sections from the real document (numbered headings, pages) or the short fallback text."""
+    from document_processing.parser import parse_document
+
+    path = _sample_file(code, version)
+    if path is not None:
+        sections = [s for s in parse_document(path, path.read_bytes()) if (s.get("content") or "").strip()]
+        if sections:
+            return sections, path
+    return [{"heading": title, "section": "1", "page_number": 1, "content": body}], None
+
+
+def _write_chunks(db: Session, doc: KnowledgeDocument, sections: list[dict]) -> None:
+    suffix = "" if doc.version == "1.0" else f"-v{doc.version}"
+    for chunk in chunk_sections(sections):
+        db.add(
+            DocumentChunk(
+                chunk_code=f"{doc.document_code}{suffix}-C{chunk['ordinal']:03d}",
+                document_id=doc.id,
+                section=chunk["section"],
+                heading=chunk["heading"],
+                page_number=chunk["page_number"],
+                version=doc.version,
+                content=chunk["content"],
+            )
+        )
+
+
 def _ensure_documents(db: Session) -> None:
+    """Seed the knowledge base from sample_documents/ (full policies with real sections).
+
+    Rows seeded earlier from one-line stubs are upgraded in place: their chunks are replaced
+    by the parsed document so rule citations such as DEL-POL-04 5.2 resolve to real text.
+    Documents uploaded by an administrator are never touched.
+    """
     today = date.today()
     rows = [(code, title, cat, body, "1.0", DocumentStatus.active, 30) for code, title, cat, body in DOCUMENTS] + EXTRA_VERSIONS
     for code, title, category, body, version, status, age_days in rows:
-        exists = (
+        sections, path = _document_sections(code, version, title, body)
+        content = "\n\n".join(s["content"] for s in sections)
+        doc = (
             db.query(KnowledgeDocument)
             .filter(KnowledgeDocument.document_code == code, KnowledgeDocument.version == version)
             .first()
         )
-        if exists:
+        if doc is not None:
+            stub = (doc.checksum or "").startswith("seed-") and not doc.storage_path
+            if not (stub and path is not None):
+                continue
+            db.query(DocumentChunk).filter(DocumentChunk.document_id == doc.id).delete(synchronize_session=False)
+            doc.content_text = content
+            doc.original_filename = path.name
+            doc.storage_path = str(path.relative_to(SAMPLE_DOCUMENTS.parent))
+            db.flush()
+            _write_chunks(db, doc, sections)
             continue
         doc = KnowledgeDocument(
             document_code=code,
@@ -426,22 +522,10 @@ def _ensure_documents(db: Session) -> None:
             effective_date=today - timedelta(days=age_days),
             expiry_date=today + timedelta(days=365) if status == DocumentStatus.active else None,
             checksum=f"seed-{code}" if version == "1.0" else f"seed-{code}-{version}",
-            original_filename=f"{code}.txt",
-            storage_path="",
-            content_text=body,
+            original_filename=path.name if path else f"{code}.txt",
+            storage_path=str(path.relative_to(SAMPLE_DOCUMENTS.parent)) if path else "",
+            content_text=content,
         )
         db.add(doc)
         db.flush()
-        for chunk in chunk_sections([{"heading": title, "section": "1", "page_number": 1, "content": body}]):
-            suffix = "" if version == "1.0" else f"-v{version}"
-            db.add(
-                DocumentChunk(
-                    chunk_code=f"{code}{suffix}-C{chunk['ordinal']:03d}",
-                    document_id=doc.id,
-                    section=chunk["section"],
-                    heading=chunk["heading"],
-                    page_number=chunk["page_number"],
-                    version=version,
-                    content=chunk["content"],
-                )
-            )
+        _write_chunks(db, doc, sections)
