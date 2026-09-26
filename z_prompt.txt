@@ -1,0 +1,752 @@
+IMPORTANT: DO NOT REDESIGN THE ENTIRE UI AGAIN.
+
+The current UI has already been redesigned. Your job now is to perform a COMPLETE UI QUALITY AUDIT and FIX ONLY THE VISUAL/UX PROBLEMS.
+
+Do NOT change the existing functionality, business logic, APIs, routes, components, data flow, backend, authentication, AI functionality, or existing features.
+
+The goal is:
+
+MAKE THE CURRENT UI LOOK PERFECTLY BALANCED, SPACED, RESPONSIVE, READABLE, AND PRODUCTION-READY.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. FIRST: AUDIT BEFORE CHANGING
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Do NOT blindly modify CSS.
+
+First inspect the COMPLETE application and identify:
+
+* Text that is too tightly packed
+* Text with insufficient line-height
+* Paragraphs that look cramped
+* Headings that wrap awkwardly
+* Cards with too much empty space
+* Cards with too little space
+* Sections that are vertically unbalanced
+* Excessive blank areas
+* Uneven margins
+* Uneven padding
+* Inconsistent gaps
+* Misaligned icons
+* Misaligned buttons
+* Unequal card heights
+* Broken grids
+* Content that feels compressed
+* Content that feels unnecessarily stretched
+* Elements that are too close together
+* Elements that are too far apart
+* Poor visual hierarchy
+* Mobile overflow
+* Tablet layout problems
+* Desktop layout problems
+* Elements that become awkward at intermediate widths
+
+Then fix these issues systematically.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2. TEXT MUST BREATHE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+One of the current problems is text appearing too close together.
+
+Fix typography globally.
+
+Pay special attention to:
+
+* line-height
+* letter-spacing
+* paragraph width
+* heading margins
+* label spacing
+* text-to-icon spacing
+* text-to-button spacing
+* text-to-card-edge spacing
+
+DO NOT make text unnecessarily large.
+
+Instead, give it proper breathing room.
+
+For normal body text:
+
+line-height should generally be around 1.5–1.7.
+
+For headings:
+
+line-height should generally be around 1.1–1.3.
+
+For compact metadata:
+
+use a smaller but still readable line-height.
+
+Avoid:
+
+line-height: 1;
+
+for normal paragraphs.
+
+Avoid extremely tight letter-spacing.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+3. CONTROL TEXT WIDTH
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Do not allow long paragraphs to span the entire screen.
+
+Use reasonable max-widths.
+
+For readable descriptive text:
+
+approximately 55–75 characters per line where practical.
+
+For hero descriptions:
+
+use a controlled max-width.
+
+Example concept:
+
+max-width: 650px;
+
+Do not force every paragraph to use the same width.
+
+Short text can remain compact.
+
+Long explanatory text should wrap naturally.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+4. FIX EMPTY SPACE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+IMPORTANT:
+
+Do NOT remove all whitespace.
+
+Whitespace is necessary.
+
+The problem is UNINTENTIONAL whitespace.
+
+Inspect every page and section.
+
+If a section has:
+
+Huge empty vertical space
++
+Very little content
+
+reduce the section padding/min-height.
+
+If a section contains important content that feels cramped:
+
+increase spacing.
+
+Use visual balance instead of fixed giant heights.
+
+Avoid unnecessary:
+
+min-height: 100vh;
+
+for small content sections.
+
+Avoid oversized padding such as:
+
+padding: 120px;
+
+unless there is a strong design reason.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+5. BALANCE EVERY SECTION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Every section should visually answer:
+
+Is the content centered correctly?
+
+Does the section have enough breathing room?
+
+Is the content too high or too low?
+
+Is there excessive unused space?
+
+Are elements grouped logically?
+
+Use proximity principles:
+
+Related elements should be closer together.
+
+Unrelated elements should have more separation.
+
+For example:
+
+Heading
+↓ small gap
+Description
+↓ medium gap
+Primary action
+
+NOT:
+
+Heading
+
+```
+    huge gap
+```
+
+Description
+
+```
+    huge gap
+```
+
+Button
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+6. CARD BALANCE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Audit every card.
+
+Cards should not have:
+
+* giant empty bottoms
+* cramped text
+* inconsistent padding
+* random heights
+* misaligned buttons
+* floating icons
+* excessive internal whitespace
+
+Use consistent internal spacing.
+
+Example structure:
+
+Icon
+↓
+Title
+↓
+Description
+↓
+Content
+↓
+Action
+
+Maintain visual rhythm.
+
+If cards are in the same grid, make their heights visually consistent where appropriate.
+
+Do NOT force equal heights when doing so creates excessive empty space.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+7. GRID BALANCE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Inspect every grid.
+
+Do not blindly use:
+
+grid-template-columns: repeat(4, 1fr);
+
+for every screen.
+
+Choose the number of columns based on:
+
+* viewport width
+* content width
+* card minimum width
+* readability
+
+Example behavior:
+
+Large desktop:
+4 columns
+
+Desktop:
+3 columns
+
+Tablet:
+2 columns
+
+Mobile:
+1 column
+
+But use content-aware breakpoints rather than blindly following these numbers.
+
+Cards should never become unnaturally narrow.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+8. RESPONSIVE AUDIT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+THIS IS CRITICAL.
+
+Check the UI at:
+
+320px
+360px
+375px
+390px
+414px
+480px
+600px
+768px
+820px
+900px
+1024px
+1280px
+1440px
+1600px
+1920px
+
+Do not test only:
+
+mobile + desktop.
+
+The most important problems often occur between breakpoints.
+
+Pay special attention to:
+
+600–900px
+900–1200px
+
+because these widths often create awkward layouts.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+9. MOBILE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+At mobile widths:
+
+Nothing should feel squeezed.
+
+Do not simply reduce desktop dimensions.
+
+Reflow content intelligently.
+
+For example:
+
+Desktop:
+
+[Title] [Action] [Action]
+
+Mobile:
+
+Title
+
+[Action]
+
+[Action]
+
+OR use a suitable compact arrangement.
+
+Cards:
+
+Desktop:
+multiple columns
+
+Mobile:
+single column
+
+Forms:
+
+Desktop:
+multiple fields in row
+
+Mobile:
+stack fields
+
+Navigation:
+
+Desktop:
+full navigation
+
+Mobile:
+compact navigation/drawer
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+10. TABLET
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Do NOT treat tablet as desktop.
+
+Tablet layouts should be intentionally balanced.
+
+Check:
+
+768px
+820px
+900px
+
+At these sizes:
+
+* Sidebar may need adjustment
+* Cards may need fewer columns
+* Buttons may need wrapping
+* Text widths may need reduction
+* Grid gaps may need adjustment
+* Header items may need repositioning
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+11. LARGE DESKTOP
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+At 1440px+:
+
+Do NOT allow content to stretch endlessly.
+
+Use a sensible max-width.
+
+Example:
+
+max-width:
+1200–1440px
+
+depending on the section.
+
+Large screens should have elegant whitespace, NOT huge dead zones.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+12. SPACING SYSTEM
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Normalize inconsistent spacing.
+
+Use a predictable spacing scale such as:
+
+4
+8
+12
+16
+20
+24
+32
+40
+48
+64
+
+Avoid random values everywhere.
+
+However:
+
+DO NOT mechanically replace every value.
+
+Use visual judgment.
+
+Spacing should communicate hierarchy.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+13. TYPOGRAPHY HIERARCHY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Make sure every page has a clear hierarchy:
+
+Page title
+↓
+Supporting description
+↓
+Section heading
+↓
+Body
+↓
+Metadata
+
+Do not make every text element bold.
+
+Do not make every heading huge.
+
+Do not use too many font sizes.
+
+Use a controlled typography scale.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+14. BUTTON + INPUT ALIGNMENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+All buttons and inputs should feel like they belong to the same system.
+
+Check:
+
+* height
+* border radius
+* padding
+* font size
+* icon alignment
+* vertical centering
+
+Buttons next to inputs must align perfectly.
+
+Icon-only buttons must have appropriate dimensions.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+15. ICON ALIGNMENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Inspect every icon.
+
+Fix:
+
+* icons sitting too high
+* icons sitting too low
+* inconsistent icon sizes
+* inconsistent gaps
+* icons touching text
+* icons appearing visually heavier than surrounding text
+
+Icons should be optically aligned, not just technically centered.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+16. SECTION TRANSITIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Avoid random large gaps between sections.
+
+The transition should feel intentional:
+
+Section A
+↓
+comfortable spacing
+↓
+Section B
+
+Do not create:
+
+Section A
+↓
+huge empty area
+↓
+Section B
+
+unless it is an intentional hero/feature separation.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+17. HERO SECTIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Hero sections are often the biggest source of empty space.
+
+Audit:
+
+* hero height
+* heading position
+* paragraph width
+* CTA position
+* decorative elements
+
+Do NOT force hero content to occupy the entire viewport unnecessarily.
+
+If content is small, reduce the hero height.
+
+The hero should feel spacious but not empty.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+18. RESPONSIVE TEXT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Prevent ugly wrapping.
+
+Pay special attention to:
+
+* headings
+* buttons
+* navigation labels
+* badges
+* cards
+* statistics
+* AI response text
+
+Use:
+
+clamp()
+
+where appropriate for fluid typography.
+
+Example concept:
+
+font-size: clamp(...);
+
+But do not overuse it.
+
+Never allow important text to become unreadably small.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+19. NO HORIZONTAL OVERFLOW
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+At EVERY viewport width:
+
+There must be no accidental horizontal scrollbar.
+
+Check for:
+
+* fixed widths
+* min-width
+* oversized images
+* long text
+* flex children
+* grids
+* tables
+* buttons
+* code blocks
+* AI responses
+* navigation
+* modals
+
+Use:
+
+min-width: 0;
+
+where required for flex/grid children.
+
+Ensure long content can wrap or scroll appropriately.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+20. CONTENT DENSITY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+This is extremely important.
+
+The UI should NOT feel:
+
+too dense
+OR
+too empty.
+
+Aim for a premium "comfortable density."
+
+Users should be able to scan the page easily.
+
+Use spacing to create groups.
+
+Example:
+
+CARD
+
+Title
+Description
+
+small gap
+
+Content
+
+medium gap
+
+Action
+
+This is better than putting everything almost touching.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+21. DO NOT OVER-CORRECT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Do NOT solve cramped UI by adding huge padding everywhere.
+
+Do NOT solve empty space by removing all padding.
+
+Do NOT solve wrapping by making everything tiny.
+
+Do NOT solve overflow by hiding content.
+
+Do NOT solve mobile problems with:
+
+overflow-x: hidden;
+
+unless the overflow is genuinely intentional.
+
+Fix the ROOT CAUSE.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+22. PRESERVE THE CURRENT DESIGN LANGUAGE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The current redesign is already directionally correct.
+
+Keep:
+
+* existing visual identity
+* color palette
+* brand feel
+* component style
+* animations that already work
+* overall design concept
+
+Only refine what is visually broken or unbalanced.
+
+The result should look like:
+
+CURRENT DESIGN
++
+professional UI audit
++
+pixel-level refinement
+
+NOT:
+
+CURRENT DESIGN
+→ completely different website
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+23. FINAL VISUAL QA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+After making changes, perform a final pass on EVERY page.
+
+For each page ask:
+
+1. Is the primary content immediately visible?
+2. Is the spacing comfortable?
+3. Is any text too tightly packed?
+4. Is there unnecessary empty space?
+5. Are related elements grouped together?
+6. Are unrelated elements separated?
+7. Are cards balanced?
+8. Are buttons aligned?
+9. Are icons aligned?
+10. Does the page work at 320px?
+11. Does it work at 768px?
+12. Does it work at 1024px?
+13. Does it work at 1440px?
+14. Does it work at 1920px?
+15. Is there any horizontal overflow?
+16. Is anything clipped?
+17. Is anything overlapping?
+18. Does the page feel visually centered?
+19. Does the typography breathe?
+20. Does the entire page feel professionally finished?
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+24. MOST IMPORTANT RULE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+DO NOT JUST MAKE THE UI "RESPONSIVE."
+
+MAKE IT:
+
+RESPONSIVE
++
+BALANCED
++
+BREATHABLE
++
+CONSISTENT
++
+READABLE
++
+PROPORTIONAL
++
+VISUALLY HARMONIOUS.
+
+Every screen size should look intentionally designed.
+
+The final result should have the feeling of:
+
+"Someone professionally reviewed every pixel."
+
+Not:
+
+"AI generated CSS and stopped."
+
+Make the smallest necessary changes that produce the biggest visual improvement.
+
+DO NOT CHANGE FUNCTIONALITY.
+DO NOT CHANGE LOGIC.
+DO NOT REMOVE FEATURES.
+
+ONLY POLISH, BALANCE, AND PERFECT THE EXISTING UI.

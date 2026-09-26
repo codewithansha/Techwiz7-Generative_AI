@@ -928,7 +928,19 @@ function Donut({ data }: { data: Array<{ name: string; value: number }> }) {
   return <div className="donut-layout"><ResponsiveContainer width={165} height={165}><PieChart><Pie data={data} dataKey="value" innerRadius={52} outerRadius={73} paddingAngle={3}>{data.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}</Pie><Tooltip /></PieChart></ResponsiveContainer><div className="legend">{data.map((item, i) => <span key={item.name}><i style={{ background: COLORS[i % COLORS.length] }} />{item.name}<b>{item.value}</b></span>)}</div></div>
 }
 
-function Brand({ light }: { light?: boolean }) { return <div className={`brand ${light ? 'brand-light' : ''}`}><div className="brand-mark"><Sparkles /></div><div><span>SupportNova</span><small>ResponseX AI</small></div></div> }
+function Brand({ light }: { light?: boolean }) {
+  return (
+    <div className={`brand ${light ? 'brand-light' : ''}`}>
+      <div className="brand-mark">
+        <img src="/logo.png" alt="SupportNova" className="brand-logo-img" />
+      </div>
+      <div>
+        <span>SupportNova</span>
+        <small>ResponseX AI</small>
+      </div>
+    </div>
+  )
+}
 function Verification({ score }: { score: number }) { return <span className={`verification ${score >= 80 ? 'good' : score >= 60 ? 'partial' : 'bad'}`}><ShieldCheck /> {Math.round(score)}% verified</span> }
 function Data({ label, value, badge }: { label: string; value?: string; badge?: boolean }) { return <div className="data-point"><span>{label}</span><b className={badge ? `value-badge ${(value || '').toLowerCase()}` : ''}>{value || '—'}</b></div> }
 function FormSection({ icon: Icon, title, description, children }: { icon: typeof Inbox; title: string; description: string; children: ReactNode }) { return <section className="form-section"><header><div><Icon /></div><span><h2>{title}</h2><p>{description}</p></span></header><div className="form-grid">{children}</div></section> }
