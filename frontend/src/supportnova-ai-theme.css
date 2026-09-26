@@ -928,39 +928,142 @@ label.check {
 }
 
 /* ==========================================================================
-   AUTHENTICATION PAGE
+   AUTHENTICATION PAGE - PREMIUM ANIMATED GLASSMORPHISM
    ========================================================================== */
+
+/* Keyframe animations for gentle ambient motion & smooth entrance */
+@keyframes authAmbientDrift1 {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.55;
+  }
+  50% {
+    transform: translate(45px, -30px) scale(1.08);
+    opacity: 0.78;
+  }
+}
+
+@keyframes authAmbientDrift2 {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.50;
+  }
+  50% {
+    transform: translate(-40px, 30px) scale(1.12);
+    opacity: 0.72;
+  }
+}
+
+@keyframes authOrbRotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes loginCardEntrance {
+  0% {
+    opacity: 0;
+    transform: translateY(28px) scale(0.97);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes storyFadeIn {
+  0% {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes arrowPulse {
+  0%, 100% {
+    transform: translateX(0);
+    opacity: 0.6;
+  }
+  50% {
+    transform: translateX(4px);
+    opacity: 1;
+  }
+}
+
+/* Unified cosmic dark navy canvas with layered ambient glow */
 .auth-page {
-  background: var(--bg-base) !important;
+  background: #030712 !important;
   min-height: 100vh !important;
   overflow-x: hidden !important;
   overflow-y: auto !important;
+  grid-template-columns: 1fr 1fr !important;
+  position: relative !important;
+  isolation: isolate !important;
 }
 
+/* Soft cyan & electric blue lighting orb */
+.auth-page::before {
+  content: '' !important;
+  position: absolute !important;
+  width: 680px !important;
+  height: 680px !important;
+  border-radius: 50% !important;
+  background: radial-gradient(circle, rgba(0, 168, 255, 0.18) 0%, rgba(32, 217, 255, 0.08) 40%, transparent 70%) !important;
+  top: -120px !important;
+  left: -100px !important;
+  pointer-events: none !important;
+  z-index: 0 !important;
+  filter: blur(60px) !important;
+  animation: authAmbientDrift1 18s ease-in-out infinite !important;
+}
+
+/* Soft violet & magenta lighting orb */
+.auth-page::after {
+  content: '' !important;
+  position: absolute !important;
+  width: 720px !important;
+  height: 720px !important;
+  border-radius: 50% !important;
+  background: radial-gradient(circle, rgba(168, 85, 247, 0.18) 0%, rgba(123, 44, 255, 0.08) 45%, transparent 70%) !important;
+  bottom: -150px !important;
+  right: -120px !important;
+  pointer-events: none !important;
+  z-index: 0 !important;
+  filter: blur(70px) !important;
+  animation: authAmbientDrift2 22s ease-in-out infinite !important;
+}
+
+/* Translucent left story panel */
 .auth-story {
-  background:
-    radial-gradient(ellipse 70% 60% at 30% 80%, rgba(22, 119, 255, 0.28) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 50% at 80% 20%, rgba(123, 44, 255, 0.24) 0%, transparent 55%),
-    radial-gradient(ellipse 50% 40% at 50% 50%, rgba(0, 168, 255, 0.08) 0%, transparent 70%),
-    #050817 !important;
-  border-right: 1px solid rgba(22, 119, 255, 0.20) !important;
+  background: transparent !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
   display: flex !important;
   flex-direction: column !important;
   position: relative !important;
   overflow: hidden !important;
+  padding: 44px 56px !important;
+  z-index: 1 !important;
 }
 
+/* Subtle decorative orbital rings */
 .auth-story::before {
   content: '' !important;
   position: absolute !important;
   pointer-events: none !important;
   border-radius: 50% !important;
-  width: 520px !important;
-  height: 520px !important;
-  right: -140px !important;
-  top: -100px !important;
-  border: 1px solid rgba(0, 168, 255, 0.18) !important;
-  box-shadow: 0 0 40px rgba(0, 168, 255, 0.08), inset 0 0 35px rgba(0, 168, 255, 0.05) !important;
+  width: 540px !important;
+  height: 540px !important;
+  right: -160px !important;
+  top: -80px !important;
+  border: 1px solid rgba(56, 189, 248, 0.14) !important;
+  box-shadow: 0 0 50px rgba(56, 189, 248, 0.06), inset 0 0 40px rgba(56, 189, 248, 0.04) !important;
+  animation: authOrbRotate 60s linear infinite !important;
 }
 
 .auth-story::after {
@@ -968,248 +1071,364 @@ label.check {
   position: absolute !important;
   pointer-events: none !important;
   border-radius: 50% !important;
-  width: 660px !important;
-  height: 660px !important;
+  width: 680px !important;
+  height: 680px !important;
   left: -220px !important;
-  bottom: -220px !important;
-  border: 1px solid rgba(123, 44, 255, 0.22) !important;
-  box-shadow: 0 0 50px rgba(123, 44, 255, 0.12), inset 0 0 45px rgba(123, 44, 255, 0.06) !important;
+  bottom: -200px !important;
+  border: 1px solid rgba(168, 85, 247, 0.16) !important;
+  box-shadow: 0 0 60px rgba(168, 85, 247, 0.08), inset 0 0 50px rgba(168, 85, 247, 0.04) !important;
+  animation: authOrbRotate 75s linear infinite reverse !important;
 }
 
+/* Vertically centered left content */
 .story-content {
   position: relative !important;
   z-index: 2 !important;
   margin: auto 0 !important;
-  max-width: 620px !important;
+  max-width: 520px !important;
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  animation: storyFadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) both !important;
 }
 
 .story-content .eyebrow {
-  color: var(--neon-blue) !important;
-  text-shadow: 0 0 14px rgba(0, 168, 255, 0.7) !important;
+  color: #38BDF8 !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.14em !important;
+  text-shadow: 0 0 16px rgba(56, 189, 248, 0.6) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
 }
 
 .story-content h1 {
   font-family: 'Outfit', sans-serif !important;
-  color: var(--text-primary) !important;
+  color: #FFFFFF !important;
   font-weight: 800 !important;
-  letter-spacing: -0.05em !important;
+  letter-spacing: -0.045em !important;
+  font-size: clamp(34px, 3.8vw, 54px) !important;
+  line-height: 1.1 !important;
+  margin: 16px 0 20px !important;
 }
 
 .story-content h1 em {
-  background: linear-gradient(135deg, #00A8FF 0%, #20D9FF 40%, #A855F7 100%) !important;
+  background: linear-gradient(135deg, #38BDF8 0%, #818CF8 50%, #C084FC 100%) !important;
   -webkit-background-clip: text !important;
   -webkit-text-fill-color: transparent !important;
   background-clip: text !important;
-  filter: drop-shadow(0 0 14px rgba(0, 168, 255, 0.45)) !important;
+  filter: drop-shadow(0 0 18px rgba(99, 102, 241, 0.4)) !important;
   font-style: normal !important;
 }
 
 .story-content > p {
-  color: var(--text-secondary) !important;
-  font-size: 16.5px !important;
+  color: #94A3B8 !important;
+  font-size: 15.5px !important;
   line-height: 1.7 !important;
+  max-width: 450px !important;
+}
+
+/* Glassmorphic AI-to-validation pipeline */
+.pipeline-visual {
+  margin-top: 36px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 14px !important;
 }
 
 .pipeline-visual > div {
-  background: rgba(8, 16, 42, 0.70) !important;
-  border: 1px solid rgba(22, 119, 255, 0.25) !important;
-  border-radius: 14px !important;
-  backdrop-filter: blur(12px) !important;
-  -webkit-backdrop-filter: blur(12px) !important;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5), 0 0 14px rgba(22, 119, 255, 0.12) !important;
-  transition: all 0.22s ease !important;
+  background: rgba(13, 20, 44, 0.60) !important;
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+  border-radius: 16px !important;
+  backdrop-filter: blur(16px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+  box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+  padding: 14px 16px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  min-width: 0 !important;
+  flex: 1 !important;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.pipeline-visual > div:first-child {
+  border-color: rgba(56, 189, 248, 0.24) !important;
+}
+
+.pipeline-visual > div:first-child svg {
+  color: #38BDF8 !important;
+  filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.7)) !important;
+}
+
+.pipeline-visual > div:last-child {
+  border-color: rgba(168, 85, 247, 0.24) !important;
+}
+
+.pipeline-visual > div:last-child svg {
+  color: #C084FC !important;
+  filter: drop-shadow(0 0 8px rgba(168, 85, 247, 0.7)) !important;
 }
 
 .pipeline-visual > div:hover {
-  border-color: rgba(0, 168, 255, 0.45) !important;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5), 0 0 22px rgba(0, 168, 255, 0.25) !important;
-  transform: translateY(-2px) !important;
-}
-
-.pipeline-visual svg {
-  color: var(--neon-blue) !important;
-  filter: drop-shadow(0 0 8px rgba(0, 168, 255, 0.7)) !important;
+  transform: translateY(-3px) scale(1.02) !important;
+  box-shadow: 0 14px 32px -6px rgba(0, 0, 0, 0.7), 0 0 20px rgba(56, 189, 248, 0.2) !important;
+  border-color: rgba(56, 189, 248, 0.45) !important;
 }
 
 .pipeline-visual b {
-  color: var(--text-primary) !important;
+  color: #F8FAFC !important;
+  font-size: 14px !important;
+  display: block !important;
+  margin-bottom: 2px !important;
 }
 
 .pipeline-visual span {
-  color: var(--text-muted) !important;
+  color: #94A3B8 !important;
+  font-size: 12.5px !important;
 }
 
 .pipeline-visual > svg {
-  color: rgba(168, 85, 247, 0.5) !important;
+  color: rgba(168, 85, 247, 0.65) !important;
+  filter: drop-shadow(0 0 6px rgba(168, 85, 247, 0.5)) !important;
+  flex: 0 0 auto !important;
+  animation: arrowPulse 2.5s ease-in-out infinite !important;
 }
 
 .auth-story footer {
   position: relative !important;
   z-index: 2 !important;
-  color: rgba(107, 123, 153, 0.80) !important;
+  color: #64748B !important;
+  font-size: 13px !important;
+  letter-spacing: 0.04em !important;
+  padding-top: 24px !important;
+  margin-top: 0 !important;
+  flex-shrink: 0 !important;
 }
 
+/* Translucent right panel container */
 .auth-panel {
-  background:
-    radial-gradient(ellipse 60% 50% at 60% 30%, rgba(123, 44, 255, 0.14) 0%, transparent 55%),
-    radial-gradient(ellipse 50% 50% at 20% 80%, rgba(0, 168, 255, 0.10) 0%, transparent 45%),
-    #02030A !important;
+  background: transparent !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  padding: 40px !important;
+  padding: 48px 52px !important;
+  min-height: 100vh !important;
+  position: relative !important;
+  z-index: 2 !important;
 }
 
+/* Hero glassmorphic login card */
 .login-card {
-  width: min(420px, 100%) !important;
-  background: rgba(8, 14, 38, 0.72) !important;
-  border: 1px solid rgba(22, 119, 255, 0.25) !important;
-  border-radius: 20px !important;
-  padding: 32px 30px !important;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8), 0 0 30px rgba(22, 119, 255, 0.10) !important;
-  backdrop-filter: blur(20px) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
+  width: min(440px, 100%) !important;
+  background: rgba(13, 20, 44, 0.70) !important;
+  backdrop-filter: blur(28px) saturate(190%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(190%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.24) !important;
+  border-left: 1px solid rgba(255, 255, 255, 0.16) !important;
+  border-radius: 24px !important;
+  padding: 38px 36px !important;
+  box-shadow:
+    0 32px 80px -20px rgba(0, 0, 0, 0.85),
+    0 0 45px -10px rgba(56, 189, 248, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    inset 0 -1px 0 rgba(123, 44, 255, 0.08) !important;
+  animation: loginCardEntrance 0.7s cubic-bezier(0.16, 1, 0.3, 1) both !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.login-card::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 15% !important;
+  right: 15% !important;
+  height: 1px !important;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent) !important;
+  pointer-events: none !important;
 }
 
 .login-card .eyebrow.purple {
-  color: var(--neon-violet) !important;
-  text-shadow: 0 0 12px rgba(168, 85, 247, 0.7) !important;
+  color: #C084FC !important;
+  text-shadow: 0 0 14px rgba(192, 132, 252, 0.65) !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.12em !important;
 }
 
 .login-card h2 {
   font-family: 'Outfit', sans-serif !important;
-  color: var(--text-primary) !important;
+  color: #FFFFFF !important;
   font-weight: 800 !important;
-  font-size: 32px !important;
-  letter-spacing: -0.03em !important;
-  margin: 8px 0 4px !important;
+  font-size: 30px !important;
+  letter-spacing: -0.035em !important;
+  margin: 8px 0 6px !important;
 }
 
 .login-card > .muted {
-  color: var(--text-muted) !important;
-  font-size: 14px !important;
+  color: #94A3B8 !important;
+  font-size: 14.5px !important;
   margin-bottom: 26px !important;
+  line-height: 1.55 !important;
 }
 
 .login-card label {
-  color: var(--text-secondary) !important;
+  color: #CBD5E1 !important;
   font-weight: 600 !important;
-  margin-bottom: 14px !important;
+  font-size: 13.5px !important;
+  margin-bottom: 16px !important;
+  gap: 7px !important;
+  display: flex !important;
+  flex-direction: column !important;
 }
 
 .login-card input {
-  background: rgba(4, 8, 22, 0.85) !important;
-  border: 1px solid rgba(100, 140, 255, 0.22) !important;
-  border-radius: 10px !important;
-  color: var(--text-primary) !important;
+  background: rgba(6, 11, 28, 0.72) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 12px !important;
+  color: #F8FAFC !important;
   margin-top: 6px !important;
-  padding: 11px 14px !important;
-  min-height: 44px !important;
+  padding: 12px 16px !important;
+  min-height: 48px !important;
+  font-size: 14.5px !important;
+  outline: none !important;
+  transition: all 0.2s ease !important;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3) !important;
 }
 
 .login-card input:focus {
-  border-color: var(--neon-blue) !important;
-  box-shadow: 0 0 0 3px rgba(0, 168, 255, 0.18), 0 0 16px rgba(0, 168, 255, 0.22) !important;
+  border-color: #38BDF8 !important;
+  background: rgba(8, 15, 38, 0.88) !important;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.22), 0 0 20px rgba(56, 189, 248, 0.25), inset 0 2px 4px rgba(0, 0, 0, 0.3) !important;
 }
 
 .login-card .button.primary {
-  background: linear-gradient(90deg, #1677FF 0%, #7B2CFF 100%) !important;
+  background: linear-gradient(135deg, #0284C7 0%, #2563EB 50%, #7C3AED 100%) !important;
   border: 0 !important;
-  border-radius: 10px !important;
-  color: #fff !important;
+  border-radius: 12px !important;
+  color: #FFFFFF !important;
   font-weight: 700 !important;
   font-size: 15px !important;
-  min-height: 48px !important;
-  box-shadow: 0 6px 24px rgba(22, 119, 255, 0.50), 0 0 0 1px rgba(168, 85, 247, 0.20) !important;
-  transition: all 0.22s ease !important;
+  min-height: 50px !important;
+  margin-top: 8px !important;
+  box-shadow: 0 8px 24px -4px rgba(37, 99, 235, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
 }
 
 .login-card .button.primary:hover {
   transform: translateY(-2px) !important;
-  box-shadow: 0 10px 32px rgba(22, 119, 255, 0.65), 0 0 30px rgba(168, 85, 247, 0.35) !important;
+  box-shadow: 0 12px 32px -4px rgba(37, 99, 235, 0.70), 0 0 28px rgba(124, 58, 237, 0.40), inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
   filter: brightness(1.08) !important;
 }
 
+.login-card .button.primary:active {
+  transform: translateY(0) scale(0.99) !important;
+}
+
 .demo-toggle {
-  color: var(--neon-blue) !important;
+  color: #38BDF8 !important;
   font-weight: 600 !important;
   font-size: 13.5px !important;
-  margin-top: 14px !important;
+  margin-top: 16px !important;
   transition: all 0.18s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
 }
 
 .demo-toggle:hover {
-  color: var(--neon-cyan) !important;
-  text-shadow: 0 0 10px rgba(32, 217, 255, 0.5) !important;
+  color: #67E8F9 !important;
+  text-shadow: 0 0 12px rgba(103, 232, 249, 0.55) !important;
 }
 
 .demo-list {
-  background: rgba(5, 8, 23, 0.95) !important;
-  border: 1px solid rgba(22, 119, 255, 0.28) !important;
-  border-radius: 12px !important;
-  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.8), 0 0 18px rgba(22, 119, 255, 0.18) !important;
-  max-height: 150px !important;
+  background: rgba(8, 14, 34, 0.92) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8), 0 0 24px rgba(56, 189, 248, 0.14) !important;
+  max-height: 156px !important;
   overflow-y: auto !important;
   overscroll-behavior: contain;
   scrollbar-width: thin;
-  scrollbar-color: rgba(22, 119, 255, 0.45) rgba(5, 8, 23, 0.5);
-  padding: 5px !important;
-  margin-top: 8px !important;
+  scrollbar-color: rgba(56, 189, 248, 0.45) rgba(5, 8, 23, 0.5);
+  padding: 6px !important;
+  margin-top: 10px !important;
 }
 
 .demo-list::-webkit-scrollbar { width: 5px; }
 .demo-list::-webkit-scrollbar-track { background: rgba(5, 8, 23, 0.5); border-radius: 4px; }
-.demo-list::-webkit-scrollbar-thumb { background: rgba(22, 119, 255, 0.40); border-radius: 4px; }
-.demo-list::-webkit-scrollbar-thumb:hover { background: var(--neon-blue); }
+.demo-list::-webkit-scrollbar-thumb { background: rgba(56, 189, 248, 0.40); border-radius: 4px; }
+.demo-list::-webkit-scrollbar-thumb:hover { background: #38BDF8; }
 
 .demo-list button {
-  color: var(--text-primary) !important;
-  border-radius: 8px !important;
-  padding: 7px 10px !important;
+  color: #F8FAFC !important;
+  border-radius: 9px !important;
+  padding: 8px 12px !important;
   transition: background 0.15s ease !important;
+  width: 100% !important;
+  text-align: left !important;
 }
 
 .demo-list button:hover {
-  background: rgba(22, 119, 255, 0.14) !important;
+  background: rgba(56, 189, 248, 0.14) !important;
 }
 
 .demo-list span {
-  color: var(--text-primary) !important;
+  color: #F8FAFC !important;
   font-weight: 600 !important;
+  font-size: 14px !important;
 }
 
 .demo-list small {
-  color: var(--text-muted) !important;
+  color: #94A3B8 !important;
+  font-size: 13px !important;
 }
 
 .security-note {
-  color: var(--text-muted) !important;
-  font-size: 12px !important;
-  margin-top: 16px !important;
+  color: #64748B !important;
+  font-size: 12.5px !important;
+  margin-top: 22px !important;
+  padding-top: 18px !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 7px !important;
 }
 
 .security-note svg {
-  color: var(--neon-green) !important;
-  filter: drop-shadow(0 0 6px rgba(0, 229, 160, 0.6)) !important;
+  color: #10B981 !important;
+  filter: drop-shadow(0 0 6px rgba(16, 185, 129, 0.6)) !important;
 }
 
-/* Compact login on small viewports (laptops, short screens) */
-@media (max-height: 700px) {
-  .auth-story { padding: 22px 42px !important; }
+/* Compact login on smaller laptop viewports */
+@media (max-height: 720px) {
+  .auth-story { padding: 24px 44px !important; }
   .story-content { margin: 16px 0 !important; }
   .story-content h1 { font-size: 32px !important; margin: 10px 0 14px !important; line-height: 1.1 !important; }
   .story-content > p { font-size: 14px !important; line-height: 1.55 !important; }
-  .pipeline-visual { margin-top: 18px !important; gap: 8px !important; }
-  .pipeline-visual > div { min-width: 150px !important; padding: 10px 12px !important; }
-  .auth-panel { padding: 20px !important; overflow-y: auto !important; align-items: flex-start !important; }
-  .login-card { padding: 24px 22px !important; }
+  .pipeline-visual { margin-top: 20px !important; gap: 10px !important; }
+  .pipeline-visual > div { min-width: 140px !important; padding: 10px 12px !important; }
+  .auth-panel { padding: 24px !important; overflow-y: auto !important; }
+  .login-card { padding: 26px 24px !important; border-radius: 20px !important; }
   .login-card h2 { font-size: 26px !important; margin: 6px 0 4px !important; }
-  .login-card > .muted { margin-bottom: 16px !important; }
-  .login-card label { margin-bottom: 8px !important; }
-  .login-card input { min-height: 40px !important; padding: 8px 12px !important; margin-top: 4px !important; }
+  .login-card > .muted { margin-bottom: 18px !important; }
+  .login-card label { margin-bottom: 10px !important; }
+  .login-card input { min-height: 42px !important; padding: 8px 12px !important; margin-top: 4px !important; }
   .login-card .button.primary { min-height: 44px !important; }
-  .demo-toggle { margin-top: 10px !important; }
-  .security-note { margin-top: 10px !important; }
+  .demo-toggle { margin-top: 12px !important; }
+  .security-note { margin-top: 14px !important; padding-top: 12px !important; }
 }
 
 /* Very short viewports — fully scrollable login panel */
@@ -1223,6 +1442,7 @@ label.check {
   .login-card {
     padding: 20px 18px !important;
     margin: auto !important;
+    border-radius: 16px !important;
   }
   .login-card h2 { font-size: 22px !important; margin: 4px 0 3px !important; }
   .login-card > .muted { font-size: 13px !important; margin-bottom: 14px !important; }
@@ -1230,10 +1450,26 @@ label.check {
   .login-card input { min-height: 38px !important; padding: 7px 11px !important; font-size: 13.5px !important; margin-top: 3px !important; }
   .login-card .button.primary { min-height: 40px !important; font-size: 14px !important; }
   .demo-toggle { font-size: 12.5px !important; margin-top: 8px !important; }
-  .security-note { font-size: 11px !important; margin-top: 8px !important; }
+  .security-note { font-size: 11px !important; margin-top: 8px !important; padding-top: 8px !important; }
   .auth-story { padding: 20px 32px !important; }
   .story-content h1 { font-size: 28px !important; }
   .pipeline-visual > div { padding: 8px 10px !important; }
+}
+
+/* Accessibility: Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .auth-page::before,
+  .auth-page::after,
+  .auth-story::before,
+  .auth-story::after,
+  .login-card,
+  .story-content,
+  .pipeline-visual > svg,
+  .pipeline-visual > div {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
 }
 
 /* ==========================================================================
@@ -1456,7 +1692,14 @@ label.check {
   background: rgba(255, 59, 91, 0.12) !important;
 }
 
+/* Force dark background on the whole comparison card */
+.comparison-card {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-soft) !important;
+}
+
 .comparison-head {
+  background: rgba(255, 255, 255, 0.03) !important;
   border-bottom: 1px solid var(--border-subtle) !important;
 }
 
@@ -1473,12 +1716,28 @@ label.check {
 }
 
 .comparison-row {
+  background: transparent !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04) !important;
   color: var(--text-secondary) !important;
 }
 
+/* Override the near-white #fffafb mismatch row background */
+.comparison-row.mismatch {
+  background: rgba(255, 59, 91, 0.04) !important;
+}
+
+.comparison-row.match {
+  background: transparent !important;
+}
+
 .comparison-row > div b {
   color: var(--text-muted) !important;
+}
+
+.comparison-note {
+  color: var(--text-muted) !important;
+  border-top: 1px solid var(--border-subtle) !important;
+  background: rgba(255, 255, 255, 0.02) !important;
 }
 
 /* ==========================================================================
@@ -3470,18 +3729,20 @@ label.check input[type="checkbox"] {
   }
 
   .auth-panel {
-    padding: 28px 20px !important;
+    padding: 32px 24px !important;
     min-height: 100vh !important;
+    align-items: center !important;
   }
 
   .login-card {
-    padding: 30px 24px !important;
-    width: min(440px, 100%) !important;
+    padding: 32px 28px !important;
+    width: min(460px, 100%) !important;
+    border-radius: 20px !important;
   }
 
   .mobile-brand {
     display: block !important;
-    margin-bottom: 24px !important;
+    margin-bottom: 28px !important;
   }
 
   .page {
@@ -3705,5 +3966,429 @@ label.check input[type="checkbox"] {
   .action-bar .button {
     width: 100% !important;
   }
+}
+
+/* ==========================================================================
+   LIGHT-MODE LEAK FIXES
+   All hardcoded #fff / #f8f... backgrounds from base CSS that need dark override
+   ========================================================================== */
+
+/* Review form draft & pairs */
+.review-draft > span {
+  color: var(--text-muted) !important;
+}
+.review-draft > b {
+  color: var(--text-primary) !important;
+}
+.review-draft p {
+  color: var(--text-secondary) !important;
+}
+.review-pairs {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid var(--border-subtle) !important;
+}
+.review-pairs span {
+  color: var(--text-muted) !important;
+}
+.review-pairs b {
+  color: var(--text-primary) !important;
+}
+
+/* Progress bar track */
+.progress {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Response letter (draft text area) */
+.response-letter {
+  background: rgba(4, 8, 22, 0.85) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+}
+
+/* Note copy */
+.note-copy {
+  background: rgba(255, 255, 255, 0.03) !important;
+  color: var(--text-secondary) !important;
+}
+
+/* Review queue list buttons */
+.review-list > button {
+  background: var(--bg-card) !important;
+  border-bottom: 1px solid var(--border-subtle) !important;
+  color: var(--text-secondary) !important;
+}
+.review-list > button:hover,
+.review-list > button.selected {
+  background: rgba(0, 168, 255, 0.08) !important;
+  border-color: rgba(0, 168, 255, 0.22) !important;
+}
+
+/* Run list buttons (Evaluation) */
+.run-list button {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-soft) !important;
+  color: var(--text-secondary) !important;
+}
+.run-list button:hover,
+.run-list button.selected {
+  background: rgba(0, 168, 255, 0.08) !important;
+  border-color: rgba(0, 168, 255, 0.28) !important;
+}
+.run-list b {
+  color: var(--text-primary) !important;
+}
+.run-list small {
+  color: var(--text-muted) !important;
+}
+
+/* Chat bubbles */
+.chat-bubble {
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: var(--text-secondary) !important;
+  border-color: var(--border-subtle) !important;
+}
+
+/* Messages in thread */
+.message {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border-color: var(--border-subtle) !important;
+  color: var(--text-secondary) !important;
+}
+.message.from_customer {
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+.message.to_customer {
+  background: rgba(22, 119, 255, 0.10) !important;
+  border-color: rgba(22, 119, 255, 0.28) !important;
+}
+.message.internal {
+  background: rgba(255, 153, 0, 0.07) !important;
+  border-color: rgba(255, 153, 0, 0.25) !important;
+  border-style: dashed !important;
+}
+
+/* Chips */
+.chip {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: var(--text-secondary) !important;
+}
+.chip.warn {
+  background: rgba(255, 153, 0, 0.14) !important;
+  color: #FFB74D !important;
+}
+.chip.yes {
+  background: rgba(0, 229, 160, 0.14) !important;
+  color: var(--neon-green) !important;
+}
+.chip.no {
+  background: rgba(255, 59, 91, 0.14) !important;
+  color: #FF6B8A !important;
+}
+.chip.check {
+  background: rgba(255, 153, 0, 0.14) !important;
+  color: #FFB74D !important;
+}
+
+/* Chip buttons (assistant quick replies) */
+.chip-button {
+  background: rgba(168, 85, 247, 0.12) !important;
+  border-color: rgba(168, 85, 247, 0.28) !important;
+  color: #C4A0FF !important;
+}
+.chip-button:hover {
+  background: rgba(168, 85, 247, 0.20) !important;
+}
+
+/* Attachment chips */
+.attachment-chip {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: var(--border-subtle) !important;
+  color: var(--text-secondary) !important;
+}
+
+/* Assistant input area */
+.assistant-input {
+  background: rgba(3, 6, 16, 0.90) !important;
+  border-top: 1px solid var(--border-subtle) !important;
+}
+.assistant-note {
+  background: rgba(3, 6, 16, 0.90) !important;
+  color: var(--text-muted) !important;
+}
+
+/* Notification panel */
+.notify-panel li button:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+.notify-panel li button.unread {
+  background: rgba(168, 85, 247, 0.08) !important;
+}
+
+/* Case accuracy grid (evaluation) */
+.case-grid .good {
+  background: rgba(0, 229, 160, 0.09) !important;
+  border-color: rgba(0, 229, 160, 0.25) !important;
+}
+.case-grid .good b { color: var(--neon-green) !important; }
+.case-grid .ok {
+  background: rgba(255, 153, 0, 0.09) !important;
+  border-color: rgba(255, 153, 0, 0.22) !important;
+}
+.case-grid .ok b { color: #FFB74D !important; }
+.case-grid .bad {
+  background: rgba(255, 59, 91, 0.09) !important;
+  border-color: rgba(255, 59, 91, 0.22) !important;
+}
+.case-grid .bad b { color: #FF6B8A !important; }
+
+/* CSAT / accuracy bar track */
+.csat-bars > div > div,
+.acc-bar > div {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Brief list links */
+.brief-list a {
+  background: rgba(255, 59, 91, 0.06) !important;
+  border-color: rgba(255, 59, 91, 0.20) !important;
+}
+
+/* ==========================================================================
+   REMAINING LIGHT-MODE LEAK FIXES (BATCH 2)
+   ========================================================================== */
+
+/* Intelligence note (amber callout inside split-comparison) */
+.split-comparison p.intelligence-note {
+  background: rgba(255, 153, 0, 0.10) !important;
+  color: #FFB74D !important;
+  border: 1px solid rgba(255, 153, 0, 0.22) !important;
+}
+
+/* Chat complaints (assistant panel complaint list) */
+.chat-complaints button {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: var(--border-subtle) !important;
+  color: var(--text-secondary) !important;
+}
+.chat-complaints button:hover {
+  background: rgba(0, 168, 255, 0.10) !important;
+  border-color: rgba(0, 168, 255, 0.28) !important;
+}
+.chat-complaints b {
+  color: var(--neon-blue) !important;
+}
+.chat-complaints small {
+  color: var(--text-muted) !important;
+}
+
+/* Message thread variants */
+.message {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border-color: var(--border-subtle) !important;
+  color: var(--text-secondary) !important;
+}
+.message.from_customer {
+  background: rgba(255, 255, 255, 0.06) !important;
+}
+.message.to_customer {
+  background: rgba(22, 119, 255, 0.10) !important;
+  border-color: rgba(22, 119, 255, 0.30) !important;
+}
+.message.internal {
+  background: rgba(255, 153, 0, 0.07) !important;
+  border-color: rgba(255, 153, 0, 0.25) !important;
+}
+.message p {
+  color: var(--text-secondary) !important;
+}
+.message header small {
+  color: var(--text-muted) !important;
+}
+
+/* Attachment chip */
+.attachment-chip {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: var(--border-subtle) !important;
+}
+.attachment-open {
+  color: var(--text-primary) !important;
+}
+.attachment-open:hover {
+  background: rgba(168, 85, 247, 0.12) !important;
+}
+.attachment-open small {
+  color: var(--text-muted) !important;
+}
+
+/* Run list buttons (evaluation) */
+.run-list button {
+  background: var(--bg-card) !important;
+  border-color: var(--border-soft) !important;
+  color: var(--text-secondary) !important;
+}
+.run-list button:hover,
+.run-list button.selected {
+  background: rgba(0, 168, 255, 0.08) !important;
+  border-color: rgba(0, 168, 255, 0.28) !important;
+}
+.run-list b {
+  color: var(--text-primary) !important;
+}
+.run-list small {
+  color: var(--text-muted) !important;
+}
+
+/* KB stats card */
+.kb-stats {
+  background: var(--bg-card) !important;
+  border-color: var(--border-soft) !important;
+}
+.kb-stats > div + div {
+  border-left-color: var(--border-subtle) !important;
+}
+.kb-stats span {
+  color: var(--text-muted) !important;
+}
+.kb-stats b {
+  color: var(--text-primary) !important;
+}
+
+/* Secondary / ghost / danger-outline buttons */
+.button.secondary {
+  background: rgba(255, 255, 255, 0.07) !important;
+  border-color: var(--border-soft) !important;
+  color: var(--text-secondary) !important;
+}
+.button.secondary:hover,
+.button.ghost:hover {
+  background: rgba(255, 255, 255, 0.11) !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+}
+.button.danger-outline {
+  background: rgba(255, 59, 91, 0.08) !important;
+  border-color: rgba(255, 59, 91, 0.28) !important;
+  color: #FF6B8A !important;
+}
+.button.ghost.active {
+  background: rgba(168, 85, 247, 0.14) !important;
+  color: #C4A0FF !important;
+}
+
+/* Drop zone (file upload) */
+.drop-zone {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border-color: var(--border-soft) !important;
+  color: var(--neon-violet) !important;
+}
+.drop-zone b {
+  color: var(--text-primary) !important;
+}
+.drop-zone span {
+  color: var(--text-muted) !important;
+}
+.drop-zone.has-file {
+  background: rgba(0, 229, 160, 0.06) !important;
+  border-color: rgba(0, 229, 160, 0.30) !important;
+  color: var(--neon-green) !important;
+}
+
+/* Value badges (priority) */
+.value-badge {
+  background: rgba(255, 255, 255, 0.07) !important;
+  color: var(--text-muted) !important;
+}
+.value-badge.critical, .value-badge.p0 {
+  color: #FF6B8A !important;
+  background: rgba(255, 59, 91, 0.12) !important;
+}
+.value-badge.high, .value-badge.p1 {
+  color: #FFB74D !important;
+  background: rgba(255, 153, 0, 0.12) !important;
+}
+.value-badge.medium, .value-badge.p2 {
+  color: #C4A0FF !important;
+  background: rgba(168, 85, 247, 0.12) !important;
+}
+.value-badge.low, .value-badge.p3 {
+  color: var(--neon-green) !important;
+  background: rgba(0, 229, 160, 0.10) !important;
+}
+
+/* Typing indicator dots */
+.typing i {
+  background: rgba(0, 168, 255, 0.45) !important;
+}
+
+/* Notify panel sticky header */
+.notify-panel > header {
+  background: var(--bg-deep) !important;
+  border-bottom-color: var(--border-subtle) !important;
+}
+
+/* Notify panel button text */
+.notify-panel li button > span:last-child {
+  color: var(--text-secondary) !important;
+}
+.notify-panel li b {
+  color: var(--neon-violet) !important;
+}
+
+/* Modify panel */
+.modify-panel {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border-color: var(--border-soft) !important;
+}
+.modify-panel header small {
+  color: var(--text-muted) !important;
+}
+.modify-grid label,
+.modify-response {
+  color: var(--text-muted) !important;
+}
+
+/* Precedence note (uses var(--purple-soft) which is light-mode) */
+.precedence-note {
+  background: rgba(168, 85, 247, 0.08) !important;
+  border-left: 3px solid var(--neon-violet) !important;
+  color: var(--text-secondary) !important;
+}
+.precedence-note svg {
+  color: var(--neon-violet) !important;
+}
+
+/* Data table hover row */
+.data-table tbody tr:hover {
+  background: rgba(0, 168, 255, 0.05) !important;
+}
+
+/* Load more bar */
+.load-more {
+  border-top-color: var(--border-subtle) !important;
+}
+
+/* Composer / conversation composer */
+.composer {
+  border-top-color: var(--border-subtle) !important;
+}
+
+/* CSAT star default color (grey) */
+.stars button {
+  color: rgba(255, 255, 255, 0.18) !important;
+}
+
+/* Threshold row border */
+.threshold-row {
+  border-bottom-color: var(--border-subtle) !important;
+}
+
+/* Response letter approved left-border */
+.response-letter.approved {
+  border-left: 4px solid var(--neon-green) !important;
+}
+
+/* Impact panel left border */
+.impact-panel {
+  border-left-color: var(--neon-violet) !important;
 }
 
