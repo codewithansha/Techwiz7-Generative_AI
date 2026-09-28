@@ -27,7 +27,7 @@ def test_keywords_do_not_match_inside_other_words(text, keyword):
     [
         ("The charger is overheating", "overheat"),
         ("I got shocked by the cable", "shock"),
-        ("I will sue NimbusCarta", "sue"),
+        ("I will sue SupportNova", "sue"),
         ("It has a BURNING SMELL", "burning smell"),
     ],
 )

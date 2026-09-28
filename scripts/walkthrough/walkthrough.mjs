@@ -21,11 +21,11 @@ const PYTHON = process.env.PYTHON || [join(process.env.LOCALAPPDATA || '', 'Prog
 const CHROME = process.env.CHROME || ['C:/Program Files/Google/Chrome/Application/chrome.exe', 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe', '/usr/bin/google-chrome'].find(existsSync)
 const PORT = 9333
 const USERS = {
-  customer: ['customer@nimbuscarta.example', 'CustomerPass!23'],
-  agent: ['agent@nimbuscarta.example', 'AgentPass!23'],
-  reviewer: ['reviewer@nimbuscarta.example', 'ReviewPass!23'],
-  manager: ['manager@nimbuscarta.example', 'ManagerPass!23'],
-  administrator: ['admin@nimbuscarta.example', 'ChangeMeNow!23'],
+  customer: ['customer@supportnova.example', 'CustomerPass!23'],
+  agent: ['agent@supportnova.example', 'AgentPass!23'],
+  reviewer: ['reviewer@supportnova.example', 'ReviewPass!23'],
+  manager: ['manager@supportnova.example', 'ManagerPass!23'],
+  administrator: ['admin@supportnova.example', 'ChangeMeNow!23'],
 }
 mkdirSync(OUT, { recursive: true })
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
@@ -225,7 +225,7 @@ try {
   await js(`h.go('/complaints/${complaintId}'); await h.waitFor(() => document.querySelector('.composer textarea'));
     h.setVal(document.querySelector('.composer textarea'), 'Thank you. I still have the original box if you need it collected.');
     h.button('Send message').click(); await h.waitFor(() => document.querySelectorAll('.message.from_customer').length >= 1); await h.sleep(800); h.show('.thread')`)
-  await shot('customer-conversation', 'Customer sees the reply and answers', 'Messages come from "NimbusCarta Support"; internal notes never show here.')
+  await shot('customer-conversation', 'Customer sees the reply and answers', 'Messages come from "SupportNova Support"; internal notes never show here.')
 
   }
   section = 5

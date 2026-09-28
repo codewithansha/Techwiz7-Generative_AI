@@ -9,7 +9,7 @@ INJECTION_PATTERNS = [
     r"system prompt",
     r"developer mode",
     r"act as (an? |the )?(admin|administrator|root|supervisor|manager)",
-    r"(as|i am) (an? |the )?(nimbuscarta )?(admin|administrator|system administrator)",
+    r"(as|i am) (an? |the )?(supportnova )?(admin|administrator|system administrator)",
     r"admin (override|instruction|note|command)",
     r"override (the |all |any )?(policy|policies|rules)",
     r"(approve|issue|process|grant) (a |my |the )?(full |immediate |instant )?(refund|compensation|replacement)s? (immediately|now|right now|without)",

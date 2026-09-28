@@ -151,7 +151,7 @@ def _customer(db: Session, cache: dict, ref: str | None, customer_type: str | No
             ctype = CustomerType(customer_type or "standard")
         except ValueError:
             ctype = CustomerType.standard
-        customer = Customer(customer_code=ref[:64], display_name=ref, customer_type=ctype, email=f"{ref.lower()}@simulated.nimbuscarta.example", is_vip=ctype == CustomerType.vip)
+        customer = Customer(customer_code=ref[:64], display_name=ref, customer_type=ctype, email=f"{ref.lower()}@simulated.supportnova.example", is_vip=ctype == CustomerType.vip)
         db.add(customer)
         db.flush()
     cache[ref] = customer

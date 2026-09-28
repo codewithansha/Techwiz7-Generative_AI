@@ -14,11 +14,11 @@ from tests.conftest import TEST_DATABASE_URL
 pytestmark = pytest.mark.skipif(not TEST_DATABASE_URL, reason="SUPPORTNOVA_TEST_DATABASE_URL not set")
 
 PASSWORDS = {
-    "administrator": ("admin@nimbuscarta.example", "ChangeMeNow!23"),
-    "agent": ("agent@nimbuscarta.example", "AgentPass!23"),
-    "reviewer": ("reviewer@nimbuscarta.example", "ReviewPass!23"),
-    "manager": ("manager@nimbuscarta.example", "ManagerPass!23"),
-    "customer": ("customer@nimbuscarta.example", "CustomerPass!23"),
+    "administrator": ("admin@supportnova.example", "ChangeMeNow!23"),
+    "agent": ("agent@supportnova.example", "AgentPass!23"),
+    "reviewer": ("reviewer@supportnova.example", "ReviewPass!23"),
+    "manager": ("manager@supportnova.example", "ManagerPass!23"),
+    "customer": ("customer@supportnova.example", "CustomerPass!23"),
 }
 _counter = itertools.count(1)
 
@@ -289,7 +289,7 @@ ADMIN_WRITES = [
     ("PUT", "/api/v1/config/priority-rules/low", {"priority": "P3"}),
     ("PUT", "/api/v1/config/sla-policies/SLA-P3", {"first_response_minutes": 1, "resolution_hours": 1}),
     ("PATCH", "/api/v1/config/escalation-rules/ESC-SAF-01", {"is_active": False}),
-    ("POST", "/api/v1/users", {"email": "x@nimbuscarta.example", "full_name": "X", "password": "LongPass!23", "role": "administrator"}),
+    ("POST", "/api/v1/users", {"email": "x@supportnova.example", "full_name": "X", "password": "LongPass!23", "role": "administrator"}),
     ("PATCH", "/api/v1/knowledge-base/documents/1/status?status=draft", None),
 ]
 
@@ -356,7 +356,7 @@ def test_agent_can_only_assign_to_self(client, auth):
 
 
 def test_public_registration_cannot_create_staff(client):
-    body = {"email": "sneaky@nimbuscarta.example", "full_name": "Sneaky", "password": "LongPass!23", "role": "administrator"}
+    body = {"email": "sneaky@supportnova.example", "full_name": "Sneaky", "password": "LongPass!23", "role": "administrator"}
     assert client.post("/api/v1/auth/register", json=body).json()["role"] == "customer"
 
 
@@ -366,7 +366,7 @@ def test_tampered_or_missing_token_is_rejected(client, auth):
     import base64, json as _json
 
     claims = _json.loads(base64.urlsafe_b64decode(payload + "=="))
-    claims["role"], claims["sub"] = "administrator", "admin@nimbuscarta.example"
+    claims["role"], claims["sub"] = "administrator", "admin@supportnova.example"
     forged = base64.urlsafe_b64encode(_json.dumps(claims).encode()).decode().rstrip("=")
     assert client.get("/api/v1/users", headers={"Authorization": f"Bearer {header}.{forged}.{signature}"}).status_code == 401
     assert client.get("/api/v1/users").status_code == 401
@@ -440,7 +440,7 @@ def test_message_thread_guards_promises_and_hides_internal_notes(client, auth):
     assert staff_view["status"] == "awaiting_customer" and staff_view["first_responded_at"]
     customer_msgs = client.get(f"/api/v1/complaints/{cid}/messages", headers=cust).json()
     assert [m["direction"] for m in customer_msgs] == ["to_customer"]
-    assert customer_msgs[0]["author"] == "NimbusCarta Support"
+    assert customer_msgs[0]["author"] == "SupportNova Support"
     assert client.post(f"/api/v1/complaints/{cid}/messages", headers=cust, json={"body": "Tracking number is on the invoice."}).status_code == 200
     assert client.get(f"/api/v1/complaints/{cid}", headers=agent).json()["status"] == "in_progress"
     assert client.post(f"/api/v1/complaints/{cid}/messages", headers=reviewer, json={"body": "We'll refund you in full.", "override": True}).status_code == 200

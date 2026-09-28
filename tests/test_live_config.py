@@ -71,7 +71,7 @@ def test_new_policy_version_reports_impact_and_batch_reanalysis_clears_it(client
     first = _analyze(client, agent, complaint["id"])["complaint"]
     assert first["python"]["policy_id"] == "DEL-POL-04"
     policy = (
-        "1. Purpose\nThis Delivery Policy applies to every NimbusCarta shipment.\n\n"
+        "1. Purpose\nThis Delivery Policy applies to every SupportNova shipment.\n\n"
         "5.2 Delayed shipments\nDelayed shipments are verified in carrier tracking within 2 business days. Compensation is not automatic.\n\n"
         "6.1 Lost shipments\nA parcel is declared lost after a 10 day carrier investigation.\n"
     )

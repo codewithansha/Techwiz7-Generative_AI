@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="100%" height="100%">
+  <defs>
+    <linearGradient id="kb-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e1e2d"/>
+      <stop offset="100%" stop-color="#12121a"/>
+    </linearGradient>
+    <linearGradient id="kb-accent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7c3aed"/>
+      <stop offset="100%" stop-color="#4f46e5"/>
+    </linearGradient>
+    <linearGradient id="key-light" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#2d2d3f"/>
+      <stop offset="100%" stop-color="#1f1f2e"/>
+    </linearGradient>
+    <filter id="kb-glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="10" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+  <rect width="100%" height="100%" rx="16" fill="url(#kb-bg)"/>
+  <circle cx="200" cy="150" r="100" fill="#7c3aed" opacity="0.12" filter="url(#kb-glow)"/>
+  
+  <!-- Keyboard chassis -->
+  <g transform="translate(45, 60)">
+    <rect x="0" y="0" width="310" height="175" rx="14" fill="#0f0f17" stroke="#2e2e42" stroke-width="2"/>
+    <rect x="8" y="8" width="294" height="159" rx="10" fill="#181824"/>
+    
+    <!-- Top row keys -->
+    <rect x="18" y="18" width="24" height="22" rx="4" fill="url(#kb-accent)"/>
+    <rect x="46" y="18" width="20" height="22" rx="4" fill="url(#key-light)"/>
+    <rect x="70" y="18" width="20" height="22" rx="4" fill="url(#key-light)"/>
+    <rect x="94" y="18" width="20" height="22" rx="4" fill="url(#key-light)"/>
+    <rect x="118" y="18" width="20" height="22" rx="4" fill="url(#key-light)"/>
+    <rect x="142" y="18" width="20" height="22" rx="4" fill="url(#key-light)"/>
+    <rect x="166" y="18" width="20" height="22" rx="4" fill="url(#key-light)"/>
+    <rect x="190" y="18" width="20" height="22" rx="4" fill="url(#key-light)"/>
+    <rect x="214" y="18" width="20" height="22" rx="4" fill="url(#key-light)"/>
+    <rect x="238" y="18" width="20" height="22" rx="4" fill="url(#key-light)"/>
+    <rect x="262" y="18" width="30" height="22" rx="4" fill="#3b3b52"/>
+    
+    <!-- Second row keys -->
+    <rect x="18" y="44" width="30" height="22" rx="4" fill="#2d2d3f"/>
+    <rect x="52" y="44" width="20" height="22" rx="4" fill="url(#key-light)"/>
+    <rect x="76" y="44" width="20" height="22" rx="4" fill="url(#key-light)"/>
+    <rect x="100" y="44" width="20" height="22" rx="4" fill="url(#kb-accent)"/>
+    <rect x="124" y="44" width="20" height="22" rx="4" fill="url(#key-light)"/>
+    <rect x="148" y="44" width="20" height="22" rx="4" fill="url(#key-light)"/>
+    <rect x="172" y="44" width="20" height="22" rx="4" fill="url(#key-light)"/>
+    <rect x="196" y="44" width="20" height="22" rx="4" fill="url(#key-light)"/>
+    <rect x="220" y="44" width="20" height="22" rx="4" fill="url(#key-light)"/>
+    <rect x="244" y="44" width="20" height="22" rx="4" fill="url(#key-light)"/>
+    <rect x="268" y="44" width="24" height="22" rx="4" fill="#2d2d3f"/>
+    
+    <!-- Third row keys -->
+    <rect x="18" y="70" width="36" height="22" rx="4" fill="#2d2d3f"/>
+    <rect x="58" y="70" width="20" height="22" rx="4" fill="url(#key-light)"/>
+    <rect x="82" y="70" width="20" height="22" rx="4" fill="url(#key-light)"/>
+    <rect x="106" y="70" width="20" height="22" rx="4" fill="url(#key-light)"/>
+    <rect x="130" y="70" width="20" height="22" rx="4" fill="url(#key-light)"/>
+    <rect x="154" y="70" width="20" height="22" rx="4" fill="url(#key-light)"/>
+    <rect x="178" y="70" width="20" height="22" rx="4" fill="url(#key-light)"/>
+    <rect x="202" y="70" width="20" height="22" rx="4" fill="url(#key-light)"/>
+    <rect x="226" y="70" width="20" height="22" rx="4" fill="url(#key-light)"/>
+    <rect x="250" y="70" width="42" height="22" rx="4" fill="url(#kb-accent)"/>
+    
+    <!-- Fourth row keys -->
+    <rect x="18" y="96" width="44" height="22" rx="4" fill="#2d2d3f"/>
+    <rect x="66" y="96" width="20" height="22" rx="4" fill="url(#key-light)"/>
+    <rect x="90" y="96" width="20" height="22" rx="4" fill="url(#key-light)"/>
+    <rect x="114" y="96" width="20" height="22" rx="4" fill="url(#key-light)"/>
+    <rect x="138" y="96" width="20" height="22" rx="4" fill="url(#key-light)"/>
+    <rect x="162" y="96" width="20" height="22" rx="4" fill="url(#key-light)"/>
+    <rect x="186" y="96" width="20" height="22" rx="4" fill="url(#key-light)"/>
+    <rect x="210" y="96" width="20" height="22" rx="4" fill="url(#key-light)"/>
+    <rect x="234" y="96" width="34" height="22" rx="4" fill="#2d2d3f"/>
+    <rect x="272" y="96" width="20" height="22" rx="4" fill="#06b6d4"/>
+    
+    <!-- Bottom row -->
+    <rect x="18" y="122" width="28" height="24" rx="4" fill="#2d2d3f"/>
+    <rect x="50" y="122" width="24" height="24" rx="4" fill="#2d2d3f"/>
+    <rect x="78" y="122" width="24" height="24" rx="4" fill="#2d2d3f"/>
+    <rect x="106" y="122" width="110" height="24" rx="4" fill="url(#key-light)" stroke="#7c3aed" stroke-width="1"/>
+    <rect x="220" y="122" width="22" height="24" rx="4" fill="#2d2d3f"/>
+    <rect x="246" y="122" width="22" height="24" rx="4" fill="#2d2d3f"/>
+    <rect x="272" y="122" width="20" height="24" rx="4" fill="#2d2d3f"/>
+  </g>
+</svg>

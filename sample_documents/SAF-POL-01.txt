@@ -1,4 +1,4 @@
-"""NimbusCarta Safety Policy SAF-POL-01
+"""SupportNova Safety Policy SAF-POL-01
 Version 1.0
 
 Section 1.1 Overheating

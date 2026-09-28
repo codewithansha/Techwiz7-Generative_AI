@@ -77,10 +77,10 @@ class Settings(BaseSettings):
     max_upload_mb: int = 15
     upload_dir: str = "uploads"
 
-    bootstrap_admin_email: str = "admin@nimbuscarta.example"
+    bootstrap_admin_email: str = "admin@supportnova.example"
     bootstrap_admin_password: str = "ChangeMeNow!23"
 
-    organization_name: str = "NimbusCarta"
+    organization_name: str = "SupportNova"
     organization_domain: str = "Consumer electronics e-commerce"
 
     @property

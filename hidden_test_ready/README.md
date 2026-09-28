@@ -128,6 +128,6 @@ from the Reports page.
   injection by a "VIP", an outdated-policy quote, a legal threat, a high-value enterprise
   overcharge, a repeat complaint, a vague unclassifiable complaint and more. Labels come from
   the seeded rule matrix; `python scripts/generate_complaints.py` regenerates and re-checks them.
-- `sample_complaints/nimbuscarta_500.csv` - the full labelled dataset in the same format.
+- `sample_complaints/supportnova_500.csv` - the full labelled dataset in the same format.
 - `sample_documents/` - PDF / DOCX policies, including superseded, draft, conflicting-FAQ and
   adversarial test fixtures.

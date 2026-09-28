@@ -38,7 +38,7 @@ Automated evidence: `pytest` runs 260 tests (all passing). Run them with `SUPPOR
 
 | Step | Requirement | Status | Where | Proof |
 |---|---|---|---|---|
-| 1 | Fictional organization | ✅ | NimbusCarta: `config/settings.py`, seed, documents | — |
+| 1 | Fictional organization | ✅ | SupportNova: `config/settings.py`, seed, documents | — |
 | 2 | Knowledge base: complaint, refund, replacement, cancellation, billing, delivery, warranty, privacy policies; escalation procedure; SOPs; routing; SLA; FAQs | ✅ | 26 PDF/DOCX files in `sample_documents/` (README lists each), loaded by `database/seed.py::_ensure_documents` | `test_every_rule_citation_resolves_to_a_real_document_section` |
 | 3 | PDF and DOCX mandatory; TXT/MD/CSV optional | ✅ | `document_processing/validate.py`, `document_processing/parser.py` | `test_pdf_sections_follow_numbered_headings…`, `test_docx_sections_use_heading_numbers` |
 | 4 | Validate type, size, empty, duplicate, ID, version, effective/expiry date, category | ✅ | `validate.py` (magic bytes, size, empty); `knowledge.py` (ID/version regex, dates, checksum, ID+version duplicate) | `test_document_upload_validation_and_versioning` |
@@ -111,7 +111,7 @@ Automated evidence: `pytest` runs 260 tests (all passing). Run them with `SUPPOR
 
 | Ref | Requirement | Status | Where |
 |---|---|---|---|
-| H1 | ≥500 unique complaints | ✅ | `sample_complaints/nimbuscarta_500.json` / `.csv`: 532 labelled records (`tests/test_dataset.py` checks uniqueness and labels) |
+| H1 | ≥500 unique complaints | ✅ | `sample_complaints/supportnova_500.json` / `.csv`: 532 labelled records (`tests/test_dataset.py` checks uniqueness and labels) |
 | H2 | ≥10 categories | ✅ | 12 |
 | H3 | ≥20 subcategories | ✅ | 22 |
 | H4 | ≥8 departments | ✅ | 10 |
@@ -186,7 +186,7 @@ Automated evidence: `pytest` runs 260 tests (all passing). Run them with `SUPPOR
 
 | # | Challenge | Status | How it is handled | Proof |
 |---|---|---|---|---|
-| 1 | Unique organization | ✅ | NimbusCarta, own products, policies, departments | — |
+| 1 | Unique organization | ✅ | SupportNova, own products, policies, departments | — |
 | 2 | Unique complaint dataset | ✅ | 532 generated, labelled records (`scripts/generate_complaints.py`) | `tests/test_dataset.py` |
 | 3 | Hidden complaint pack | ✅ | Evaluation import, no code change | `test_evaluation_import_scores_against_labels`; `reports/comparison_report.csv` |
 | 4 | Hidden policy update: resolutions affected, old policy obsolete, escalation rules changed, responses need revision | ✅ | Upload response `impact`: previous versions obsoleted, sections added/removed/changed, timeline changes, rules citing the document (and missing sections), escalation rules naming it, affected open complaints flagged `needs_reanalysis`; **Re-analyze affected** button | `test_new_policy_version_reports_impact_and_batch_reanalysis_clears_it` |

@@ -5,7 +5,7 @@ closed. It names every step, who performs it, what the system does automatically
 which file implements it. Read it top to bottom once; afterwards the section headings
 work as a reference.
 
-- **Organization (fictional):** NimbusCarta, a consumer-electronics e-commerce company
+- **Organization (fictional):** SupportNova, a consumer-electronics e-commerce company
 - **Backend:** FastAPI + PostgreSQL (`src/`, plus the pipeline folders at the repo root)
 - **Frontend:** React + Vite (`frontend/src/SupportNovaApp.tsx`)
 
@@ -362,7 +362,7 @@ Reviewer comments are internal. The customer only sees a neutral status message.
     A flagged reply is **blocked** (422) and the flags are shown. Only a reviewer or above can send it anyway, and that override is audited.
   - **Request information:** sends the question and sets the status to `awaiting_customer`. When the customer replies, the status returns to `in_progress`.
   - The first staff reply records `first_responded_at` against the first-response SLA.
-  - Customers see replies from "NimbusCarta Support", and staff names are hidden.
+  - Customers see replies from "SupportNova Support", and staff names are hidden.
 - **Nova** (the chat button) can draft a policy-safe reply, summarize the case, explain its
   flags, find similar complaints and show the SLA. **Use draft** places the text in the reply box.
 - They can set **Awaiting customer** when information is missing, or reassign the

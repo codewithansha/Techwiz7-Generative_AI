@@ -21,8 +21,8 @@ from database.seed import CATEGORIES, DEPARTMENTS, DOCUMENTS, SUBCATEGORIES
 from scripts.generate_complaints import CASE_TYPES, HIDDEN_COLUMNS, IMPORT_COLUMNS, predict
 
 ROOT = Path(__file__).resolve().parent.parent
-DATASET = ROOT / "sample_complaints" / "nimbuscarta_500.json"
-DATASET_CSV = ROOT / "sample_complaints" / "nimbuscarta_500.csv"
+DATASET = ROOT / "sample_complaints" / "supportnova_500.json"
+DATASET_CSV = ROOT / "sample_complaints" / "supportnova_500.csv"
 HIDDEN = ROOT / "hidden_test_ready"
 DOCS = ROOT / "sample_documents"
 

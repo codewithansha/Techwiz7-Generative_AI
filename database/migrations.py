@@ -21,10 +21,26 @@ COLUMNS = {
         "escalation_required BOOLEAN DEFAULT false",
         "pending_review BOOLEAN DEFAULT false",
         "needs_reanalysis BOOLEAN DEFAULT false",
+        "source_language VARCHAR(32) DEFAULT 'en'",
+        "translated_title VARCHAR(255)",
+        "translated_description TEXT",
+        "customer_language VARCHAR(32) DEFAULT 'auto'",
+        "translation_confidence FLOAT",
     ],
     "complaint_attachments": [
         "extracted_text TEXT",
         "facts JSONB",
+    ],
+    "complaint_messages": [
+        "translated_body TEXT",
+        "source_language VARCHAR(32)",
+        "target_language VARCHAR(32)",
+        "translation_status VARCHAR(32) DEFAULT 'completed'",
+        "translation_confidence FLOAT",
+        "translated_at TIMESTAMPTZ",
+    ],
+    "customers": [
+        "preferred_language VARCHAR(32) DEFAULT 'auto'",
     ],
 }
 INDEXES = [

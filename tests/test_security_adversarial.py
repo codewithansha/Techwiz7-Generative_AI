@@ -171,7 +171,7 @@ BASE_GENAI = {
     "resolution_steps": ["Review the case"],
     "escalation_required": False,
     "escalation_level": "no_escalation",
-    "customer_response": "Thank you for contacting NimbusCarta. We are reviewing your case.",
+    "customer_response": "Thank you for contacting SupportNova. We are reviewing your case.",
 }
 
 
@@ -208,7 +208,7 @@ def outside_markers(prompt: str, start: str, end: str) -> str:
 
 @pytest.fixture(scope="module")
 def second_customer(client):
-    body = {"email": "second.customer@nimbuscarta.example", "full_name": "Second Customer", "password": "SecondPass!23"}
+    body = {"email": "second.customer@supportnova.example", "full_name": "Second Customer", "password": "SecondPass!23"}
     assert client.post("/api/v1/auth/register", json=body).status_code == 200
     token = client.post("/api/v1/auth/login-json", json={"email": body["email"], "password": body["password"]}).json()["access_token"]
     return {"Authorization": f"Bearer {token}"}
@@ -422,7 +422,7 @@ AGENT_FORBIDDEN = [
     ("PATCH", "/api/v1/config/escalation-rules/ESC-SAF-01", {"is_active": False}),
     ("PUT", "/api/v1/config/priority-rules/critical", {"priority": "P3"}),
     ("POST", "/api/v1/config/genai/reset", None),
-    ("POST", "/api/v1/users", {"email": "evil@nimbuscarta.example", "full_name": "Evil", "password": "LongPass!23", "role": "administrator"}),
+    ("POST", "/api/v1/users", {"email": "evil@supportnova.example", "full_name": "Evil", "password": "LongPass!23", "role": "administrator"}),
     ("PATCH", "/api/v1/users/1/active?is_active=false", None),
     ("GET", "/api/v1/users", None),
     ("GET", "/api/v1/dashboards/admin", None),
@@ -467,7 +467,7 @@ def test_forged_and_expired_tokens_are_rejected(client):
     from config.settings import get_settings
 
     settings = get_settings()
-    claims = {"sub": "admin@nimbuscarta.example", "role": "administrator"}
+    claims = {"sub": "admin@supportnova.example", "role": "administrator"}
     none_token = f"{_b64({'alg': 'none', 'typ': 'JWT'})}.{_b64({**claims, 'exp': 4102444800})}."
     expired = jwt.encode({**claims, "exp": datetime.now(timezone.utc) - timedelta(minutes=1)}, settings.secret_key, algorithm=settings.algorithm)
     for token in (none_token, expired, "not-a-jwt"):
@@ -480,7 +480,7 @@ def test_forged_and_expired_tokens_are_rejected(client):
 
 def test_deactivated_user_token_is_rejected(client, auth):
     admin = auth["administrator"]
-    body = {"email": "temp.agent@nimbuscarta.example", "full_name": "Temp Agent", "password": "TempAgent!23", "role": "agent"}
+    body = {"email": "temp.agent@supportnova.example", "full_name": "Temp Agent", "password": "TempAgent!23", "role": "agent"}
     user = client.post("/api/v1/users", headers=admin, json=body).json()
     token = client.post("/api/v1/auth/login-json", json={"email": body["email"], "password": body["password"]}).json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
@@ -521,7 +521,7 @@ def test_pii_is_masked_before_complaint_reaches_genai(client, auth, monkeypatch)
 
 # ---- 8. self-registration ---------------------------------------------------------------
 def test_self_registration_cannot_create_vip_or_staff(client):
-    body = {"email": "wannabe.vip@nimbuscarta.example", "full_name": "Wannabe", "password": "WannabePass!23", "role": "administrator", "customer_type": "vip"}
+    body = {"email": "wannabe.vip@supportnova.example", "full_name": "Wannabe", "password": "WannabePass!23", "role": "administrator", "customer_type": "vip"}
     created = client.post("/api/v1/auth/register", json=body)
     assert created.status_code == 200 and created.json()["role"] == "customer"
     assert client.post("/api/v1/auth/register", json={**body, "role": "agent"}).status_code == 409
@@ -588,7 +588,7 @@ def test_html_markup_in_complaint_is_neutralised(client, auth):
 def test_login_is_throttled_after_repeated_failures(client):
     from security import throttle
 
-    email = "agent@nimbuscarta.example"
+    email = "agent@supportnova.example"
     try:
         statuses = [client.post("/api/v1/auth/login-json", json={"email": email, "password": f"wrong-{i}"}).status_code for i in range(8)]
         assert statuses[:5] == [401] * 5 and set(statuses[5:]) == {429}

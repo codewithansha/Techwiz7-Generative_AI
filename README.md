@@ -1,6 +1,6 @@
 # SupportNova · ResponseX Intelligence
 
-SupportNova is complaint intelligence for **NimbusCarta**, a fictional consumer-electronics marketplace. It is built for *SupportNova – Generative AI PowerPlay SRS v1.0*.
+SupportNova is complaint intelligence for **SupportNova**, a fictional consumer-electronics marketplace. It is built for *SupportNova – Generative AI PowerPlay SRS v1.0*.
 
 - **Pipeline 1 (GenAI)** reads a complaint and drafts structured intelligence: category, urgency, routing, policy, resolution and a customer reply.
 - **Pipeline 2 (Python)** independently works out the correct answer from the Complaint Resolution Rule Matrix and the approved policies.
@@ -71,7 +71,7 @@ npm run dev
 
 Open http://localhost:5173 (Swagger: http://localhost:8000/docs, health: http://localhost:8000/health).
 
-On first start the API creates tables, applies migrations and seeds NimbusCarta data: departments, categories, the rule matrix from `complaint_rules/rule_matrix.csv`, policies from `sample_documents/`, and users.
+On first start the API creates tables, applies migrations and seeds SupportNova data: departments, categories, the rule matrix from `complaint_rules/rule_matrix.csv`, policies from `sample_documents/`, and users.
 
 ### GenAI configuration
 
@@ -106,11 +106,11 @@ On **Render**: New → Blueprint → select this repository. `render.yaml` creat
 
 | Role | Email | Password |
 |---|---|---|
-| Administrator | admin@nimbuscarta.example | ChangeMeNow!23 |
-| Agent | agent@nimbuscarta.example | AgentPass!23 |
-| Reviewer | reviewer@nimbuscarta.example | ReviewPass!23 |
-| Manager | manager@nimbuscarta.example | ManagerPass!23 |
-| Customer | customer@nimbuscarta.example | CustomerPass!23 |
+| Administrator | admin@supportnova.example | ChangeMeNow!23 |
+| Agent | agent@supportnova.example | AgentPass!23 |
+| Reviewer | reviewer@supportnova.example | ReviewPass!23 |
+| Manager | manager@supportnova.example | ManagerPass!23 |
+| Customer | customer@supportnova.example | CustomerPass!23 |
 
 Change these before a public deployment.
 
@@ -145,7 +145,7 @@ A hidden policy document is handled from **Knowledge base → Upload document**.
 
 | File | Contents | Regenerate |
 |---|---|---|
-| `comparison_report.csv/.xlsx`, `comparison_summary.md` | SRS Deliverable 8 columns for all 532 dataset complaints, accuracy by field and case type | `python scripts\run_evaluation.py sample_complaints\nimbuscarta_500.json --reset` |
+| `comparison_report.csv/.xlsx`, `comparison_summary.md` | SRS Deliverable 8 columns for all 532 dataset complaints, accuracy by field and case type | `python scripts\run_evaluation.py sample_complaints\supportnova_500.json --reset` |
 | `complaint_intelligence_report.md/.xlsx` | Distributions: category, department, urgency, priority, sentiment, escalation reasons, SLA, policies cited, review reasons, repeats, products | `python scripts\complaint_intelligence_report.py` |
 | `security_testing_report.md` | 35 adversarial and security tests: attack, expected, actual, mitigation | `python scripts\security_report.py` |
 | `rule_matrix.xlsx` + `documentation/RULE_MATRIX.md` | Full rule matrix and how matching works | `python scripts\export_rule_matrix.py` |
@@ -203,7 +203,7 @@ Frontend checks: `cd frontend; npm run build` (type check + build).
 
 ## Assumptions
 
-- NimbusCarta and all customers, orders and policies are fictional.
+- SupportNova and all customers, orders and policies are fictional.
 - Customer replies are delivered inside the app (Conversation thread plus notifications). Email and SMS gateways are out of scope.
 - Retrieval uses BM25 over numbered policy sections. The `DocumentChunk.embedding` column is reserved for pgvector without API changes.
 - Hidden packs and documents go through the Evaluation page and Knowledge base upload. No code changes are needed.

@@ -47,6 +47,7 @@ class ComplaintCreate(BaseModel):
     customer_code: str | None = None
     channel: str = "web"
     incident_date: date | None = None
+    preferred_language: str = "auto"
 
 
 class ComplaintOut(BaseModel):
@@ -65,6 +66,11 @@ class ComplaintOut(BaseModel):
     is_repeat: bool
     created_at: datetime
     assigned_department_id: int | None
+    source_language: str = "en"
+    translated_title: str | None = None
+    translated_description: str | None = None
+    customer_language: str = "auto"
+    translation_confidence: float | None = None
 
 
 class AnalyzeRequest(BaseModel):
@@ -89,12 +95,48 @@ class CustomerDecision(BaseModel):
     rating: int | None = Field(default=None, ge=1, le=5)  # CSAT, only with "confirm"
 
 
+class FeedbackCreate(BaseModel):
+    rating: int = Field(ge=1, le=5)
+    comment: str = Field(default="", max_length=2000)
+
+
 class MessageCreate(BaseModel):
     body: str = Field(min_length=1, max_length=5000)
     internal: bool = False
     source: str = "agent"  # agent | genai_draft
     override: bool = False  # send despite validation flags (reviewer and above only)
     request_information: bool = False  # also move the case to awaiting_customer
+    target_language: str | None = None
+
+
+class TranslationDetectRequest(BaseModel):
+    text: str = Field(min_length=1)
+
+
+class TranslationDetectResponse(BaseModel):
+    language: str
+    language_name: str
+    confidence: float
+    is_mixed: bool = False
+
+
+class TranslateRequest(BaseModel):
+    text: str = Field(min_length=1)
+    target_language: str = "en"
+    source_language: str | None = None
+
+
+class TranslateResponse(BaseModel):
+    original_text: str
+    translated_text: str
+    source_language: str
+    target_language: str
+    confidence: float
+    status: str = "completed"
+
+
+class CustomerLanguageUpdate(BaseModel):
+    preferred_language: str = Field(min_length=2, max_length=32)
 
 
 class AssignRequest(BaseModel):
@@ -209,3 +251,60 @@ class RuleUpdate(BaseModel):
     refund_eligible: bool | None = None
     replacement_eligible: bool | None = None
     compensation_permitted: bool | None = None
+
+
+class ProductOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    _id: str | None = None
+    productNumber: str
+    product_number: str
+    name: str
+    title: str
+    description: str
+    price: float
+    category: str
+    image: str
+    specs: dict = Field(default_factory=dict)
+    is_active: bool = True
+
+
+class OrderOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    _id: str | None = None
+    orderNumber: str
+    order_number: str
+    customerId: int
+    customer_id: int
+    items: list = Field(default_factory=list)
+    totalAmount: float
+    total_amount: float
+    quantity: int
+    orderSummary: str
+    order_summary: str
+    paymentStatus: str
+    payment_status: str
+    paymentMethod: str
+    payment_method: str
+    shippingAddress: str = ""
+    shipping_address: str = ""
+    createdAt: str
+    created_at: str
+
+
+class InvoiceOut(BaseModel):
+    store_name: str = "SupportNova"
+    order_number: str
+    purchase_date: str
+    payment_status: str
+    payment_method: str
+    customer_name: str
+    customer_email: str
+    shipping_address: str = ""
+    items: list = Field(default_factory=list)
+    total_amount: float
+    quantity: int
+    thank_you_message: str = "Thank you for your purchase with SupportNova! Grounded in policy, validated by design."

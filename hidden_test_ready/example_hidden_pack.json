@@ -53,7 +53,7 @@
   {
     "title": "Strange sign-in from abroad",
     "description": "I received a notification about an unauthorized login from a country I have never been to, then my delivery address changed by itself.",
-    "product_or_service": "NimbusCarta customer account",
+    "product_or_service": "SupportNova customer account",
     "order_reference": "",
     "customer_type": "standard",
     "channel": "messaging",
@@ -189,7 +189,7 @@
   {
     "title": "App freezes at payment",
     "description": "Whenever I try to pay, the app shows error code PAY-503 and kicks me back to the cart.",
-    "product_or_service": "NimbusCarta mobile app",
+    "product_or_service": "SupportNova mobile app",
     "order_reference": "",
     "customer_type": "standard",
     "channel": "web",

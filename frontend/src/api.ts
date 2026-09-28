@@ -23,6 +23,12 @@ import type {
   Trends,
   User,
   PolicyImpact,
+  Product,
+  Order,
+  Invoice,
+  SupportedLanguage,
+  TranslationDetectResult,
+  TranslationResult,
 } from './types'
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
@@ -160,7 +166,7 @@ export const api = {
   reanalyzeFlagged: (skip_genai = false) => request<{ reanalyzed: string[]; failed: Array<{ complaint_code: string; error: string }>; remaining: number }>('/api/v1/complaints/reanalyze-flagged', { method: 'POST', body: JSON.stringify({ skip_genai }) }),
   messages: (id: number) => request<ComplaintMessage[]>(`/api/v1/complaints/${id}/messages`),
   checkMessage: (id: number, body: string) => request<{ flags: Array<{ code?: string; detail?: string; value?: string }> }>(`/api/v1/complaints/${id}/messages/check`, json('POST', { body })),
-  sendMessage: (id: number, body: { body: string; internal?: boolean; source?: string; override?: boolean; request_information?: boolean }) =>
+  sendMessage: (id: number, body: { body: string; internal?: boolean; source?: string; override?: boolean; request_information?: boolean; target_language?: string }) =>
     request<ComplaintMessage>(`/api/v1/complaints/${id}/messages`, json('POST', body)),
   assistantChat: (message: string, sessionId: number | null, complaintId?: number) =>
     request<AssistantReply>('/api/v1/assistant/chat', json('POST', { message, session_id: sessionId, complaint_id: complaintId })),
@@ -182,6 +188,8 @@ export const api = {
   },
   customerDecision: (id: number, action: 'confirm' | 'reopen', comment = '', rating?: number) =>
     request<Complaint>(`/api/v1/complaints/${id}/customer-decision`, json('POST', { action, comment, rating })),
+  submitFeedback: (id: number, rating: number, comment = '') =>
+    request<Complaint>(`/api/v1/complaints/${id}/feedback`, json('POST', { rating, comment })),
 
   adminMetrics: () => request<Metrics>('/api/v1/dashboards/admin'),
   analytics: () => request<Metrics>('/api/v1/analytics'),
@@ -244,6 +252,57 @@ export const api = {
     anchor.click()
     setTimeout(() => URL.revokeObjectURL(url), 1000)
   },
+
+  products: () => request<Product[]>('/api/v1/products'),
+  product: (id_or_number: string | number) => request<Product>(`/api/v1/products/${encodeURIComponent(String(id_or_number))}`),
+  orders: () => request<Order[]>('/api/v1/orders'),
+  order: (id_or_number: string | number) => request<Order>(`/api/v1/orders/${encodeURIComponent(String(id_or_number))}`),
+  orderInvoice: (id_or_number: string | number) => request<Invoice>(`/api/v1/orders/${encodeURIComponent(String(id_or_number))}/invoice`),
+  downloadInvoicePdf: async (id_or_number: string | number) => {
+    const token = localStorage.getItem('supportnova_token')
+    const response = await fetch(`${API_URL}/api/v1/orders/${encodeURIComponent(String(id_or_number))}/invoice/pdf`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+    if (!response.ok) throw new ApiError(response.status, 'Could not download PDF invoice')
+    const blob = await response.blob()
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = `Invoice-${id_or_number}.pdf`
+    document.body.appendChild(anchor)
+    anchor.click()
+    document.body.removeChild(anchor)
+    setTimeout(() => URL.revokeObjectURL(url), 2000)
+  },
+  downloadInvoiceImage: async (id_or_number: string | number) => {
+    const token = localStorage.getItem('supportnova_token')
+    const response = await fetch(`${API_URL}/api/v1/orders/${encodeURIComponent(String(id_or_number))}/invoice/image`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+    if (!response.ok) throw new ApiError(response.status, 'Could not download Image invoice')
+    const blob = await response.blob()
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = `Invoice-${id_or_number}.png`
+    document.body.appendChild(anchor)
+    anchor.click()
+    document.body.removeChild(anchor)
+    setTimeout(() => URL.revokeObjectURL(url), 2000)
+  },
+  downloadInvoice: async (id_or_number: string | number, format: 'pdf' | 'image' = 'pdf') => {
+    if (format === 'image') {
+      return api.downloadInvoiceImage(id_or_number)
+    }
+    return api.downloadInvoicePdf(id_or_number)
+  },
+  translationLanguages: () => request<SupportedLanguage[]>('/api/v1/translation/languages'),
+  customerLanguagePreference: () => request<{ preferred_language: string }>('/api/v1/translation/preference'),
+  updateCustomerLanguagePreference: (preferred_language: string) =>
+    request<{ preferred_language: string; status: string }>('/api/v1/translation/preference', json('PUT', { preferred_language })),
+  detectLanguage: (text: string) => request<TranslationDetectResult>('/api/v1/translation/detect', json('POST', { text })),
+  translateText: (text: string, target_language: string, source_language?: string) =>
+    request<TranslationResult>('/api/v1/translation/translate', json('POST', { text, target_language, source_language })),
 }
 
 export { ApiError, API_URL }

@@ -2,13 +2,14 @@ import csv
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta, timezone
 from io import BytesIO, StringIO
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session, selectinload
 
 from complaint_processing.sla import first_response_status, refresh_sla_risk
-from database.models import Complaint, ComplaintFeedback, ComplaintStatus, Customer, UserRole
+from database.models import Complaint, ComplaintFeedback, ComplaintStatus, Customer, Department, UserRole
 from database.session import get_db
 from security.auth import AdminUser, CurrentUser, ManagerUser, StaffUser
 from src.services.analysis import latest_genai_output, pending_review
@@ -171,11 +172,7 @@ def export_report(user: ManagerUser, db: Session = Depends(get_db), fmt: str = "
     headers = {"Content-Disposition": f"attachment; filename={filename}"}
     columns = list(records[0].keys()) if records else ["complaint_code"]
     if fmt == "xlsx":
-        import pandas as pd
-
-        buffer = BytesIO()
-        pd.DataFrame(records, columns=columns).to_excel(buffer, index=False, sheet_name=report[:31])
-        buffer.seek(0)
+        buffer = _xlsx(REPORTS[report], columns, records)
         return StreamingResponse(buffer, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headers=headers)
     if fmt == "pdf":
         return StreamingResponse(_pdf(REPORTS[report], columns, records), media_type="application/pdf", headers=headers)
@@ -186,39 +183,285 @@ def export_report(user: ManagerUser, db: Session = Depends(get_db), fmt: str = "
     return StreamingResponse(iter([output.getvalue()]), media_type="text/csv", headers=headers)
 
 
+def _xlsx(title: str, columns: list[str], records: list[dict]) -> BytesIO:
+    import openpyxl
+    from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+    from openpyxl.utils import get_column_letter
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = title[:31].replace(":", " ").replace("/", " ")
+    ws.views.sheetView[0].showGridLines = True
+
+    generated = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    col_count = max(len(columns), 1)
+    last_col_letter = get_column_letter(col_count)
+
+    # ── Row 1: Brand Header Banner (SupportNova Deep Teal & Cyan)
+    ws.merge_cells(f"A1:{last_col_letter}1")
+    top_cell = ws["A1"]
+    top_cell.value = "SUPPORTNOVA  ·  RESPONSEX AI INTELLIGENCE"
+    top_cell.fill = PatternFill(start_color="03171D", end_color="03171D", fill_type="solid")
+    top_cell.font = Font(name="Segoe UI", size=13, bold=True, color="00D6D6")
+    top_cell.alignment = Alignment(horizontal="left", vertical="center", indent=1)
+    ws.row_dimensions[1].height = 28
+
+    # ── Row 2: Subtitle & Metadata
+    ws.merge_cells(f"A2:{last_col_letter}2")
+    sub_cell = ws["A2"]
+    sub_cell.value = f"Report: {title}   |   Exported: {generated}   |   Total Records: {len(records):,}   |   Scope: Operational Audit"
+    sub_cell.fill = PatternFill(start_color="072B35", end_color="072B35", fill_type="solid")
+    sub_cell.font = Font(name="Segoe UI", size=9.5, bold=False, color="E2F1F5")
+    sub_cell.alignment = Alignment(horizontal="left", vertical="center", indent=1)
+    ws.row_dimensions[2].height = 20
+
+    # ── Row 3: Accent Separator (Signature Cyan)
+    ws.merge_cells(f"A3:{last_col_letter}3")
+    sep_cell = ws["A3"]
+    sep_cell.fill = PatternFill(start_color="00D6D6", end_color="00D6D6", fill_type="solid")
+    ws.row_dimensions[3].height = 3.5
+
+    # ── Row 4: Column Headers
+    header_fill = PatternFill(start_color="04262E", end_color="04262E", fill_type="solid")
+    header_font = Font(name="Segoe UI", size=9.5, bold=True, color="E6F8FA")
+    header_border = Border(
+        bottom=Side(style="medium", color="00D6D6"),
+        top=Side(style="thin", color="063540"),
+        left=Side(style="thin", color="063540"),
+        right=Side(style="thin", color="063540"),
+    )
+    ws.row_dimensions[4].height = 24
+
+    for col_idx, col in enumerate(columns, 1):
+        cell = ws.cell(row=4, column=col_idx, value=col.replace("_", " ").title())
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        cell.border = header_border
+
+    # ── Row 5+: Data Rows
+    even_fill = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")
+    odd_fill = PatternFill(start_color="F2F9FA", end_color="F2F9FA", fill_type="solid")
+    data_font = Font(name="Segoe UI", size=9, color="0F172A")
+    data_border = Border(
+        bottom=Side(style="thin", color="DCEAEF"),
+        top=Side(style="thin", color="DCEAEF"),
+        left=Side(style="thin", color="DCEAEF"),
+        right=Side(style="thin", color="DCEAEF"),
+    )
+
+    for r_idx, record in enumerate(records[:5000], start=5):
+        ws.row_dimensions[r_idx].height = 18
+        row_fill = odd_fill if r_idx % 2 == 1 else even_fill
+        for c_idx, col in enumerate(columns, 1):
+            val = record.get(col, "")
+            val_clean = "" if val is None else val
+            cell = ws.cell(row=r_idx, column=c_idx, value=val_clean)
+            cell.fill = row_fill
+            cell.font = data_font
+            cell.border = data_border
+            align_h = "center" if col in {"status", "urgency", "priority", "id", "created_at"} else "left"
+            cell.alignment = Alignment(horizontal=align_h, vertical="center")
+
+    # Column Widths
+    for c_idx, col in enumerate(columns, 1):
+        col_letter = get_column_letter(c_idx)
+        max_len = len(col.replace("_", " "))
+        for r in records[:50]:
+            v_len = len(str(r.get(col, "")))
+            if v_len > max_len:
+                max_len = v_len
+        ws.column_dimensions[col_letter].width = min(max(max_len + 4, 12), 48)
+
+    ws.freeze_panes = "A5"
+    if records:
+        ws.auto_filter.ref = f"A4:{last_col_letter}{len(records) + 4}"
+
+    buffer = BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+    return buffer
+
+
 def _pdf(title: str, columns: list[str], records: list[dict]) -> BytesIO:
     from reportlab.lib import colors
     from reportlab.lib.pagesizes import landscape, letter
-    from reportlab.lib.styles import getSampleStyleSheet
-    from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+    from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+    from reportlab.pdfgen import canvas
+    from reportlab.platypus import Image, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+
+    class _ReportCanvas(canvas.Canvas):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self._saved_page_states = []
+
+        def showPage(self):
+            self._saved_page_states.append(dict(self.__dict__))
+            self._startPage()
+
+        def save(self):
+            num_pages = len(self._saved_page_states)
+            for state in self._saved_page_states:
+                self.__dict__.update(state)
+                self.draw_page_decorations(num_pages)
+                super().showPage()
+            super().save()
+
+        def draw_page_decorations(self, page_count):
+            self.saveState()
+            self.setStrokeColor(colors.HexColor("#00D6D6"))
+            self.setLineWidth(1)
+            self.line(24, 26, 792 - 24, 26)
+
+            self.setFont("Helvetica", 7)
+            self.setFillColor(colors.HexColor("#64748B"))
+            self.drawString(24, 16, "SupportNova · ResponseX AI Intelligence Platform · Confidential Operational Report")
+            self.drawRightString(792 - 24, 16, f"Page {self._pageNumber} of {page_count}")
+            self.restoreState()
 
     buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=landscape(letter), leftMargin=24, rightMargin=24, topMargin=24, bottomMargin=24)
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=landscape(letter),
+        leftMargin=24,
+        rightMargin=24,
+        topMargin=20,
+        bottomMargin=36,
+    )
     styles = getSampleStyleSheet()
-    cell = styles["BodyText"].clone("cell", fontSize=6.5, leading=8)
-    head = styles["BodyText"].clone("head", fontSize=7, leading=8, textColor=colors.white)
+    content_width = 744
     generated = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-    data = [[Paragraph(c.replace("_", " "), head) for c in columns]]
-    for record in records[:500]:
-        data.append([Paragraph(str(record.get(c, ""))[:160].replace("&", "&amp;").replace("<", "&lt;"), cell) for c in columns])
-    table = Table(data, repeatRows=1)
-    table.setStyle(
+
+    # Brand Logo path
+    root_dir = Path(__file__).resolve().parent.parent.parent
+    logo_path = root_dir / "frontend" / "public" / "logo.png"
+
+    header_title_style = ParagraphStyle(
+        "HeaderTitle",
+        parent=styles["Normal"],
+        fontName="Helvetica-Bold",
+        fontSize=12,
+        leading=15,
+        textColor=colors.HexColor("#FFFFFF"),
+    )
+    header_meta_style = ParagraphStyle(
+        "HeaderMeta",
+        parent=styles["Normal"],
+        fontName="Helvetica",
+        fontSize=7.5,
+        leading=10.5,
+        alignment=2,
+        textColor=colors.HexColor("#A5F3FC"),
+    )
+
+    logo_flowable = (
+        Image(str(logo_path), width=28, height=28)
+        if logo_path.exists()
+        else Paragraph("<font color='#00D6D6' size=14><b>[SN]</b></font>", styles["Normal"])
+    )
+
+    left_block = [
+        Paragraph("<font color='#00D6D6' size=13><b>SUPPORTNOVA</b></font> <font color='#67E8F9' size=8.5><b>· RESPONSEX AI INTELLIGENCE</b></font>", styles["Normal"]),
+        Spacer(1, 2),
+        Paragraph(f"<b>{title}</b>", header_title_style),
+        Spacer(1, 1),
+        Paragraph("<font color='#8AA3AA' size=7.5>OPERATIONAL AUDIT &amp; DECISION ENGINE REPORT</font>", styles["Normal"]),
+    ]
+
+    right_block = [
+        Paragraph("<font color='#8AA3AA'>ENVIRONMENT: </font><font color='#00D6D6'><b>PRODUCTION AUDIT</b></font>", header_meta_style),
+        Paragraph(f"<font color='#8AA3AA'>EXPORTED: </font><font color='#FFFFFF'>{generated}</font>", header_meta_style),
+        Paragraph(f"<font color='#8AA3AA'>TOTAL RECORDS: </font><font color='#48E8B5'><b>{len(records):,}</b></font>", header_meta_style),
+    ]
+
+    header_table = Table([[logo_flowable, left_block, right_block]], colWidths=[36, 440, 268])
+    header_table.setStyle(
         TableStyle(
             [
-                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#4f46e5")),
-                ("GRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#d4d4d8")),
-                ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f4f4f5")]),
+                ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#021419")),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ("TOPPADDING", (0, 0), (-1, -1), 8),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+                ("LEFTPADDING", (0, 0), (-1, -1), 10),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 12),
+                ("LINEBELOW", (0, -1), (-1, -1), 2.5, colors.HexColor("#00D6D6")),
             ]
         )
     )
+
+    # ── Table Building
+    cell_style = styles["BodyText"].clone("cell", fontSize=6.2, leading=7.8, textColor=colors.HexColor("#0F172A"))
+    cell_center = styles["BodyText"].clone("cell_center", fontSize=6.2, leading=7.8, alignment=1, textColor=colors.HexColor("#0F172A"))
+    head_style = styles["BodyText"].clone("head", fontSize=7, leading=8.5, textColor=colors.HexColor("#E6F8FA"), fontName="Helvetica-Bold", alignment=1)
+
+    table_data = [[Paragraph(c.replace("_", " ").upper(), head_style) for c in columns]]
+
+    # Proportional column weights
+    weights = []
+    for c in columns:
+        clow = c.lower()
+        if "id" in clow or "status" in clow or "urgency" in clow or "priority" in clow:
+            weights.append(50)
+        elif "date" in clow or "created" in clow or "time" in clow:
+            weights.append(75)
+        elif "code" in clow or "customer" in clow:
+            weights.append(70)
+        elif "product" in clow or "department" in clow or "category" in clow:
+            weights.append(100)
+        elif "desc" in clow or "title" in clow or "summary" in clow:
+            weights.append(130)
+        else:
+            weights.append(70)
+
+    total_w = sum(weights) or 1
+    calc_widths = [(w / total_w) * content_width for w in weights]
+
+    def format_badge(col_name: str, val_str: str) -> str:
+        v = val_str.lower()
+        if col_name in {"urgency", "priority", "status"}:
+            if v in {"critical", "p0", "breached", "overdue", "rejected", "failed"}:
+                return f"<font color='#E94F63'><b>{val_str}</b></font>"
+            elif v in {"high", "p1", "in_progress", "pending", "warning"}:
+                return f"<font color='#D97706'><b>{val_str}</b></font>"
+            elif v in {"resolved", "closed", "met", "true", "yes"}:
+                return f"<font color='#059669'><b>{val_str}</b></font>"
+            elif v in {"medium", "p2", "assigned", "analyzed"}:
+                return f"<font color='#00AEB5'><b>{val_str}</b></font>"
+        return val_str
+
+    for record in records[:500]:
+        row_cells = []
+        for c in columns:
+            raw_val = str(record.get(c, "") if record.get(c) is not None else "")[:160].replace("&", "&amp;").replace("<", "&lt;")
+            styled_val = format_badge(c, raw_val)
+            align = cell_center if c in {"status", "urgency", "priority", "id"} else cell_style
+            row_cells.append(Paragraph(styled_val, align))
+        table_data.append(row_cells)
+
+    data_table = Table(table_data, colWidths=calc_widths, repeatRows=1)
+    data_table.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#04262E")),
+                ("LINEBELOW", (0, 0), (-1, 0), 2, colors.HexColor("#00D6D6")),
+                ("GRID", (0, 0), (-1, -1), 0.35, colors.HexColor("#D3E5E9")),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("TOPPADDING", (0, 0), (-1, -1), 3),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+                ("LEFTPADDING", (0, 0), (-1, -1), 3.5),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 3.5),
+                ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.HexColor("#FFFFFF"), colors.HexColor("#F2F9FA")]),
+            ]
+        )
+    )
+
     story = [
-        Paragraph(f"SupportNova — {title}", styles["Title"]),
-        Paragraph(f"Generated {generated} · {len(records)} rows" + (" (first 500 shown)" if len(records) > 500 else ""), styles["Normal"]),
+        header_table,
         Spacer(1, 8),
-        table if records else Paragraph("No data.", styles["Normal"]),
+        data_table if records else Paragraph("No records found.", styles["Normal"]),
     ]
-    doc.build(story)
+
+    doc.build(story, canvasmaker=_ReportCanvas)
     buffer.seek(0)
     return buffer
 
@@ -380,6 +623,32 @@ def _resolution_hours(row: Complaint) -> float | None:
 def _extras(db: Session, rows: list[Complaint]) -> dict:
     """CSAT, first-response SLA and a daily volume series (SRS steps 55, 64, 65)."""
     ratings = [r for (r,) in db.query(ComplaintFeedback.rating).all()]
+    feedback_rows = (
+        db.query(
+            ComplaintFeedback.rating,
+            Department.name.label("department_name"),
+            Complaint.category,
+            Complaint.assigned_to,
+        )
+        .join(Complaint, ComplaintFeedback.complaint_id == Complaint.id)
+        .outerjoin(Department, Complaint.assigned_department_id == Department.id)
+        .all()
+    )
+    dept_ratings: dict[str, list[int]] = {}
+    cat_ratings: dict[str, list[int]] = {}
+    agent_ratings: dict[str, list[int]] = {}
+    for r, dept_name, category, agent_name in feedback_rows:
+        if dept_name:
+            dept_ratings.setdefault(dept_name, []).append(r)
+        if category:
+            cat_ratings.setdefault(category, []).append(r)
+        if agent_name:
+            agent_ratings.setdefault(agent_name, []).append(r)
+
+    by_department = {k: round(sum(v) / len(v), 2) for k, v in dept_ratings.items()}
+    by_category = {k: round(sum(v) / len(v), 2) for k, v in cat_ratings.items()}
+    by_agent = {k: round(sum(v) / len(v), 2) for k, v in agent_ratings.items()}
+
     first = Counter(first_response_status(r) for r in rows)
     answered = first["met"] + first["breached"]
     today = datetime.now(timezone.utc).date()
@@ -391,6 +660,9 @@ def _extras(db: Session, rows: list[Complaint]) -> dict:
             "average": round(sum(ratings) / len(ratings), 2) if ratings else None,
             "responses": len(ratings),
             "distribution": {str(k): ratings.count(k) for k in range(1, 6)},
+            "by_department": by_department,
+            "by_category": by_category,
+            "by_agent": by_agent,
         },
         "first_response": {
             "met": first["met"],
@@ -484,5 +756,7 @@ def _brief(row: Complaint) -> dict:
         "escalation_level": python.get("escalation_level"),
         "sla_risk": row.sla_risk,
         "suggested_response": genai.get("customer_response"),
+        "translated_title": getattr(row, "translated_title", None),
+        "source_language": getattr(row, "source_language", "en") or "en",
     }
 

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
-import { BookOpen, Bot, ExternalLink, MessageCircle, RefreshCw, Send, ShieldAlert, Sparkles, X } from 'lucide-react'
+import { BookOpen, ExternalLink, MessageCircle, RefreshCw, Send, ShieldAlert, X } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { api } from './api'
 import type { AssistantReply } from './types'
@@ -74,14 +74,14 @@ export default function Assistant() {
     </button>
     {open && <section className="assistant-panel card" role="dialog" aria-label="Nova assistant">
       <header>
-        <div className="assistant-avatar"><Sparkles /></div>
+        <div className="assistant-avatar"><img src="/logo.png" alt="Nova" className="assistant-avatar-img" /></div>
         <div><b>Nova</b><small>{complaintId ? 'Context: this complaint' : 'Support assistant · grounded in policy'}</small></div>
         <button title="New conversation" onClick={reset}><RefreshCw /></button>
         <button title="Close" onClick={() => setOpen(false)}><X /></button>
       </header>
       <div className="assistant-messages" ref={listRef}>
         {entries.map((entry, i) => <div key={i} className={`chat-entry ${entry.role}`}>
-          {entry.role === 'assistant' && <div className="chat-icon">{entry.intent === 'blocked' ? <ShieldAlert /> : <Bot />}</div>}
+          {entry.role === 'assistant' && <div className="chat-icon">{entry.intent === 'blocked' ? <ShieldAlert /> : <img src="/logo.png" alt="Nova" className="assistant-avatar-img" />}</div>}
           <div className="chat-bubble">
             <p>{entry.content}</p>
             {!!entry.complaints?.length && <div className="chat-complaints">{entry.complaints.map((c) =>
@@ -97,13 +97,13 @@ export default function Assistant() {
               </button>)}</div>}
           </div>
         </div>)}
-        {busy && <div className="chat-entry assistant"><div className="chat-icon"><Bot /></div><div className="chat-bubble typing"><i /><i /><i /></div></div>}
+        {busy && <div className="chat-entry assistant"><div className="chat-icon"><img src="/logo.png" alt="Nova" className="assistant-avatar-img" /></div><div className="chat-bubble typing"><i /><i /><i /></div></div>}
       </div>
       <form className="assistant-input" onSubmit={submit}>
         <input value={input} onChange={(e) => setInput(e.target.value)} placeholder={user.role === 'customer' ? 'Ask about a policy or your complaint…' : complaintId ? 'Ask about this case…' : 'Ask Nova…'} maxLength={2000} aria-label="Message" />
         <button className="button primary compact" disabled={busy || !input.trim()} aria-label="Send"><Send /></button>
       </form>
-      <p className="assistant-note">Nova answers from approved NimbusCarta policies and never approves refunds or compensation itself.</p>
+      <p className="assistant-note">Nova answers from approved SupportNova policies and never approves refunds or compensation itself.</p>
     </section>}
   </>
 }

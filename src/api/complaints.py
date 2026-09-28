@@ -32,7 +32,7 @@ from security.audit import write_audit
 from security.auth import CurrentUser, ReviewerUser, StaffUser
 from src.services.access import customer_for, scope_complaints, visibility_error
 from src.services.intake import IntakeError, create_complaint
-from src.api.schemas import AnalyzeRequest, AssignRequest, ComplaintCreate, CustomerDecision, MessageCreate, ReviewRequest, StatusUpdate
+from src.api.schemas import AnalyzeRequest, AssignRequest, ComplaintCreate, CustomerDecision, FeedbackCreate, MessageCreate, ReviewRequest, StatusUpdate
 from src.services.messaging import reply_flags
 from src.services.analysis import (
     analyze_complaint,
@@ -507,6 +507,34 @@ def customer_decision(complaint_id: int, payload: CustomerDecision, user: Curren
     return serialize_complaint(_get_complaint(db, complaint_id), audience="customer")
 
 
+@router.post("/{complaint_id}/feedback")
+def submit_feedback(complaint_id: int, payload: FeedbackCreate, user: CurrentUser, db: Session = Depends(get_db)):
+    """Customer submits CSAT rating and optional feedback for a resolved or closed complaint."""
+    if user.role != UserRole.customer:
+        raise HTTPException(status_code=403, detail="Only the customer who raised the complaint can submit satisfaction feedback.")
+    complaint = _get_visible_complaint(db, user, complaint_id)
+    if complaint.status not in (ComplaintStatus.resolved, ComplaintStatus.closed):
+        raise HTTPException(status_code=409, detail="Feedback can only be submitted for resolved or closed complaints.")
+    if complaint.feedback:
+        raise HTTPException(status_code=409, detail="Feedback has already been submitted for this complaint.")
+    comment = sanitize_input(payload.comment)
+    db.add(ComplaintFeedback(complaint_id=complaint.id, rating=payload.rating, comment=comment))
+    if complaint.status == ComplaintStatus.resolved:
+        complaint.status = ComplaintStatus.closed
+        complaint.latest_update = "Thank you for your feedback. Your complaint is closed."
+        _settle_followups(db, complaint, confirm_resolution=False)
+    write_audit(
+        db,
+        actor_id=user.id,
+        entity_type="complaint",
+        entity_id=complaint.complaint_code,
+        action="customer_feedback",
+        details={"comment": comment, "rating": payload.rating},
+    )
+    db.commit()
+    return serialize_complaint(_get_complaint(db, complaint_id), audience="customer")
+
+
 @router.get("/{complaint_id}/messages")
 def list_messages(complaint_id: int, user: CurrentUser, db: Session = Depends(get_db)):
     """The conversation. Customers never see internal notes."""
@@ -563,7 +591,63 @@ def post_message(complaint_id: int, payload: MessageCreate, user: CurrentUser, d
         )
     if direction == "to_customer":
         mark_first_response(complaint)
-    message = ComplaintMessage(complaint_id=complaint.id, author_id=user.id, direction=direction, body=body, source=source, flags=flags)
+
+    # Multilingual translation intelligence
+    translated_body = None
+    source_language = "en"
+    target_language = "en"
+    translation_confidence = 1.0
+
+    if direction == "from_customer":
+        try:
+            from src.services.multilingual import detect_language, translate_for_agent
+            detection = detect_language(body)
+            source_language = detection.code
+            target_language = "en"
+            translation_confidence = detection.confidence
+            if source_language != "en":
+                tr = translate_for_agent(body, source_lang=source_language)
+                translated_body = tr.get("translated_text")
+                translation_confidence = tr.get("confidence", detection.confidence)
+                # Save detected language to complaint if auto
+                if getattr(complaint, "customer_language", "auto") in ("auto", None):
+                    complaint.customer_language = source_language
+        except Exception:
+            pass
+    elif direction == "to_customer":
+        try:
+            from src.services.multilingual import translate_for_customer
+            # Find customer preferred or detected language
+            cust_lang = payload.target_language
+            if not cust_lang or cust_lang == "auto":
+                cust_lang = getattr(complaint, "customer_language", "en")
+                if cust_lang in ("auto", None, "en") and complaint.customer:
+                    cust_lang = getattr(complaint.customer, "preferred_language", "en")
+                if cust_lang in ("auto", None):
+                    cust_lang = getattr(complaint, "source_language", "en")
+            if cust_lang and cust_lang not in ("en", "auto"):
+                target_language = cust_lang
+                source_language = "en"
+                tr = translate_for_customer(body, target_lang=cust_lang)
+                translated_body = tr.get("translated_text")
+                translation_confidence = tr.get("confidence", 0.95)
+        except Exception:
+            pass
+
+    message = ComplaintMessage(
+        complaint_id=complaint.id,
+        author_id=user.id,
+        direction=direction,
+        body=body,
+        source=source,
+        flags=flags,
+        translated_body=translated_body,
+        source_language=source_language,
+        target_language=target_language,
+        translation_status="completed",
+        translation_confidence=translation_confidence,
+        translated_at=datetime.now(timezone.utc) if translated_body else None,
+    )
     db.add(message)
     write_audit(
         db,
@@ -581,7 +665,7 @@ def post_message(complaint_id: int, payload: MessageCreate, user: CurrentUser, d
 def _message_out(m: ComplaintMessage, for_customer: bool) -> dict:
     author = m.author.full_name if m.author else "System"
     if for_customer and m.direction == "to_customer":
-        author = "NimbusCarta Support"
+        author = "SupportNova Support"
     return {
         "id": m.id,
         "direction": m.direction,
@@ -591,6 +675,12 @@ def _message_out(m: ComplaintMessage, for_customer: bool) -> dict:
         "flags": [] if for_customer else m.flags,
         "created_at": m.created_at,
         "read_by_customer": m.read_by_customer,
+        "translated_body": getattr(m, "translated_body", None),
+        "source_language": getattr(m, "source_language", None),
+        "target_language": getattr(m, "target_language", None),
+        "translation_status": getattr(m, "translation_status", "completed") or "completed",
+        "translation_confidence": getattr(m, "translation_confidence", None),
+        "translated_at": getattr(m, "translated_at", None),
     }
 
 

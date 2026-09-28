@@ -102,8 +102,9 @@ def analyze_complaint(db: Session, complaint: Complaint, *, tone: str = "profess
         )
         genai_output = genai_run.structured_output or None
     else:
+        tr_ctx = " ".join(part for part in [getattr(complaint, "translated_title", None), getattr(complaint, "translated_description", None)] if part and part.strip())
         policy_chunks = retrieve_policy_chunks(
-            db, f"{complaint.title} {complaint.description} {complaint.product_or_service}"
+            db, f"{complaint.title} {complaint.description} {complaint.product_or_service} {tr_ctx}".strip()
         )
 
     validation = run_python_validation(
@@ -324,7 +325,16 @@ def serialize_complaint(complaint: Complaint, *, audience: str = "staff") -> dic
         ],
         "incident_date": complaint.incident_date,
         "unread_messages": sum(1 for m in complaint.messages or [] if m.direction == "to_customer" and not m.read_by_customer),
-        "feedback": {"rating": complaint.feedback.rating, "comment": complaint.feedback.comment} if complaint.feedback else None,
+        "feedback": {
+            "rating": complaint.feedback.rating,
+            "comment": complaint.feedback.comment,
+            "created_at": complaint.feedback.created_at,
+        } if complaint.feedback else None,
+        "source_language": getattr(complaint, "source_language", "en") or "en",
+        "translated_title": getattr(complaint, "translated_title", None),
+        "translated_description": getattr(complaint, "translated_description", None),
+        "customer_language": getattr(complaint, "customer_language", "auto") or "auto",
+        "translation_confidence": getattr(complaint, "translation_confidence", None),
     }
     if audience == "customer":
         # Customers see tracking data only; drafts, rule output and flags are internal.

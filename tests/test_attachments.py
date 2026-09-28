@@ -13,7 +13,7 @@ from tests.test_api_integration import pytestmark  # noqa: F401  (skip without a
 def _invoice(order: str, bought: date, amount: str = "PKR 34,500") -> bytes:
     pdf = fitz.open()
     page = pdf.new_page()
-    for i, line in enumerate(["NimbusCarta - Tax Invoice", f"Invoice date: {bought.isoformat()}", f"Order: {order}", f"Total paid: {amount}"]):
+    for i, line in enumerate(["SupportNova - Tax Invoice", f"Invoice date: {bought.isoformat()}", f"Order: {order}", f"Total paid: {amount}"]):
         page.insert_text((50, 60 + 24 * i), line, fontsize=12)
     data = pdf.tobytes()
     pdf.close()

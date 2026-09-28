@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="100%" height="100%">
+  <defs>
+    <linearGradient id="mouse-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#181e2b"/>
+      <stop offset="100%" stop-color="#0f131a"/>
+    </linearGradient>
+    <linearGradient id="mouse-body" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2d3748"/>
+      <stop offset="100%" stop-color="#1a202c"/>
+    </linearGradient>
+    <linearGradient id="cyan-glow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#06b6d4"/>
+      <stop offset="100%" stop-color="#3b82f6"/>
+    </linearGradient>
+  </defs>
+  <rect width="100%" height="100%" rx="16" fill="url(#mouse-bg)"/>
+  <circle cx="200" cy="150" r="85" fill="#06b6d4" opacity="0.12"/>
+  
+  <g transform="translate(135, 45)">
+    <!-- Mouse shell -->
+    <path d="M65,10 C105,10 125,50 125,120 C125,175 105,205 65,205 C25,205 5,175 5,120 C5,50 25,10 65,10 Z" fill="url(#mouse-body)" stroke="#4a5568" stroke-width="2.5"/>
+    <!-- Left click -->
+    <path d="M62,12 C40,13 25,35 20,80 L62,80 Z" fill="#374151" opacity="0.9"/>
+    <!-- Right click -->
+    <path d="M68,12 C90,13 105,35 110,80 L68,80 Z" fill="#374151" opacity="0.9"/>
+    <!-- Center seam & scroll wheel -->
+    <line x1="65" y1="12" x2="65" y2="95" stroke="#1a202c" stroke-width="3"/>
+    <rect x="59" y="32" width="12" height="32" rx="6" fill="#111827" stroke="url(#cyan-glow)" stroke-width="2"/>
+    <!-- Thumb rest / side accent -->
+    <path d="M5,110 C-10,135 -8,165 12,180" fill="none" stroke="url(#cyan-glow)" stroke-width="3.5" stroke-linecap="round"/>
+    <!-- DPI button -->
+    <rect x="61" y="74" width="8" height="12" rx="3" fill="#4a5568"/>
+    <!-- Ergonomic palm palm curve -->
+    <path d="M35,130 Q65,115 95,130" fill="none" stroke="#4a5568" stroke-width="1.5" opacity="0.6"/>
+  </g>
+</svg>

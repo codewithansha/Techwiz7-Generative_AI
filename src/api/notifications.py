@@ -23,6 +23,7 @@ CUSTOMER_EVENTS = {
 STAFF_EVENTS = {
     "customer_reopen": "The customer reopened the complaint.",
     "customer_confirm": "The customer confirmed the resolution.",
+    "customer_feedback": "The customer submitted a satisfaction rating.",
     "message_from_customer": "The customer sent a message.",
     "assign": "A complaint was assigned.",
     "review_approve": "A reviewer approved the recommendation.",
@@ -75,6 +76,14 @@ def list_notifications(user: CurrentUser, db: Session = Depends(get_db), limit: 
             text = f"Status changed to {str(details['to']).replace('_', ' ')}."
         if row.action == "customer_reopen" and details.get("comment"):
             text = f"Reopened by the customer: “{details['comment'][:120]}”"
+        if row.action in ("customer_feedback", "customer_confirm") and details.get("rating"):
+            r = details["rating"]
+            if r <= 2:
+                text = f"⚠ Low customer rating: {r}/5 stars (Follow-up recommended)"
+            elif r == 5:
+                text = f"✓ Customer satisfied: 5/5 stars rating"
+            else:
+                text = f"Customer rating: {r}/5 stars"
         items.append(
             {
                 "id": f"audit-{row.id}",

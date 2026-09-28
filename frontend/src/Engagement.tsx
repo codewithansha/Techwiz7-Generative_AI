@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import {
-  AlertTriangle, Bell, BookCheck, CheckCircle2, Download, FileSpreadsheet, Lock, MessageSquareText, RefreshCw,
+  AlertTriangle, Bell, BookCheck, CheckCircle2, Download, FileSpreadsheet, Globe, Lock, MessageSquareText, RefreshCw,
   Send, ShieldAlert, Sparkles, Star, Upload, UserRound,
 } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
@@ -56,6 +56,15 @@ export function NotificationBell() {
 
 // ---------------------------------------------------------------- conversation
 
+const LANGUAGE_NAMES: Record<string, string> = {
+  en: 'English',
+  ur_roman: 'Roman Urdu',
+  ur: 'Urdu',
+  hi: 'Hindi',
+  ms: 'Malay',
+  auto: 'Auto Detect',
+}
+
 export function Conversation({ complaint, role, reload, initialDraft }: { complaint: Complaint; role: Role | null; reload: () => Promise<void>; initialDraft?: string }) {
   const customer = role === 'customer'
   const [messages, setMessages] = useState<ComplaintMessage[] | null>(null)
@@ -65,6 +74,9 @@ export function Conversation({ complaint, role, reload, initialDraft }: { compla
   const [source, setSource] = useState<'agent' | 'genai_draft'>(initialDraft ? 'genai_draft' : 'agent')
   const [flags, setFlags] = useState<Array<{ code?: string; detail?: string; value?: string }>>([])
   const [busy, setBusy] = useState(false)
+  const [showOriginal, setShowOriginal] = useState<Record<number, boolean>>({})
+  const toggleOriginal = (id: number) => setShowOriginal((prev) => ({ ...prev, [id]: !prev[id] }))
+
   const reviewer = role === 'reviewer' || role === 'manager' || role === 'administrator'
   const load = useCallback(() => { api.messages(complaint.id).then(setMessages).catch((e) => toast.error(messageOf(e))) }, [complaint.id])
   useEffect(() => { load() }, [load])
@@ -94,17 +106,115 @@ export function Conversation({ complaint, role, reload, initialDraft }: { compla
     } catch (err) { toast.error(messageOf(err)) } finally { setBusy(false) }
   }
 
+  const custLanguage = complaint.customer_language && complaint.customer_language !== 'auto' && complaint.customer_language !== 'en'
+    ? complaint.customer_language
+    : complaint.source_language && complaint.source_language !== 'en'
+      ? complaint.source_language
+      : null
+
   const closed = complaint.status === 'closed'
   return <div className="conversation">
     <div className="thread">
-      {messages === null ? <Skeleton /> : messages.length ? messages.map((m) => <article key={m.id} className={`message ${m.direction}`}>
-        <header>{m.direction === 'internal' ? <Lock /> : m.direction === 'from_customer' ? <UserRound /> : <MessageSquareText />}<b>{m.author}</b>
-          {m.direction === 'internal' && <span className="chip">Internal note</span>}
-          {m.source === 'genai_draft' && <span className="chip">GenAI draft, edited &amp; checked</span>}
-          {!!m.flags?.length && <span className="chip warn">Sent with override</span>}
-          <small>{dateTime(m.created_at)}{!customer && m.direction === 'to_customer' ? (m.read_by_customer ? ' · Read' : ' · Unread') : ''}</small></header>
-        <p>{m.body}</p>
-      </article>) : <EmptyState icon={MessageSquareText} title="No messages yet" description={customer ? 'Send a message to the support team about this complaint.' : 'Reply to the customer or add an internal note.'} />}
+      {messages === null ? <Skeleton /> : messages.length ? messages.map((m) => {
+        const isOriginal = !!showOriginal[m.id]
+        const srcLang = m.source_language || 'en'
+        const srcLangName = LANGUAGE_NAMES[srcLang] || srcLang
+        const tgtLang = m.target_language || 'en'
+        const tgtLangName = LANGUAGE_NAMES[tgtLang] || tgtLang
+        const hasTranslation = !!m.translated_body && m.translated_body.trim() !== ''
+
+        let displayText = m.body
+        let translationNotice: React.ReactNode = null
+        let toggleButton: React.ReactNode = null
+
+        if (customer) {
+          if (m.direction === 'to_customer' && hasTranslation) {
+            displayText = isOriginal ? m.body : m.translated_body!
+            translationNotice = (
+              <span className="chip" style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                <Globe style={{ width: 12, height: 12 }} />
+                {isOriginal ? 'Original (English)' : `Translated (${tgtLangName})`}
+              </span>
+            )
+            toggleButton = (
+              <button
+                type="button"
+                className="text-button"
+                style={{ fontSize: '0.78rem', textDecoration: 'underline', marginTop: '4px' }}
+                onClick={() => toggleOriginal(m.id)}
+              >
+                {isOriginal ? `View Translated (${tgtLangName})` : 'View Original English'}
+              </button>
+            )
+          }
+        } else {
+          if (m.direction === 'from_customer' && hasTranslation) {
+            displayText = isOriginal ? m.body : m.translated_body!
+            const confidencePct = m.translation_confidence ? Math.round(m.translation_confidence * 100) : 95
+            translationNotice = (
+              <span className="chip" style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }} title={`Language: ${srcLangName} (${confidencePct}% confidence)`}>
+                <Globe style={{ width: 12, height: 12 }} />
+                {srcLangName} · {confidencePct}%
+              </span>
+            )
+            toggleButton = (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                <button
+                  type="button"
+                  className="text-button"
+                  style={{ fontSize: '0.78rem', textDecoration: 'underline' }}
+                  onClick={() => toggleOriginal(m.id)}
+                >
+                  {isOriginal ? 'View English Translation' : 'View Original'}
+                </button>
+                <small className="muted" style={{ fontSize: '0.74rem' }}>
+                  {isOriginal ? `(Original customer message in ${srcLangName})` : '(Internal English translation)'}
+                </small>
+              </div>
+            )
+          } else if (m.direction === 'to_customer' && hasTranslation) {
+            displayText = isOriginal ? m.translated_body! : m.body
+            translationNotice = (
+              <span className="chip" style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                <Globe style={{ width: 12, height: 12 }} />
+                Delivered in {tgtLangName}
+              </span>
+            )
+            toggleButton = (
+              <button
+                type="button"
+                className="text-button"
+                style={{ fontSize: '0.78rem', textDecoration: 'underline', marginTop: '4px' }}
+                onClick={() => toggleOriginal(m.id)}
+              >
+                {isOriginal ? 'View Original English' : `View Delivered Translation (${tgtLangName})`}
+              </button>
+            )
+          }
+        }
+
+        return (
+          <article key={m.id} className={`message ${m.direction}`}>
+            <header>
+              {m.direction === 'internal' ? <Lock /> : m.direction === 'from_customer' ? <UserRound /> : <MessageSquareText />}
+              <b>{m.author}</b>
+              {m.direction === 'internal' && <span className="chip">Internal note</span>}
+              {m.source === 'genai_draft' && <span className="chip">GenAI draft, edited &amp; checked</span>}
+              {!!m.flags?.length && <span className="chip warn">Sent with override</span>}
+              {translationNotice}
+              {!customer && m.translation_confidence && m.translation_confidence < 0.85 && (
+                <span className="chip warn" title="Confidence below 85% — translation may require review">
+                  <AlertTriangle style={{ width: 12, height: 12, marginRight: 2 }} />
+                  May require review
+                </span>
+              )}
+              <small>{dateTime(m.created_at)}{!customer && m.direction === 'to_customer' ? (m.read_by_customer ? ' · Read' : ' · Unread') : ''}</small>
+            </header>
+            <p style={{ whiteSpace: 'pre-wrap' }}>{displayText}</p>
+            {toggleButton}
+          </article>
+        )
+      }) : <EmptyState icon={MessageSquareText} title="No messages yet" description={customer ? 'Send a message to the support team about this complaint.' : 'Reply to the customer or add an internal note.'} />}
     </div>
     {closed ? <p className="muted conversation-closed">This complaint is closed. {customer ? 'Please submit a new complaint if you need more help.' : ''}</p> : <form className="composer" onSubmit={send}>
       {!customer && <div className="composer-tools">
@@ -116,7 +226,17 @@ export function Conversation({ complaint, role, reload, initialDraft }: { compla
       {!!flags.length && <div className="alert warning composer-flags"><ShieldAlert /><span><b>Validation found problems in this reply</b>{flags.map((f, i) => <span key={i}>• {labelize(f.code || 'issue')}: {f.detail || f.value}</span>)}<em>Edit the reply so it doesn't promise anything the policy doesn't allow.</em></span>
         {reviewer && <button type="button" className="button danger-outline compact" disabled={busy} onClick={() => send(undefined, true)}>Send anyway (audited)</button>}</div>}
       <div className="composer-actions">
-        {!customer && !internal && <small className="muted"><BookCheck /> Replies are checked for unsupported promises and invented facts before sending.</small>}
+        {!customer && !internal && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            <small className="muted"><BookCheck /> Replies are checked for unsupported promises and invented facts before sending.</small>
+            {custLanguage && (
+              <small className="muted" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                <Globe style={{ width: 12, height: 12 }} />
+                Customer language: <b>{LANGUAGE_NAMES[custLanguage] || custLanguage}</b> — reply will be automatically translated.
+              </small>
+            )}
+          </div>
+        )}
         {requestInfo && !internal && <span className="chip warn">Will set status to “awaiting customer”</span>}
         <button className="button primary" disabled={busy || !body.trim()}>{busy ? <RefreshCw className="spin" /> : <Send />} {customer ? 'Send message' : internal ? 'Add note' : 'Send reply'}</button>
       </div>
@@ -187,7 +307,7 @@ export function EvaluationPage() {
           <button key={r.id} className={selected === r.id ? 'selected' : ''} onClick={() => setSelected(r.id)}>
             <b>{r.name}</b><small>{date(r.created_at)} · {r.total} complaints · {r.use_genai ? 'GenAI + Python' : 'Python only'}</small>
             <span className={`status-badge ${r.status === 'done' ? 'resolved' : r.status === 'failed' ? 'escalated' : 'analyzed'}`}>{labelize(r.status)}</span>
-          </button>)}</div> : <p className="muted">No runs yet. Try hidden_test_ready/example_hidden_pack.csv or sample_complaints/nimbuscarta_500.csv.</p>}</Panel>
+          </button>)}</div> : <p className="muted">No runs yet. Try hidden_test_ready/example_hidden_pack.csv or sample_complaints/supportnova_500.csv.</p>}</Panel>
       </div>
       <div className="stack">
         {!result ? <div className="card"><EmptyState icon={FileSpreadsheet} title="No run selected" description="Import a pack to see accuracy, agreement and every mismatch." /></div> : <>

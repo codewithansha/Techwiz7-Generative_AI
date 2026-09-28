@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="100%" height="100%">
+  <defs>
+    <linearGradient id="mon-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#161b26"/>
+      <stop offset="100%" stop-color="#0b0e14"/>
+    </linearGradient>
+    <linearGradient id="screen-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="50%" stop-color="#1e1b4b"/>
+      <stop offset="100%" stop-color="#312e81"/>
+    </linearGradient>
+    <linearGradient id="screen-glow" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#06b6d4"/>
+      <stop offset="50%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#ec4899"/>
+    </linearGradient>
+  </defs>
+  <rect width="100%" height="100%" rx="16" fill="url(#mon-bg)"/>
+  
+  <g transform="translate(60, 35)">
+    <!-- Screen frame -->
+    <rect x="0" y="0" width="280" height="175" rx="8" fill="#1e293b" stroke="#334155" stroke-width="2"/>
+    <!-- Active display -->
+    <rect x="6" y="6" width="268" height="152" rx="4" fill="url(#screen-grad)"/>
+    
+    <!-- Screen graphic waves -->
+    <path d="M15,130 Q70,70 140,110 T260,80" fill="none" stroke="url(#screen-glow)" stroke-width="3"/>
+    <path d="M15,140 Q70,95 140,125 T260,105" fill="none" stroke="#06b6d4" stroke-width="2" opacity="0.6"/>
+    <!-- Stand neck -->
+    <rect x="128" y="175" width="24" height="42" fill="#334155"/>
+    <polygon points="128,175 118,217 162,217 152,175" fill="#1e293b"/>
+    <!-- Stand base -->
+    <rect x="85" y="217" width="110" height="10" rx="5" fill="#475569" stroke="#64748b" stroke-width="1.5"/>
+  </g>
+</svg>

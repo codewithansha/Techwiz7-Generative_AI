@@ -179,7 +179,7 @@ eligible / compensation permitted (y, n, ? = to be verified). Required and prohi
 | RR-167 | Privacy / Data Exposure | delete my data, data deletion, access my data, copy of my data | Compliance | medium | P2 | PRI-POL-01 §3 | - | n/n/n |
 | RR-168 | Privacy / Data Exposure | public link, visible to anyone, anyone can see, exposed online | Compliance | high | P1 | PRI-POL-01 §2.4 | compliance_review | n/n/n |
 | RR-169 | Account / Unauthorized Access | unknown device, unrecognised login, unrecognized login, suspicious login, new device login | Account Security | high | P1 | SEC-POL-01 §3.0 | specialist_team | n/n/n |
-| RR-170 | Account / Unauthorized Access | phishing, scam call, fake call, fake sms, pretending to be nimbuscarta | Account Security | high | P1 | SEC-POL-01 §4 | specialist_team | n/n/n |
+| RR-170 | Account / Unauthorized Access | phishing, scam call, fake call, fake sms, pretending to be supportnova | Account Security | high | P1 | SEC-POL-01 §4 | specialist_team | n/n/n |
 | RR-171 | Account / Unauthorized Access | orders i never placed, order i did not place, fraudulent order, placed without my permission | Account Security (+ Billing) | high | P1 | SEC-POL-01 §3.0 | specialist_team | ?/n/n |
 | RR-172 | Account / Unauthorized Access | password was changed, email was changed, changed my password, changed my email | Account Security | high | P1 | SEC-POL-01 §3.0 | specialist_team | n/n/n |
 | RR-173 | Account / Account Locked | verification code, otp not received, code never arrives, code not received | Account Security | medium | P2 | SEC-POL-01 §2.2 | - | n/n/n |

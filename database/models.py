@@ -164,9 +164,11 @@ class Customer(Base, TimestampMixin):
     )
     email: Mapped[str] = mapped_column(String(255), index=True)
     is_vip: Mapped[bool] = mapped_column(Boolean, default=False)
+    preferred_language: Mapped[str] = mapped_column(String(32), default="auto")
 
     user: Mapped[Optional[User]] = relationship(back_populates="customer")
     complaints: Mapped[list["Complaint"]] = relationship(back_populates="customer")
+    orders: Mapped[list["Order"]] = relationship(back_populates="customer")
 
 
 class Department(Base, TimestampMixin):
@@ -384,6 +386,11 @@ class Complaint(Base, TimestampMixin):
     escalation_required: Mapped[bool] = mapped_column(Boolean, default=False)
     pending_review: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     needs_reanalysis: Mapped[bool] = mapped_column(Boolean, default=False)
+    source_language: Mapped[str] = mapped_column(String(32), default="en")
+    translated_title: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    translated_description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    customer_language: Mapped[str] = mapped_column(String(32), default="auto")
+    translation_confidence: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
 
     customer: Mapped[Optional[Customer]] = relationship(back_populates="complaints")
     assigned_department: Mapped[Optional[Department]] = relationship(foreign_keys=[assigned_department_id])
@@ -526,6 +533,12 @@ class ComplaintMessage(Base, TimestampMixin):
     source: Mapped[str] = mapped_column(String(16), default="agent")
     flags: Mapped[list[Any]] = mapped_column(JSONB, default=list)
     read_by_customer: Mapped[bool] = mapped_column(Boolean, default=False)
+    translated_body: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    source_language: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
+    target_language: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
+    translation_status: Mapped[str] = mapped_column(String(32), default="completed")
+    translation_confidence: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    translated_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
     author: Mapped[Optional[User]] = relationship()
 
@@ -612,3 +625,35 @@ class AppSetting(Base):
     value: Mapped[Any] = mapped_column(JSONB)
     updated_by_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class Product(Base, TimestampMixin):
+    __tablename__ = "products"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    product_number: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    name: Mapped[str] = mapped_column(String(255), index=True)
+    title: Mapped[str] = mapped_column(String(255))
+    description: Mapped[str] = mapped_column(Text, default="")
+    price: Mapped[float] = mapped_column(Float, default=0.0)
+    category: Mapped[str] = mapped_column(String(128), default="Electronics")
+    image: Mapped[str] = mapped_column(String(512), default="")
+    specs: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+
+class Order(Base, TimestampMixin):
+    __tablename__ = "orders"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    order_number: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    customer_id: Mapped[int] = mapped_column(ForeignKey("customers.id"), index=True)
+    items: Mapped[list[Any]] = mapped_column(JSONB, default=list)
+    total_amount: Mapped[float] = mapped_column(Float, default=0.0)
+    quantity: Mapped[int] = mapped_column(Integer, default=1)
+    order_summary: Mapped[str] = mapped_column(String(512), default="")
+    payment_status: Mapped[str] = mapped_column(String(64), default="PAID")
+    payment_method: Mapped[str] = mapped_column(String(64), default="Credit Card (NimbusPay)")
+    shipping_address: Mapped[str] = mapped_column(String(512), default="")
+
+    customer: Mapped["Customer"] = relationship(back_populates="orders")

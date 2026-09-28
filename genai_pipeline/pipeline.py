@@ -42,10 +42,14 @@ def run_genai_pipeline(
     tone: str = "professional",
     repeat_context: str = "",
 ) -> tuple[GenAIRun, list[dict]]:
-    policy_chunks = retrieve_policy_chunks(db, f"{complaint.title} {complaint.description} {complaint.product_or_service}")
+    tr_context = " ".join(part for part in [getattr(complaint, "translated_title", None), getattr(complaint, "translated_description", None)] if part and part.strip())
+    retrieval_query = f"{complaint.title} {complaint.description} {complaint.product_or_service} {tr_context}".strip()
+    policy_chunks = retrieve_policy_chunks(db, retrieval_query)
     prompt_version = active_prompt_version()
     # Customer text and uploaded documents are untrusted; PII is masked before it leaves the app.
     complaint_text = mask_pii(f"{complaint.title}\n{complaint.description}")
+    if tr_context:
+        complaint_text += f"\n[English Translation: {tr_context}]"
     system_prompt, user_prompt = render_prompts(
         {
             "complaint_id": complaint.complaint_code,

@@ -125,13 +125,18 @@ export interface Complaint {
   open_followups?: Array<{ type: string; message: string; scheduled_at: string }>
   incident_date?: string | null
   unread_messages?: number
-  feedback?: { rating: number; comment: string } | null
+  feedback?: { rating: number; comment?: string; created_at?: string } | null
   classification?: { category?: string | null; subcategory?: string | null; urgency?: string | null; priority?: string | null; sentiment?: string | null; escalation_required?: boolean; overridden?: boolean }
   first_response?: 'met' | 'breached' | 'pending' | 'overdue' | 'n/a'
   sla_first_response_due?: string | null
   first_responded_at?: string | null
   needs_reanalysis?: boolean
   latest_review?: { action: string; comments: string; final_decision: Record<string, unknown>; created_at: string } | null
+  source_language?: string
+  translated_title?: string | null
+  translated_description?: string | null
+  customer_language?: string
+  translation_confidence?: number | null
 }
 
 export interface Metrics {
@@ -156,7 +161,14 @@ export interface Metrics {
   manual_review_cases: number
   pending_reviews?: number
   repeat_complaints: number
-  csat?: { average: number | null; responses: number; distribution: Record<string, number> }
+  csat?: {
+    average: number | null
+    responses: number
+    distribution: Record<string, number>
+    by_department?: Record<string, number | null>
+    by_category?: Record<string, number | null>
+    by_agent?: Record<string, number | null>
+  }
   first_response?: { met: number; breached: number; pending: number; overdue: number; compliance: number | null }
   daily_volume?: Array<{ date: string; complaints: number; escalations: number }>
 }
@@ -186,6 +198,8 @@ export interface BriefComplaint {
   escalation_level?: string
   sla_risk?: boolean
   suggested_response?: string
+  source_language?: string
+  translated_title?: string | null
 }
 
 export interface Department {
@@ -314,6 +328,7 @@ export interface ComplaintDraft {
   requested_resolution: string
   channel?: string
   incident_date?: string
+  preferred_language?: string
 }
 
 export interface AnalysisResult {
@@ -344,6 +359,34 @@ export interface ComplaintMessage {
   flags: ValidationFlag[]
   created_at: string
   read_by_customer: boolean
+  translated_body?: string | null
+  source_language?: string | null
+  target_language?: string | null
+  translation_status?: string | null
+  translation_confidence?: number | null
+  translated_at?: string | null
+}
+
+export interface SupportedLanguage {
+  code: string
+  name: string
+  native_name: string
+}
+
+export interface TranslationDetectResult {
+  language: string
+  language_name: string
+  confidence: number
+  is_mixed: boolean
+}
+
+export interface TranslationResult {
+  original_text: string
+  translated_text: string
+  source_language: string
+  target_language: string
+  confidence: number
+  status: string
 }
 
 export interface NotificationItem {
@@ -424,4 +467,67 @@ export type Evidence = {
   purchase_date: string | null
   injection_in: string[]
   items: EvidenceItem[]
+}
+
+export interface Product {
+  id: number
+  _id?: string
+  productNumber: string
+  product_number?: string
+  name: string
+  title: string
+  description: string
+  price: number
+  category: string
+  image: string
+  specs?: Record<string, string>
+  is_active?: boolean
+}
+
+export interface OrderItem {
+  productId?: number
+  productNumber: string
+  productName: string
+  image: string
+  quantity: number
+  unitPrice: number
+  totalPrice: number
+}
+
+export interface Order {
+  id: number
+  _id?: string
+  orderNumber: string
+  order_number?: string
+  customerId: number
+  customer_id?: number
+  items: OrderItem[]
+  totalAmount: number
+  total_amount?: number
+  quantity: number
+  orderSummary: string
+  order_summary?: string
+  paymentStatus: string
+  payment_status?: string
+  paymentMethod: string
+  payment_method?: string
+  shippingAddress?: string
+  shipping_address?: string
+  createdAt: string
+  created_at?: string
+}
+
+export interface Invoice {
+  store_name: string
+  order_number: string
+  purchase_date: string
+  payment_status: string
+  payment_method: string
+  customer_name: string
+  customer_email: string
+  shipping_address?: string
+  items: OrderItem[]
+  total_amount: number
+  quantity: number
+  thank_you_message: string
 }

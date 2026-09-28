@@ -25,7 +25,7 @@ def make(order: str, out: Path, days: int = 9) -> list[Path]:
     pdf = fitz.open()
     page = pdf.new_page(width=595, height=842)
     page.draw_rect(fitz.Rect(40, 40, 555, 110), color=(0.35, 0.3, 0.9), fill=(0.35, 0.3, 0.9))
-    page.insert_text((60, 85), "NimbusCarta  |  Tax Invoice", fontsize=20, color=(1, 1, 1))
+    page.insert_text((60, 85), "SupportNova  |  Tax Invoice", fontsize=20, color=(1, 1, 1))
     y = 150
     for key, value in [("Invoice no", f"INV-{bought.year}-{order[-5:]}"), ("Invoice date", bought.isoformat()), ("Order", order), ("Customer", "Demo Customer"), ("Delivered on", delivered.isoformat())]:
         page.insert_text((60, y), f"{key}:", fontsize=12)
@@ -39,7 +39,7 @@ def make(order: str, out: Path, days: int = 9) -> list[Path]:
         page.insert_text((x, y), text, fontsize=12)
     y += 30
     page.insert_text((60, y), "Total paid: PKR 89,999 (card)", fontsize=13)
-    page.insert_text((60, y + 40), "Returns and replacements follow NimbusCarta policy RPL-POL-01.", fontsize=10)
+    page.insert_text((60, y + 40), "Returns and replacements follow SupportNova policy RPL-POL-01.", fontsize=10)
     invoice = out / f"invoice_{order}.pdf"
     pdf.save(invoice)
     pdf.close()

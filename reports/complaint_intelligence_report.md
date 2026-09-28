@@ -14,7 +14,7 @@ Generated 2026-09-25 04:46 UTC by `python scripts/complaint_intelligence_report.
 
 All classification, routing, urgency, priority and escalation figures come from Pipeline 2 (Python rules), which
 is the ground truth. If this database was filled by `scripts/run_evaluation.py`, it holds the labelled synthetic
-NimbusCarta dataset. The distributions then describe that dataset's mix of SRS case types, not real
+SupportNova dataset. The distributions then describe that dataset's mix of SRS case types, not real
 customer traffic.
 
 ## Category
@@ -262,12 +262,12 @@ Ten most frequent products or services.
 | AuraBuds Pro | 86 | 16.2% |
 | NovaCharge 65W | 83 | 15.6% |
 | PulseWatch S | 61 | 11.5% |
-| NimbusCarta customer account | 51 | 9.6% |
+| SupportNova customer account | 51 | 9.6% |
 | CartDock Mini | 42 | 7.9% |
 | ForgePad | 32 | 6.0% |
 | LumenLamp | 29 | 5.5% |
 | NimbusCare+ Protection Plan | 29 | 5.5% |
-| NimbusCarta mobile app | 14 | 2.6% |
+| SupportNova mobile app | 14 | 2.6% |
 
 ## Customer type
 

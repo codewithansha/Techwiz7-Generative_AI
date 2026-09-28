@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="100%" height="100%">
+  <defs>
+    <linearGradient id="cb-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#161b24"/>
+      <stop offset="100%" stop-color="#0d1017"/>
+    </linearGradient>
+    <linearGradient id="thunderbolt" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+  </defs>
+  <rect width="100%" height="100%" rx="16" fill="url(#cb-bg)"/>
+  
+  <g transform="translate(60, 50)">
+    <!-- Braided coiled cable loops -->
+    <path d="M40,160 C20,90 120,50 180,110 C240,170 120,230 80,170 C40,110 140,40 220,90" fill="none" stroke="#334155" stroke-width="12" stroke-linecap="round"/>
+    <path d="M40,160 C20,90 120,50 180,110 C240,170 120,230 80,170 C40,110 140,40 220,90" fill="none" stroke="#64748b" stroke-width="12" stroke-linecap="round" stroke-dasharray="4 8"/>
+    
+    <!-- Left Connector Head -->
+    <g transform="translate(20, 160) rotate(-40)">
+      <rect x="0" y="-12" width="40" height="24" rx="6" fill="#1e293b" stroke="#64748b" stroke-width="2"/>
+      <rect x="40" y="-8" width="18" height="16" rx="4" fill="#94a3b8"/>
+      <!-- Lightning bolt icon -->
+      <polygon points="18,-6 24,-6 20,0 26,0 16,8 19,1 14,1" fill="url(#thunderbolt)"/>
+    </g>
+    
+    <!-- Right Connector Head -->
+    <g transform="translate(225, 95) rotate(45)">
+      <rect x="0" y="-12" width="40" height="24" rx="6" fill="#1e293b" stroke="#64748b" stroke-width="2"/>
+      <rect x="40" y="-8" width="18" height="16" rx="4" fill="#94a3b8"/>
+      <!-- Lightning bolt icon -->
+      <polygon points="18,-6 24,-6 20,0 26,0 16,8 19,1 14,1" fill="url(#thunderbolt)"/>
+    </g>
+  </g>
+</svg>

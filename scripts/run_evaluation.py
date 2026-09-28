@@ -1,6 +1,6 @@
 """Run a labelled complaint pack through the pipelines and write the SRS comparison report.
 
-    python scripts/run_evaluation.py sample_complaints/nimbuscarta_500.json
+    python scripts/run_evaluation.py sample_complaints/supportnova_500.json
     python scripts/run_evaluation.py hidden_test_ready/example_hidden_pack.csv --limit 20 --out reports/
     python scripts/run_evaluation.py pack.json --genai          # also call Pipeline 1 (needs provider credit)
 
@@ -332,7 +332,7 @@ def write_summary(path: Path, data: dict, details: dict, meta: dict) -> None:
         "",
         "## Read this first: what the accuracy figures mean",
         "",
-        "The `expected_*` labels in `sample_complaints/nimbuscarta_500.json` (and the hidden-pack example) were",
+        "The `expected_*` labels in `sample_complaints/supportnova_500.json` (and the hidden-pack example) were",
         "produced by `scripts/generate_complaints.py`. It runs **the same Python pipeline** against the seeded rule",
         "matrix in memory (see `sample_complaints/README.md`). Python accuracy against these labels is therefore",
         "**not an independent measure of classification quality**. It is a consistency and regression check. It",

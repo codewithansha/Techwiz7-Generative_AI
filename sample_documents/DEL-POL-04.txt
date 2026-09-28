@@ -1,4 +1,4 @@
-"""NimbusCarta Delivery Policy DEL-POL-04
+"""SupportNova Delivery Policy DEL-POL-04
 Version 1.0
 Effective date: 2026-01-01
 

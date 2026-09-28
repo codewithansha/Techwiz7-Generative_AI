@@ -1,10 +1,10 @@
 # GenAI vs Python comparison summary
 
-Generated 2026-09-25 04:46 UTC by `python scripts/run_evaluation.py sample_complaints/nimbuscarta_500.json`.
+Generated 2026-09-25 04:46 UTC by `python scripts/run_evaluation.py sample_complaints/supportnova_500.json`.
 
 | | |
 |---|---|
-| Pack | `sample_complaints/nimbuscarta_500.json`: rows 1-532 of 532 (the whole file) |
+| Pack | `sample_complaints/supportnova_500.json`: rows 1-532 of 532 (the whole file) |
 | Database | `supportnova_reports` (disposable; evaluation run #1, status done) |
 | Complaints analysed | 532 (0 rejected at intake) in 90 s |
 | Pipeline 1 (GenAI) | not run (no provider credit); GenAI rows scored: 0 |
@@ -13,7 +13,7 @@ Generated 2026-09-25 04:46 UTC by `python scripts/run_evaluation.py sample_compl
 
 ## Read this first: what the accuracy figures mean
 
-The `expected_*` labels in `sample_complaints/nimbuscarta_500.json` (and the hidden-pack example) were
+The `expected_*` labels in `sample_complaints/supportnova_500.json` (and the hidden-pack example) were
 produced by `scripts/generate_complaints.py`. It runs **the same Python pipeline** against the seeded rule
 matrix in memory (see `sample_complaints/README.md`). Python accuracy against these labels is therefore
 **not an independent measure of classification quality**. It is a consistency and regression check. It

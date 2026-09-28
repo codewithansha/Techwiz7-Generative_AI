@@ -46,7 +46,15 @@ def run_python_validation(
 
     Nothing here calls a GenAI API, and GenAI output never changes the Python result.
     """
+    translated_text = " ".join(
+        part for part in [
+            getattr(complaint, "translated_title", None),
+            getattr(complaint, "translated_description", None),
+        ] if part and part.strip()
+    )
     text = f"{complaint.title}\n{complaint.description}"
+    if translated_text:
+        text = f"{text}\n{translated_text}"
     # Attachments are evidence, not classification input: an invoice full of product words
     # must not change the category, but its order number, amounts and dates are used below.
     evidence = evidence_summary(complaint.attachments)

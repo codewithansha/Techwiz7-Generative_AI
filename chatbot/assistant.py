@@ -146,7 +146,7 @@ def detect_intent(text: str, user: User, has_context: bool) -> str:
 
 def _greeting(db, user, text, **_) -> Reply:
     first = (user.full_name or "there").split()[0]
-    reply = Reply(f"Hi {first}! I'm Nova, the NimbusCarta support assistant. " + _capabilities(user), "greeting")
+    reply = Reply(f"Hi {first}! I'm Nova, the SupportNova support assistant. " + _capabilities(user), "greeting")
     reply.actions = _suggestions(user)
     return reply
 
@@ -345,7 +345,7 @@ def _draft(db, user, text, *, context=None, **_) -> Reply:
         # Grounded template: acknowledge, summarize, next step, no promises (SRS step 32).
         dept = py.get("department") or "support"
         body = (
-            f"Thank you for contacting NimbusCarta about \"{complaint.title}\". We're sorry for the trouble this has caused. "
+            f"Thank you for contacting SupportNova about \"{complaint.title}\". We're sorry for the trouble this has caused. "
             f"Our {dept} team has your complaint ({complaint.complaint_code}) and is reviewing it against our policy. "
             "We will update you as soon as the next step is confirmed."
         )

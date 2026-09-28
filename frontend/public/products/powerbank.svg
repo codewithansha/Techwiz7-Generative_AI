@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="100%" height="100%">
+  <defs>
+    <linearGradient id="pb-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#181822"/>
+      <stop offset="100%" stop-color="#0e0e14"/>
+    </linearGradient>
+    <linearGradient id="pb-shell" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#312e81"/>
+      <stop offset="50%" stop-color="#1e1b4b"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+  </defs>
+  <rect width="100%" height="100%" rx="16" fill="url(#pb-bg)"/>
+  
+  <g transform="translate(130, 40)">
+    <!-- Power bank brick -->
+    <rect x="0" y="0" width="140" height="220" rx="18" fill="url(#pb-shell)" stroke="#4338ca" stroke-width="2.5"/>
+    
+    <!-- Top port bar -->
+    <rect x="15" y="10" width="110" height="35" rx="6" fill="#0f172a"/>
+    <!-- USB-C 1 -->
+    <rect x="25" y="22" width="22" height="11" rx="4" fill="#38bdf8"/>
+    <!-- USB-C 2 -->
+    <rect x="58" y="22" width="22" height="11" rx="4" fill="#38bdf8"/>
+    <!-- USB-A -->
+    <rect x="92" y="20" width="24" height="15" rx="3" fill="#f59e0b"/>
+    
+    <!-- Digital percentage display -->
+    <rect x="35" y="80" width="70" height="40" rx="8" fill="#090d16" stroke="#1e293b" stroke-width="1.5"/>
+    <text x="70" y="108" fill="#06b6d4" font-family="monospace" font-size="22" font-weight="bold" text-anchor="middle">98%</text>
+    
+    <!-- 65W GaN text -->
+    <text x="70" y="175" fill="#a5b4fc" font-family="sans-serif" font-size="14" font-weight="bold" letter-spacing="2" text-anchor="middle">65W FAST</text>
+    <text x="70" y="195" fill="#6366f1" font-family="sans-serif" font-size="10" letter-spacing="1" text-anchor="middle">20000 mAh</text>
+  </g>
+</svg>

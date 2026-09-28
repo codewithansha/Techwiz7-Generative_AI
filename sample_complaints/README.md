@@ -1,9 +1,9 @@
-# NimbusCarta labelled complaint dataset
+# SupportNova labelled complaint dataset
 
-`nimbuscarta_500.json` and `nimbuscarta_500.csv` hold the same 532 synthetic complaints for
-the fictional consumer-electronics retailer **NimbusCarta** (AuraBuds Pro, NovaCharge 65W,
+`supportnova_500.json` and `supportnova_500.csv` hold the same 532 synthetic complaints for
+the fictional consumer-electronics retailer **SupportNova** (AuraBuds Pro, NovaCharge 65W,
 NimbusTab 11, PulseWatch S, CartDock Mini, LumenLamp, ForgePad, NimbusCare+ plan, the
-NimbusCarta app and customer accounts). Amounts are in PKR.
+SupportNova app and customer accounts). Amounts are in PKR.
 
 Regenerate (deterministic, seed 20260925):
 

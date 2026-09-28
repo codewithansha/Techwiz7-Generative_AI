@@ -52,7 +52,7 @@ def test_pdf_sections_follow_numbered_headings_and_drop_running_headers():
     numbers = [s["section"] for s in sections]
     assert {"5.2", "6.1", "7.0"} <= set(numbers)
     assert all(s["page_number"] for s in sections)
-    assert not any("NimbusCarta internal" in s["content"] for s in sections)
+    assert not any("SupportNova internal" in s["content"] for s in sections)
 
 
 def test_docx_sections_use_heading_numbers():

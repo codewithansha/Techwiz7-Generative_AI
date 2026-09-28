@@ -1,6 +1,6 @@
 """Complaint intelligence report from an evaluated database.
 
-    python scripts/run_evaluation.py sample_complaints/nimbuscarta_500.json --reset   # fills supportnova_reports
+    python scripts/run_evaluation.py sample_complaints/supportnova_500.json --reset   # fills supportnova_reports
     python scripts/complaint_intelligence_report.py [--out reports/] [--database-url ...]
 
 Writes reports/complaint_intelligence_report.md and .xlsx (one sheet per table). Numbers come
@@ -137,7 +137,7 @@ def build(data: dict, database: str) -> tuple[str, dict[str, list[list]]]:
         "",
         "All classification, routing, urgency, priority and escalation figures come from Pipeline 2 (Python rules), which",
         "is the ground truth. If this database was filled by `scripts/run_evaluation.py`, it holds the labelled synthetic",
-        "NimbusCarta dataset. The distributions then describe that dataset's mix of SRS case types, not real",
+        "SupportNova dataset. The distributions then describe that dataset's mix of SRS case types, not real",
         "customer traffic.",
         "",
     ]

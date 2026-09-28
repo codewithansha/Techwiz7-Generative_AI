@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="100%" height="100%">
+  <defs>
+    <linearGradient id="hub-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#141c26"/>
+      <stop offset="100%" stop-color="#0a1017"/>
+    </linearGradient>
+    <linearGradient id="hub-body" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#475569"/>
+      <stop offset="50%" stop-color="#334155"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+  </defs>
+  <rect width="100%" height="100%" rx="16" fill="url(#hub-bg)"/>
+  
+  <g transform="translate(60, 90)">
+    <!-- USB-C Hub Body -->
+    <rect x="50" y="20" width="220" height="75" rx="14" fill="url(#hub-body)" stroke="#64748b" stroke-width="2"/>
+    <!-- Ports -->
+    <rect x="75" y="44" width="28" height="12" rx="2" fill="#0284c7" stroke="#0ea5e9" stroke-width="1"/>
+    <rect x="115" y="44" width="28" height="12" rx="2" fill="#0284c7" stroke="#0ea5e9" stroke-width="1"/>
+    <rect x="155" y="44" width="28" height="12" rx="2" fill="#0284c7" stroke="#0ea5e9" stroke-width="1"/>
+    <!-- HDMI port -->
+    <polygon points="200,44 225,44 222,56 203,56" fill="#1e1e2d" stroke="#f59e0b" stroke-width="1"/>
+    <!-- SD Slots -->
+    <line x1="240" y1="42" x2="240" y2="58" stroke="#94a3b8" stroke-width="3" stroke-linecap="round"/>
+    <line x1="250" y1="46" x2="250" y2="56" stroke="#94a3b8" stroke-width="2" stroke-linecap="round"/>
+    
+    <!-- LED indicator -->
+    <circle cx="65" cy="50" r="3" fill="#10b981"/>
+    
+    <!-- Braided Cable -->
+    <path d="M50,57 C-10,57 -15,10 25,-15" fill="none" stroke="#64748b" stroke-width="8" stroke-linecap="round"/>
+    <!-- Type-C plug -->
+    <rect x="25" y="-22" width="22" height="14" rx="4" fill="#334155" stroke="#94a3b8" stroke-width="1.5"/>
+    <rect x="47" y="-19" width="10" height="8" rx="2" fill="#cbd5e1"/>
+  </g>
+</svg>

@@ -1,0 +1,1143 @@
+/* ==========================================================================
+   SUPPORTNOVA · CHAMPIONSHIP TEAM POSTER PAGE
+   TechWiz 7 World Championship Aesthetic + Dual Theme (Light & Dark)
+   Exact Visual Reference Reproduction:
+   - Brand Lockup (White squircle icon + SupportNova / RESPONSEX AI)
+   - 3D Faceted Background supporting Dark Emerald & Light Aqua Mint
+   - Tilted White-Bordered Cards with Cutout Portraits
+   - Alternating Vertical Tags (Top-Right / Bottom-Left)
+   - Calligraphic "Team" Script & Bold 3D SupportNova Branding
+   - 3 Mentor Cards in a Single Row
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Alex+Brush&family=Dancing+Script:wght@700&family=Inter:wght@400;500;600;700;800;900&family=Montserrat:wght@800;900&display=swap');
+
+/* ─── Page Canvas (Dark Mode Default) ─────────────────────────────────────── */
+.tp-poster-page {
+    position: relative;
+    min-height: 100vh;
+    color: #fff;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: 0 0 60px;
+    transition: background 0.4s ease, color 0.3s ease;
+}
+
+/* ─── 3D Geometric Facets Background ──────────────────────────────────────── */
+.tp-facets-bg {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+}
+
+.tp-facets-svg {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: contrast(1.15) brightness(1.05);
+    transition: opacity 0.4s ease;
+}
+
+/* ─── Top Header Bar ──────────────────────────────────────────────────────── */
+.tp-poster-header {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 48px 12px;
+    max-width: 1320px;
+    margin: 0 auto;
+}
+
+.tp-logo-item {
+    display: flex;
+    align-items: center;
+}
+
+.tp-logo-item--left {
+    gap: 16px;
+}
+
+.tp-logo-item--center {
+    justify-content: center;
+}
+
+.tp-logo-item--right {
+    gap: 14px;
+}
+
+/* ── Back to Login Button ── */
+.tp-back-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 999px;
+    border: 1.5px solid rgba(255, 255, 255, 0.4);
+    background: rgba(4, 30, 16, 0.85);
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    backdrop-filter: blur(14px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.tp-back-btn:hover {
+    background: rgba(16, 185, 129, 0.95);
+    border-color: #ffffff;
+    transform: translateX(-3px);
+    box-shadow: 0 0 20px rgba(74, 222, 128, 0.6);
+}
+
+/* ── Exact SupportNova Brand Lockup (From User Reference Image) ── */
+.tp-brand-lockup {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    user-select: none;
+}
+
+.tp-brand-icon-box {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    box-shadow:
+        0 4px 14px rgba(0, 0, 0, 0.2),
+        0 0 12px rgba(34, 211, 238, 0.3);
+    border: 1.5px solid rgba(255, 255, 255, 0.9);
+    flex-shrink: 0;
+    transition: transform 0.25s ease;
+}
+
+.tp-brand-lockup:hover .tp-brand-icon-box {
+    transform: scale(1.05);
+}
+
+.tp-brand-logo-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.tp-brand-text-col {
+    display: flex;
+    flex-direction: column;
+}
+
+.tp-brand-main-title {
+    font-family: 'Inter', -apple-system, sans-serif;
+    font-size: 21px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: #ffffff;
+    line-height: 1.1;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.tp-brand-sub-badge {
+    font-family: 'Inter', sans-serif;
+    font-size: 10.5px;
+    font-weight: 900;
+    letter-spacing: 2.2px;
+    color: #22d3ee;
+    text-transform: uppercase;
+    margin-top: 2px;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+}
+
+/* ── Center: TechWiz 7 Logo ── */
+.tp-header-techwiz {
+    height: 52px;
+    max-height: 54px;
+    width: auto;
+    border-radius: 8px;
+    object-fit: contain;
+    box-shadow:
+        0 0 20px rgba(0, 240, 255, 0.4),
+        0 4px 16px rgba(0, 0, 0, 0.4);
+    border: 1.5px solid rgba(0, 240, 255, 0.45);
+}
+
+/* ── Right: Aptech Logo & Theme Toggle Button ── */
+.tp-aptech-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tp-header-aptech {
+    height: 48px;
+    width: auto;
+    max-width: 110px;
+    object-fit: contain;
+    border-radius: 6px;
+}
+
+/* Theme Toggle Button */
+.tp-theme-toggle-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(255, 255, 255, 0.4);
+    background: rgba(4, 30, 16, 0.85);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    backdrop-filter: blur(14px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.tp-theme-toggle-btn:hover {
+    background: rgba(16, 185, 129, 0.95);
+    border-color: #ffffff;
+    transform: scale(1.08) rotate(15deg);
+    box-shadow: 0 0 20px rgba(74, 222, 128, 0.6);
+}
+
+/* ─── Main Poster Stage ───────────────────────────────────────────────────── */
+.tp-poster-stage-wrap {
+    position: relative;
+    z-index: 5;
+    max-width: 1280px;
+    margin: 12px auto 0;
+    padding: 0 24px;
+}
+
+.tp-poster-stage {
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 16px;
+    padding: 10px 0 20px;
+}
+
+/* Card Column */
+.tp-card-col {
+    flex: 0 1 270px;
+    min-width: 230px;
+    max-width: 285px;
+    height: 440px;
+    position: relative;
+    cursor: pointer;
+    outline: none;
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), z-index 0.2s ease;
+}
+
+/* Stepped Overlap Order */
+.tp-card-col--1 {
+    z-index: 2;
+    margin-right: -14px;
+}
+
+.tp-card-col--2 {
+    z-index: 4;
+    margin-right: -14px;
+}
+
+.tp-card-col--3 {
+    z-index: 3;
+    margin-right: -14px;
+}
+
+.tp-card-col--4 {
+    z-index: 2;
+}
+
+.tp-card-col:hover {
+    z-index: 20;
+    transform: translateY(-12px) scale(1.03) !important;
+}
+
+/* ── Tilted Emerald Card Frame ── */
+.tp-card-frame {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    border: 2px solid rgba(255, 255, 255, 0.92);
+    border-radius: 14px;
+    background: linear-gradient(165deg, #10b981 0%, #059669 45%, #047857 100%);
+    box-shadow:
+        0 25px 50px -10px rgba(0, 30, 15, 0.7),
+        0 0 35px rgba(16, 185, 129, 0.3),
+        inset 0 0 20px rgba(255, 255, 255, 0.15);
+    transform: rotate(var(--card-tilt, 0deg));
+    transform-origin: center bottom;
+    overflow: hidden;
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s ease;
+}
+
+.tp-card-col:hover .tp-card-frame {
+    transform: rotate(0deg);
+    border-color: #ffffff;
+    box-shadow:
+        0 35px 70px -10px rgba(0, 25, 12, 0.85),
+        0 0 50px rgba(74, 222, 128, 0.5),
+        inset 0 0 25px rgba(255, 255, 255, 0.25);
+}
+
+.tp-card-bg {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 20%, rgba(52, 211, 153, 0.4) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+/* ── Vertical Rotated Department Tag (Top-Right / Bottom-Left) ── */
+.tp-vert-tag {
+    position: absolute;
+    z-index: 15;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    transform: rotate(180deg);
+    pointer-events: none;
+    user-select: none;
+}
+
+.tp-vert-tag--tr {
+    top: 16px;
+    right: 12px;
+}
+
+.tp-vert-tag--bl {
+    bottom: 56px;
+    left: 12px;
+}
+
+.tp-vert-sub {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.85);
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+}
+
+.tp-vert-main {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 13.5px;
+    font-weight: 900;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: #ffffff;
+    text-shadow:
+        0 2px 8px rgba(0, 0, 0, 0.7),
+        0 0 12px rgba(255, 255, 255, 0.4);
+}
+
+/* ── Person Cutout Portrait Box ── */
+.tp-card-photo-box {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.tp-card-photo-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top center;
+    display: block;
+    transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+    filter: drop-shadow(0 15px 25px rgba(0, 0, 0, 0.45));
+}
+
+.tp-card-col:hover .tp-card-photo-img {
+    transform: scale(1.06);
+}
+
+.tp-card-photo-fade {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 48%;
+    background: linear-gradient(to top, rgba(4, 120, 87, 0.98) 0%, rgba(4, 120, 87, 0.5) 45%, transparent 100%);
+    pointer-events: none;
+    z-index: 2;
+}
+
+/* ── Nameplate at Bottom of Card ── */
+.tp-card-nameplate {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    padding: 14px 14px 12px;
+    background: linear-gradient(to top, rgba(2, 44, 20, 0.95) 0%, rgba(2, 44, 20, 0.6) 70%, transparent 100%);
+    text-align: center;
+}
+
+.tp-card-name {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 15px;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: 0.5px;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
+    line-height: 1.2;
+}
+
+.tp-card-role-label {
+    font-size: 10.5px;
+    font-weight: 600;
+    color: #a7f3d0;
+    margin-top: 3px;
+    letter-spacing: 0.8px;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+}
+
+.tp-card-hover-pill {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(0, 0, 0, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    color: #38bdf8;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 999px;
+    opacity: 0;
+    transform: translateY(-4px);
+    transition: all 0.25s ease;
+    pointer-events: none;
+}
+
+.tp-card-col:hover .tp-card-hover-pill {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* ─── Poster Signature / Bottom Branding ──────────────────────────────────── */
+.tp-poster-branding {
+    position: relative;
+    z-index: 8;
+    margin-top: 8px;
+    padding: 10px 0 20px;
+}
+
+.tp-branding-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 36px;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.tp-script-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    padding-right: 20px;
+}
+
+.tp-script-team {
+    font-family: 'Alex Brush', 'Dancing Script', cursive;
+    font-size: 78px;
+    color: #ffffff;
+    line-height: 0.8;
+    font-weight: 400;
+    text-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+    user-select: none;
+}
+
+.tp-script-flourish {
+    position: absolute;
+    left: 45px;
+    bottom: 0px;
+    width: 190px;
+    height: 90px;
+    pointer-events: none;
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.4));
+    color: #ffffff;
+}
+
+.tp-brand-center {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.tp-brand-eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 2px;
+}
+
+.tp-eyebrow-chip {
+    background: #ffffff;
+    color: #047857;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 1px;
+    padding: 2px 6px;
+    border-radius: 3px;
+}
+
+.tp-eyebrow-text {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: #ffffff;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+
+.tp-brand-title {
+    font-family: 'Montserrat', sans-serif;
+    font-size: clamp(38px, 5.5vw, 64px);
+    font-weight: 900;
+    letter-spacing: 4px;
+    color: #ffffff;
+    line-height: 0.95;
+    margin: 2px 0 0;
+    text-shadow:
+        0 3px 0 #0f5132,
+        0 5px 0 #083320,
+        0 8px 18px rgba(0, 0, 0, 0.75),
+        0 0 35px rgba(255, 255, 255, 0.5);
+}
+
+.tp-brand-sub {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: rgba(255, 255, 255, 0.95);
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
+}
+
+.tp-brand-dot {
+    color: #4ade80;
+}
+
+/* ─── Mentors Section (Single Row Strict) ─────────────────────────────────── */
+.tp-mentors-section {
+    position: relative;
+    z-index: 10;
+    max-width: 1240px;
+    margin: 28px auto 0;
+    padding: 0 24px;
+}
+
+.tp-mentors-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 8px;
+}
+
+.tp-mentors-line {
+    flex: 1;
+    height: 1.5px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+}
+
+.tp-mentors-label-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(4, 40, 20, 0.85);
+    border: 1.5px solid rgba(255, 255, 255, 0.45);
+    border-radius: 999px;
+    padding: 6px 20px;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 0 25px rgba(16, 185, 129, 0.4);
+}
+
+.tp-mentors-desc {
+    text-align: center;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.85);
+    margin: 0 0 20px;
+    letter-spacing: 0.5px;
+}
+
+.tp-mentors-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+    align-items: stretch;
+    width: 100%;
+}
+
+.tp-mentor-pill-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: linear-gradient(135deg, rgba(8, 60, 32, 0.9) 0%, rgba(4, 38, 20, 0.96) 100%);
+    border: 1.5px solid rgba(255, 255, 255, 0.45);
+    border-radius: 14px;
+    padding: 14px 18px;
+    min-width: 0;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45), 0 0 20px rgba(16, 185, 129, 0.15);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.tp-mentor-pill-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--mentor-accent, #34d399);
+    background: linear-gradient(135deg, rgba(12, 78, 42, 0.95) 0%, rgba(6, 48, 26, 0.98) 100%);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 0 30px rgba(52, 211, 153, 0.4);
+}
+
+.tp-mentor-pill-avatar {
+    position: relative;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.15);
+    border: 2px solid var(--mentor-accent, #34d399);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 15px;
+    color: #ffffff;
+    flex-shrink: 0;
+    box-shadow: 0 0 14px var(--mentor-accent, #34d399);
+}
+
+.tp-mentor-pill-info {
+    flex: 1;
+}
+
+.tp-mentor-pill-name {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 15.5px;
+    font-weight: 800;
+    color: #ffffff !important;
+    margin: 0 0 3px;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
+}
+
+.tp-mentor-pill-role {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #a7f3d0 !important;
+    letter-spacing: 0.5px;
+}
+
+.tp-mentor-pill-tag {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10.5px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid var(--mentor-accent, #34d399);
+    padding: 4px 10px;
+    border-radius: 999px;
+}
+
+/* ─── Detail Modal ────────────────────────────────────────────────────────── */
+.tp-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 15, 8, 0.85);
+    backdrop-filter: blur(14px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    animation: tpFadeIn 0.25s ease both;
+}
+
+@keyframes tpFadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.tp-modal {
+    position: relative;
+    width: 100%;
+    max-width: 540px;
+    background: linear-gradient(165deg, #07381d 0%, #032010 100%);
+    border: 1.5px solid rgba(255, 255, 255, 0.35);
+    border-radius: 18px;
+    padding: 28px;
+    box-shadow:
+        0 30px 60px rgba(0, 0, 0, 0.8),
+        0 0 40px rgba(16, 185, 129, 0.3);
+    animation: tpZoomIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes tpZoomIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(12px);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.tp-modal-close {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.tp-modal-close:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: rotate(90deg);
+}
+
+.tp-modal-top {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.tp-modal-photo-wrap {
+    width: 88px;
+    height: 88px;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 2px solid var(--member-color, #34d399);
+    flex-shrink: 0;
+    box-shadow: 0 0 20px rgba(52, 211, 153, 0.3);
+}
+
+.tp-modal-photo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top center;
+}
+
+.tp-modal-identity {
+    flex: 1;
+}
+
+.tp-modal-name {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 20px;
+    font-weight: 800;
+    color: #ffffff;
+    margin: 0 0 4px;
+}
+
+.tp-modal-role {
+    font-size: 13px;
+    color: #a7f3d0;
+    margin: 0 0 6px;
+    font-weight: 600;
+}
+
+.tp-modal-resp {
+    display: inline-block;
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--member-color, #34d399);
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--member-color, #34d399);
+    padding: 2px 10px;
+    border-radius: 999px;
+}
+
+.tp-modal-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.15);
+    margin-bottom: 20px;
+}
+
+.tp-modal-section {
+    margin-bottom: 18px;
+}
+
+.tp-modal-section-label {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #38bdf8;
+    margin-bottom: 10px;
+}
+
+.tp-modal-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.tp-modal-list-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.9);
+    line-height: 1.45;
+}
+
+.tp-modal-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    margin-top: 6px;
+    flex-shrink: 0;
+}
+
+.tp-modal-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.tp-modal-chip {
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 4px 11px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #e0f2fe;
+}
+
+/* ─── Footer ──────────────────────────────────────────────────────────────── */
+.tp-poster-footer {
+    position: relative;
+    z-index: 10;
+    text-align: center;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.7);
+    margin-top: 48px;
+    letter-spacing: 0.5px;
+}
+
+/* ==========================================================================
+   LIGHT THEME OVERRIDES ([data-theme="light"])
+   Matching the whole project's Pale Mint & Soft Aqua Glassmorphism Theme
+   ========================================================================== */
+.tp-poster-page[data-theme="light"] {
+    background: linear-gradient(135deg, #DCF2EE 0%, #E6F6F3 40%, #DEF2EF 70%, #EBF4F6 100%);
+    color: #112E2B;
+}
+
+.tp-poster-page[data-theme="light"] .tp-facets-svg {
+    filter: contrast(0.9) brightness(1.2);
+    opacity: 0.18;
+}
+
+/* Light Theme Header */
+.tp-poster-page[data-theme="light"] .tp-back-btn {
+    background: rgba(255, 255, 255, 0.92);
+    border: 1.5px solid rgba(13, 122, 117, 0.3);
+    color: #112E2B;
+    box-shadow: 0 4px 14px rgba(18, 72, 68, 0.08);
+}
+
+.tp-poster-page[data-theme="light"] .tp-back-btn:hover {
+    background: #0D7A75;
+    color: #ffffff;
+    border-color: #0D7A75;
+    box-shadow: 0 6px 20px rgba(13, 122, 117, 0.35);
+}
+
+/* Brand Lockup in Light Theme */
+.tp-poster-page[data-theme="light"] .tp-brand-main-title {
+    color: #112E2B;
+    text-shadow: none;
+}
+
+.tp-poster-page[data-theme="light"] .tp-brand-sub-badge {
+    color: #0D7A75;
+    text-shadow: none;
+}
+
+.tp-poster-page[data-theme="light"] .tp-brand-icon-box {
+    background: #ffffff;
+    box-shadow: 0 4px 14px rgba(18, 72, 68, 0.1);
+    border-color: rgba(13, 122, 117, 0.25);
+}
+
+/* Theme Toggle Button in Light Mode */
+.tp-poster-page[data-theme="light"] .tp-theme-toggle-btn {
+    background: rgba(255, 255, 255, 0.92);
+    border: 1.5px solid rgba(13, 122, 117, 0.3);
+    color: #0D7A75;
+    box-shadow: 0 4px 14px rgba(18, 72, 68, 0.08);
+}
+
+.tp-poster-page[data-theme="light"] .tp-theme-toggle-btn:hover {
+    background: #0D7A75;
+    color: #ffffff;
+    border-color: #0D7A75;
+    box-shadow: 0 6px 20px rgba(13, 122, 117, 0.35);
+}
+
+/* Team Poster Cards in Light Theme */
+.tp-poster-page[data-theme="light"] .tp-card-frame {
+    box-shadow:
+        0 25px 50px -10px rgba(18, 72, 68, 0.22),
+        0 0 30px rgba(45, 212, 191, 0.2),
+        inset 0 0 20px rgba(255, 255, 255, 0.25);
+}
+
+/* Light Theme Poster Signature Branding */
+.tp-poster-page[data-theme="light"] .tp-script-team {
+    color: #0D7A75;
+    text-shadow: 0 2px 10px rgba(13, 122, 117, 0.25);
+}
+
+.tp-poster-page[data-theme="light"] .tp-script-flourish {
+    color: #0D7A75;
+    stroke: #0D7A75;
+    filter: drop-shadow(0 2px 4px rgba(13, 122, 117, 0.2));
+}
+
+.tp-poster-page[data-theme="light"] .tp-eyebrow-chip {
+    background: #0D7A75;
+    color: #ffffff;
+}
+
+.tp-poster-page[data-theme="light"] .tp-eyebrow-text {
+    color: #2C4E4B;
+    text-shadow: none;
+}
+
+.tp-poster-page[data-theme="light"] .tp-brand-title {
+    color: #0D7A75;
+    text-shadow:
+        0 2px 0 #08605C,
+        0 4px 14px rgba(13, 122, 117, 0.3);
+}
+
+.tp-poster-page[data-theme="light"] .tp-brand-sub {
+    color: #2C4E4B;
+    text-shadow: none;
+}
+
+.tp-poster-page[data-theme="light"] .tp-brand-dot {
+    color: #0D7A75;
+}
+
+/* Light Theme Mentors Section */
+.tp-poster-page[data-theme="light"] .tp-mentors-line {
+    background: linear-gradient(90deg, transparent, rgba(13, 122, 117, 0.35), transparent);
+}
+
+.tp-poster-page[data-theme="light"] .tp-mentors-label-badge {
+    background: #ffffff;
+    border: 1.5px solid rgba(13, 122, 117, 0.35);
+    color: #0D7A75;
+    box-shadow: 0 4px 16px rgba(18, 72, 68, 0.08);
+}
+
+.tp-poster-page[data-theme="light"] .tp-mentors-desc {
+    color: #2C4E4B;
+}
+
+.tp-poster-page[data-theme="light"] .tp-mentor-pill-card {
+    background: rgba(255, 255, 255, 0.92);
+    border: 1.5px solid rgba(13, 122, 117, 0.28);
+    box-shadow: 0 10px 30px rgba(18, 72, 68, 0.07);
+}
+
+.tp-poster-page[data-theme="light"] .tp-mentor-pill-card:hover {
+    background: #ffffff;
+    border-color: #0D7A75;
+    box-shadow: 0 16px 40px rgba(18, 72, 68, 0.14), 0 0 25px rgba(45, 212, 191, 0.3);
+}
+
+.tp-poster-page[data-theme="light"] .tp-mentor-pill-avatar {
+    background: #EBF8F6;
+    color: var(--mentor-accent, #0D7A75);
+    box-shadow: 0 0 12px rgba(13, 122, 117, 0.15);
+}
+
+.tp-poster-page[data-theme="light"] .tp-mentor-pill-name {
+    color: #112E2B !important;
+    text-shadow: none;
+}
+
+.tp-poster-page[data-theme="light"] .tp-mentor-pill-role {
+    color: #0D7A75 !important;
+}
+
+.tp-poster-page[data-theme="light"] .tp-mentor-pill-tag {
+    background: rgba(13, 122, 117, 0.08);
+    color: #0D7A75;
+    border-color: rgba(13, 122, 117, 0.3);
+}
+
+/* Light Theme Modal */
+.tp-poster-page[data-theme="light"] .tp-modal-backdrop {
+    background: rgba(18, 72, 68, 0.6);
+}
+
+.tp-poster-page[data-theme="light"] .tp-modal {
+    background: #ffffff;
+    border: 1.5px solid rgba(13, 122, 117, 0.3);
+    box-shadow: 0 30px 60px rgba(18, 72, 68, 0.2);
+    color: #112E2B;
+}
+
+.tp-poster-page[data-theme="light"] .tp-modal-close {
+    background: #EBF8F6;
+    border-color: rgba(13, 122, 117, 0.25);
+    color: #112E2B;
+}
+
+.tp-poster-page[data-theme="light"] .tp-modal-close:hover {
+    background: #0D7A75;
+    color: #ffffff;
+}
+
+.tp-poster-page[data-theme="light"] .tp-modal-name {
+    color: #112E2B;
+}
+
+.tp-poster-page[data-theme="light"] .tp-modal-role {
+    color: #0D7A75;
+}
+
+.tp-poster-page[data-theme="light"] .tp-modal-divider {
+    background: rgba(13, 122, 117, 0.18);
+}
+
+.tp-poster-page[data-theme="light"] .tp-modal-section-label {
+    color: #0D7A75;
+}
+
+.tp-poster-page[data-theme="light"] .tp-modal-list-item {
+    color: #2C4E4B;
+}
+
+.tp-poster-page[data-theme="light"] .tp-modal-chips .tp-modal-chip {
+    background: #EBF8F6;
+    color: #0D7A75;
+    border-color: rgba(13, 122, 117, 0.25);
+}
+
+.tp-poster-page[data-theme="light"] .tp-poster-footer {
+    color: #587E7B;
+}
+
+/* ─── Responsive Media Queries ────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+    .tp-poster-stage {
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+
+    .tp-card-col {
+        margin-right: 0 !important;
+        flex: 0 1 45%;
+        max-width: 320px;
+        height: 420px;
+    }
+
+    .tp-branding-container {
+        flex-direction: column;
+        text-align: center;
+        gap: 12px;
+    }
+
+    .tp-brand-center {
+        align-items: center;
+    }
+
+    .tp-script-wrap {
+        padding-right: 0;
+    }
+
+    .tp-mentors-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .tp-mentors-grid {
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+}
+
+@media (max-width: 640px) {
+    .tp-poster-header {
+        flex-direction: column;
+        gap: 14px;
+        padding: 16px 20px;
+    }
+
+    .tp-card-col {
+        flex: 0 1 100%;
+        max-width: 340px;
+        height: 400px;
+    }
+
+    .tp-brand-title {
+        font-size: 34px;
+    }
+
+    .tp-script-team {
+        font-size: 60px;
+    }
+}

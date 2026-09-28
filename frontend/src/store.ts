@@ -12,6 +12,9 @@ interface AppState {
   metrics: Metrics | null
   sidebarOpen: boolean
   setSidebarOpen: (value: boolean) => void
+  theme: 'dark' | 'light'
+  setTheme: (theme: 'dark' | 'light') => void
+  toggleTheme: () => void
   login: (email: string, password: string) => Promise<void>
   restore: () => Promise<void>
   logout: () => void
@@ -31,6 +34,19 @@ export const useAppStore = create<AppState>()(
       metrics: null,
       sidebarOpen: false,
       setSidebarOpen: (sidebarOpen) => set({ sidebarOpen }),
+      theme: (typeof window !== 'undefined' && localStorage.getItem('supportnova_theme') as 'dark' | 'light') || 'light',
+      setTheme: (theme: 'dark' | 'light') => {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('supportnova_theme', theme)
+          document.documentElement.setAttribute('data-theme', theme)
+          document.body.setAttribute('data-theme', theme)
+        }
+        set({ theme })
+      },
+      toggleTheme: () => {
+        const next = get().theme === 'light' ? 'dark' : 'light'
+        get().setTheme(next)
+      },
       login: async (email, password) => {
         set({ loading: true })
         try {
@@ -42,6 +58,11 @@ export const useAppStore = create<AppState>()(
         }
       },
       restore: async () => {
+        const currentTheme = (typeof window !== 'undefined' && localStorage.getItem('supportnova_theme') as 'dark' | 'light') || get().theme || 'light'
+        if (typeof window !== 'undefined') {
+          document.documentElement.setAttribute('data-theme', currentTheme)
+          document.body.setAttribute('data-theme', currentTheme)
+        }
         if (!localStorage.getItem('supportnova_token')) {
           if (get().authenticated) get().logout()
           return
@@ -74,7 +95,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'supportnova-ui',
-      partialize: (state) => ({ authenticated: state.authenticated }),
+      partialize: (state) => ({ authenticated: state.authenticated, theme: state.theme }),
     },
   ),
 )

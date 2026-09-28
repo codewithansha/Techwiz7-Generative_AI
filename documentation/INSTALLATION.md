@@ -193,7 +193,7 @@ ANTHROPIC_API_KEY=
 GROK_API_KEY=
 
 # Administrator created on the very first start. Change the password before any shared use.
-BOOTSTRAP_ADMIN_EMAIL=admin@nimbuscarta.example
+BOOTSTRAP_ADMIN_EMAIL=admin@supportnova.example
 BOOTSTRAP_ADMIN_PASSWORD=ChangeMeNow!23
 ```
 
@@ -219,7 +219,7 @@ It lists each configured provider and whether it answered. Keys are never printe
 uvicorn src.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-On the **first** start the API creates all tables and seeds the NimbusCarta reference
+On the **first** start the API creates all tables and seeds the SupportNova reference
 data: departments, categories, the rule matrix, escalation rules, SLAs, policy documents,
 prompt templates and demo users. Leave this terminal running.
 
@@ -261,11 +261,11 @@ The login page has a **Use a demo profile** menu with these seeded accounts:
 
 | Role | Email | Password |
 |---|---|---|
-| Administrator | admin@nimbuscarta.example | ChangeMeNow!23 (or your `BOOTSTRAP_ADMIN_PASSWORD`) |
-| Agent | agent@nimbuscarta.example | AgentPass!23 |
-| Reviewer | reviewer@nimbuscarta.example | ReviewPass!23 |
-| Manager | manager@nimbuscarta.example | ManagerPass!23 |
-| Customer | customer@nimbuscarta.example | CustomerPass!23 |
+| Administrator | admin@supportnova.example | ChangeMeNow!23 (or your `BOOTSTRAP_ADMIN_PASSWORD`) |
+| Agent | agent@supportnova.example | AgentPass!23 |
+| Reviewer | reviewer@supportnova.example | ReviewPass!23 |
+| Manager | manager@supportnova.example | ManagerPass!23 |
+| Customer | customer@supportnova.example | CustomerPass!23 |
 
 Change or deactivate these accounts (Settings → Users) before any public deployment.
 
@@ -344,7 +344,7 @@ npm run lint
 
 ## 9. Optional extras
 
-Generate the 500-complaint synthetic dataset in `sample_complaints/nimbuscarta_500.json`:
+Generate the 500-complaint synthetic dataset in `sample_complaints/supportnova_500.json`:
 
 ```powershell
 python scripts\generate_complaints.py
@@ -363,7 +363,7 @@ database, create it once first, and never touch the real `supportnova` database:
 
 ```powershell
 psql -U supportnova -h localhost -d postgres -c "CREATE DATABASE supportnova_reports"
-python scripts\run_evaluation.py sample_complaints\nimbuscarta_500.json --reset
+python scripts\run_evaluation.py sample_complaints\supportnova_500.json --reset
 python scripts\complaint_intelligence_report.py
 python scripts\export_rule_matrix.py
 python scripts\security_report.py

@@ -27,6 +27,9 @@ from src.api.config_routes import router as config_router
 from src.api.knowledge import router as knowledge_router
 from src.api.prompts import router as prompts_router
 from src.api.users import router as users_router
+from src.api.products import router as products_router
+from src.api.orders import router as orders_router
+from src.api.translation import router as translation_router
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 logging.getLogger("httpx").setLevel(logging.WARNING)
@@ -75,6 +78,9 @@ app.include_router(prompts_router)
 app.include_router(assistant_router)
 app.include_router(evaluation_router)
 app.include_router(notifications_router)
+app.include_router(products_router)
+app.include_router(orders_router)
+app.include_router(translation_router)
 
 
 @app.exception_handler(OperationalError)

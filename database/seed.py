@@ -27,6 +27,8 @@ from database.models import (
     UrgencyLevel,
     User,
     UserRole,
+    Product,
+    Order,
 )
 from document_processing.chunking import chunk_sections
 from knowledge_base.precedence import PRECEDENCE
@@ -99,6 +101,8 @@ def seed_reference_data(db: Session) -> None:
     _ensure_escalation_rules(db)
     _ensure_documents(db)
     _ensure_prompts(db)
+    _ensure_products(db)
+    _ensure_orders(db)
     db.commit()
 
 
@@ -186,7 +190,7 @@ def _ensure_rules(db: Session) -> None:
 def _seed_core(db: Session) -> None:
     dept_map: dict[str, Department] = {}
     for code, name in DEPARTMENTS:
-        dept = Department(code=code, name=name, description=f"{name} department for NimbusCarta")
+        dept = Department(code=code, name=name, description=f"{name} department for SupportNova")
         db.add(dept)
         dept_map[code] = dept
     db.flush()
@@ -258,11 +262,11 @@ def _seed_core(db: Session) -> None:
 def _seed_users(db: Session) -> None:
     settings = get_settings()
     specs = [
-        (settings.bootstrap_admin_email, "Nimbus Admin", UserRole.administrator, settings.bootstrap_admin_password),
-        ("agent@nimbuscarta.example", "Amina Agent", UserRole.agent, "AgentPass!23"),
-        ("reviewer@nimbuscarta.example", "Rafi Reviewer", UserRole.reviewer, "ReviewPass!23"),
-        ("manager@nimbuscarta.example", "Maya Manager", UserRole.manager, "ManagerPass!23"),
-        ("customer@nimbuscarta.example", "Hassan Customer", UserRole.customer, "CustomerPass!23"),
+        (settings.bootstrap_admin_email, "Anousha", UserRole.administrator, settings.bootstrap_admin_password),
+        ("agent@supportnova.example", "Hani", UserRole.agent, "AgentPass!23"),
+        ("reviewer@supportnova.example", "Rubab", UserRole.reviewer, "ReviewPass!23"),
+        ("manager@supportnova.example", "Hamza", UserRole.manager, "ManagerPass!23"),
+        ("customer@supportnova.example", "Afra Customer", UserRole.customer, "CustomerPass!23"),
     ]
     for email, name, role, password in specs:
         user = User(email=email, full_name=name, hashed_password=hash_password(password), role=role)
@@ -437,7 +441,7 @@ DOCUMENTS = [
     ("CMPL-GD-01", "Compliance Guidelines", DocumentCategory.compliance, "Legal threats, regulator mentions and privacy incidents go to Compliance Review. Never admit liability in writing. Keep customer personal data out of internal notes unless required."),
     ("TPL-RSP-01", "Response Templates", DocumentCategory.template, "Structure every reply as: acknowledgement, empathy, summary of the issue, next step, and when the customer will hear from us. Do not quote timelines that are not in policy."),
     ("PSG-GD-01", "Product Support Guidelines", DocumentCategory.guideline, "Collect the model, serial number, firmware or app version and the exact error before troubleshooting. Chargers or batteries that are hot, swollen or smell of burning are safety cases."),
-    ("PRV-POL-02", "Customer Data Privacy Notice", DocumentCategory.policy, "NimbusCarta processes order and contact data only to fulfil orders and support requests. Data-exposure reports are investigated by Compliance within 72 hours."),
+    ("PRV-POL-02", "Customer Data Privacy Notice", DocumentCategory.policy, "SupportNova processes order and contact data only to fulfil orders and support requests. Data-exposure reports are investigated by Compliance within 72 hours."),
 ]
 # Outdated and draft versions for the contradictory-policy and hidden-policy-update challenges:
 # (code, title, category, body, version, status, days since effective)
@@ -529,3 +533,272 @@ def _ensure_documents(db: Session) -> None:
         db.add(doc)
         db.flush()
         _write_chunks(db, doc, sections)
+
+
+DEMO_PRODUCTS = [
+    {
+        "product_number": "NC-000001",
+        "name": "Coolerplus RGB Mechanical Keyboard",
+        "title": "Coolerplus RGB Mechanical Keyboard",
+        "description": "Tactile high-response mechanical gaming keyboard with customizable per-key RGB backlighting, durable PBT double-shot keycaps, and multi-device connection.",
+        "price": 129.00,
+        "category": "Keyboards",
+        "image": "/products/prod_1.jpg",
+        "specs": {"switches": "Tactile Blue/Brown Switches", "layout": "Tenkeyless ANSI", "backlight": "Per-Key RGB Dynamic", "connectivity": "USB-C / 2.4G Wireless"},
+    },
+    {
+        "product_number": "NC-000002",
+        "name": "RGB Wireless Gaming Mouse",
+        "title": "RGB Wireless Gaming Mouse",
+        "description": "Ultra-lightweight ergonomic wireless gaming mouse with 16,000 DPI optical sensor, optical micro-switches, and smooth gliding PTFE skates.",
+        "price": 49.00,
+        "category": "Mice",
+        "image": "/products/prod_2.jpg",
+        "specs": {"dpi": "16,000 DPI Optical", "buttons": "6 Programmable", "battery": "Up to 70 Hours", "weight": "68g Ultra-light"},
+    },
+    {
+        "product_number": "NC-000003",
+        "name": "Ergonomic Wireless Mechanical Keyboard",
+        "title": "Ergonomic Wireless Mechanical Keyboard",
+        "description": "Comfort-first split-layout wireless mechanical keyboard with wrist support, hot-swappable switches, and Bluetooth 5.2 multi-device pairing.",
+        "price": 119.00,
+        "category": "Keyboards",
+        "image": "/products/prod_3.jpg",
+        "specs": {"switches": "Low-Noise Red Linear", "battery": "4000mAh Lithium", "connectivity": "Bluetooth 5.2 / USB-C", "wrist_rest": "Integrated Cushioned"},
+    },
+    {
+        "product_number": "NC-000004",
+        "name": "Precision Wireless Mouse",
+        "title": "Precision Wireless Mouse",
+        "description": "Ergonomic productivity mouse with dual-mode connectivity, whisper-quiet clicks, and high-precision laser tracking on glass surfaces.",
+        "price": 39.00,
+        "category": "Mice",
+        "image": "/products/prod_4.jpg",
+        "specs": {"sensor": "4000 DPI Precision Sensor", "clicks": "90% Noise Reduction", "battery": "18 Months Battery Life", "connectivity": "Dual 2.4GHz + Bluetooth"},
+    },
+    {
+        "product_number": "NC-000005",
+        "name": "Ultra-Thin 4K UHD Desktop Monitor",
+        "title": "Ultra-Thin 4K UHD Desktop Monitor",
+        "description": "27-inch 4K UHD (3840 x 2160) IPS panel with 99% sRGB color accuracy, HDR400, USB-C 90W power delivery, and fully ergonomic stand.",
+        "price": 399.00,
+        "category": "Displays",
+        "image": "/products/prod_5.jpg",
+        "specs": {"resolution": "3840 x 2160 4K UHD", "panel": "IPS Anti-glare", "ports": "USB-C PD 90W, 2x HDMI 2.0, DP 1.4", "refresh_rate": "60Hz Adaptive-Sync"},
+    },
+    {
+        "product_number": "NC-000006",
+        "name": "Wireless Over-Ear ANC Headphones",
+        "title": "Wireless Over-Ear ANC Headphones",
+        "description": "Premium over-ear wireless headphones featuring hybrid active noise cancellation, custom 40mm beryllium drivers, and 40 hours of playback.",
+        "price": 179.00,
+        "category": "Audio",
+        "image": "/products/prod_6.jpg",
+        "specs": {"anc": "Hybrid ANC up to -38dB", "battery": "40 Hours Playback", "codecs": "LDAC, AAC, SBC", "microphone": "Dual Beamforming ENC"},
+    },
+    {
+        "product_number": "NC-000007",
+        "name": "HD Streaming Autofocus Webcam",
+        "title": "HD Streaming Autofocus Webcam",
+        "description": "Ultra HD 4K webcam with AI autofocus, HDR light adjustment, physical privacy shutter, and dual omnidirectional noise-filtering microphones.",
+        "price": 89.00,
+        "category": "Cameras",
+        "image": "/products/prod_7.jpg",
+        "specs": {"resolution": "4K @ 30fps / 1080p @ 60fps", "lens": "Glass AF Lens with Shutter", "fov": "90° Wide Angle", "mount": "Monitor Clip & Tripod Thread"},
+    },
+    {
+        "product_number": "NC-000008",
+        "name": "8-in-1 Aluminum USB-C Multiport Hub",
+        "title": "8-in-1 Aluminum USB-C Multiport Hub",
+        "description": "Compact aluminum expansion dock with 4K@60Hz HDMI, 100W USB-C Power Delivery, Gigabit Ethernet, SD/TF card slots, and 3 USB 3.1 ports.",
+        "price": 59.00,
+        "category": "Accessories",
+        "image": "/products/prod_8.jpg",
+        "specs": {"hdmi": "4K @ 60Hz Ultra HD", "power_delivery": "100W USB-C Passthrough", "ethernet": "1000 Mbps RJ45", "material": "Space Gray Aluminum"},
+    },
+    {
+        "product_number": "NC-000009",
+        "name": "Multi-Angle Ergonomic Aluminum Laptop Stand",
+        "title": "Multi-Angle Ergonomic Aluminum Laptop Stand",
+        "description": "Heavy-duty folding anodized aluminum laptop stand with dual-hinge multi-angle adjustment, cooling heat dissipation vents, and silicone pads.",
+        "price": 39.00,
+        "category": "Accessories",
+        "image": "/products/prod_9.jpg",
+        "specs": {"compatibility": "10\" - 17.3\" Laptops", "load_capacity": "10 kg", "adjustment": "0° to 180° Height & Angle", "material": "Anodized Aluminum"},
+    },
+    {
+        "product_number": "NC-000010",
+        "name": "65W GaN Fast Charging Power Bank",
+        "title": "65W GaN Fast Charging Power Bank",
+        "description": "20,000mAh high-density portable battery with Gallium Nitride (GaN) fast charging, smart digital LED percentage screen, and airline approval.",
+        "price": 69.00,
+        "category": "Power",
+        "image": "/products/prod_10.jpg",
+        "specs": {"capacity": "20,000mAh / 74Wh", "max_output": "65W USB-C PD 3.0", "inputs": "USB-C 45W Rapid Recharge", "display": "Real-time LED %"},
+    },
+    {
+        "product_number": "NC-000011",
+        "name": "1TB NVMe Portable High-Speed SSD",
+        "title": "1TB NVMe Portable High-Speed SSD",
+        "description": "Rugged drop-resistant external solid state drive with transfer speeds up to 1050 MB/s, 256-bit AES hardware encryption, and IP55 water resistance.",
+        "price": 119.00,
+        "category": "Storage",
+        "image": "/products/prod_11.jpg",
+        "specs": {"interface": "USB 3.2 Gen 2 (10Gbps)", "read_speed": "Up to 1050 MB/s", "durability": "2-meter Drop Tested, IP55", "warranty": "3 Years"},
+    },
+    {
+        "product_number": "NC-000012",
+        "name": "Braided High-Speed Thunderbolt 4 / USB-C Cable",
+        "title": "Braided High-Speed Thunderbolt 4 / USB-C Cable",
+        "description": "Reinforced nylon braided Thunderbolt 4 cable supporting 40Gbps ultra-high bandwidth, single 8K or dual 4K video streams, and 240W EPR charging.",
+        "price": 29.00,
+        "category": "Cables",
+        "image": "/products/prod_12.jpg",
+        "specs": {"length": "2 Meters / 6.6 Ft", "bandwidth": "40 Gbps", "charging": "240W USB-PD 3.1", "video": "8K @ 60Hz / 4K @ 120Hz"},
+    },
+]
+
+
+def _ensure_products(db: Session) -> None:
+    for item in DEMO_PRODUCTS:
+        existing = db.query(Product).filter(Product.product_number == item["product_number"]).first()
+        if existing is None:
+            db.add(Product(**item))
+        else:
+            for k, v in item.items():
+                setattr(existing, k, v)
+    db.flush()
+
+
+def _ensure_orders(db: Session) -> None:
+    customer = (
+        db.query(Customer)
+        .filter(Customer.customer_code == "CUST-10001")
+        .first()
+        or db.query(Customer).first()
+    )
+    if not customer:
+        return
+
+    demo_orders = [
+        {
+            "order_number": "NC-000021",
+            "customer_id": customer.id,
+            "items": [
+                {
+                    "productId": 1,
+                    "productNumber": "NC-000001",
+                    "productName": "Coolerplus RGB Mechanical Keyboard",
+                    "image": "/products/prod_1.jpg",
+                    "quantity": 1,
+                    "unitPrice": 129.00,
+                    "totalPrice": 129.00,
+                },
+                {
+                    "productId": 2,
+                    "productNumber": "NC-000002",
+                    "productName": "RGB Wireless Gaming Mouse",
+                    "image": "/products/prod_2.jpg",
+                    "quantity": 1,
+                    "unitPrice": 49.00,
+                    "totalPrice": 49.00,
+                },
+            ],
+            "total_amount": 178.00,
+            "quantity": 2,
+            "order_summary": "Coolerplus RGB Mechanical Keyboard × 1, RGB Wireless Gaming Mouse × 1",
+            "payment_status": "PAID",
+            "payment_method": "Credit Card (NimbusPay •••• 4242)",
+            "shipping_address": "124 Innovation Way, Tech District, CA 94016",
+        },
+        {
+            "order_number": "NC-000022",
+            "customer_id": customer.id,
+            "items": [
+                {
+                    "productId": 5,
+                    "productNumber": "NC-000005",
+                    "productName": "Ultra-Thin 4K UHD Desktop Monitor",
+                    "image": "/products/prod_5.jpg",
+                    "quantity": 1,
+                    "unitPrice": 399.00,
+                    "totalPrice": 399.00,
+                }
+            ],
+            "total_amount": 399.00,
+            "quantity": 1,
+            "order_summary": "Ultra-Thin 4K UHD Desktop Monitor × 1",
+            "payment_status": "PAID",
+            "payment_method": "Corporate Wire (Nimbus Bank Ref #9910)",
+            "shipping_address": "124 Innovation Way, Suite 400, CA 94016",
+        },
+        {
+            "order_number": "NC-000023",
+            "customer_id": customer.id,
+            "items": [
+                {
+                    "productId": 6,
+                    "productNumber": "NC-000006",
+                    "productName": "Wireless Over-Ear ANC Headphones",
+                    "image": "/products/prod_6.jpg",
+                    "quantity": 1,
+                    "unitPrice": 179.00,
+                    "totalPrice": 179.00,
+                },
+                {
+                    "productId": 8,
+                    "productNumber": "NC-000008",
+                    "productName": "8-in-1 Aluminum USB-C Multiport Hub",
+                    "image": "/products/prod_8.jpg",
+                    "quantity": 1,
+                    "unitPrice": 59.00,
+                    "totalPrice": 59.00,
+                },
+            ],
+            "total_amount": 238.00,
+            "quantity": 2,
+            "order_summary": "Wireless Over-Ear ANC Headphones × 1, 8-in-1 Aluminum USB-C Multiport Hub × 1",
+            "payment_status": "PAID",
+            "payment_method": "Apple Pay (Mastercard •••• 8821)",
+            "shipping_address": "124 Innovation Way, Tech District, CA 94016",
+        },
+        {
+            "order_number": "NC-000024",
+            "customer_id": customer.id,
+            "items": [
+                {
+                    "productId": 10,
+                    "productNumber": "NC-000010",
+                    "productName": "65W GaN Fast Charging Power Bank",
+                    "image": "/products/prod_10.jpg",
+                    "quantity": 1,
+                    "unitPrice": 69.00,
+                    "totalPrice": 69.00,
+                },
+                {
+                    "productId": 12,
+                    "productNumber": "NC-000012",
+                    "productName": "Braided High-Speed Thunderbolt 4 / USB-C Cable",
+                    "image": "/products/prod_12.jpg",
+                    "quantity": 2,
+                    "unitPrice": 29.00,
+                    "totalPrice": 58.00,
+                },
+            ],
+            "total_amount": 127.00,
+            "quantity": 3,
+            "order_summary": "65W GaN Fast Charging Power Bank × 1, Braided Thunderbolt 4 Cable × 2",
+            "payment_status": "PAID",
+            "payment_method": "Debit Card (Visa •••• 1180)",
+            "shipping_address": "124 Innovation Way, Tech District, CA 94016",
+        },
+    ]
+
+    for ord_data in demo_orders:
+        existing = db.query(Order).filter(Order.order_number == ord_data["order_number"]).first()
+        if existing is None:
+            db.add(Order(**ord_data))
+        else:
+            for k, v in ord_data.items():
+                setattr(existing, k, v)
+    db.flush()

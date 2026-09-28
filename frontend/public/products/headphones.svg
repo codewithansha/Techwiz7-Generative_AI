@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="100%" height="100%">
+  <defs>
+    <linearGradient id="hp-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1f182b"/>
+      <stop offset="100%" stop-color="#110d18"/>
+    </linearGradient>
+    <linearGradient id="hp-metal" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#64748b"/>
+      <stop offset="50%" stop-color="#94a3b8"/>
+      <stop offset="100%" stop-color="#475569"/>
+    </linearGradient>
+    <linearGradient id="hp-accent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ec4899"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+  </defs>
+  <rect width="100%" height="100%" rx="16" fill="url(#hp-bg)"/>
+  <circle cx="200" cy="150" r="90" fill="#ec4899" opacity="0.1"/>
+  
+  <g transform="translate(100, 40)">
+    <!-- Headband arch -->
+    <path d="M25,130 C25,40 175,40 175,130" fill="none" stroke="url(#hp-metal)" stroke-width="12" stroke-linecap="round"/>
+    <path d="M45,100 C45,55 155,55 155,100" fill="none" stroke="#1e1e2e" stroke-width="8" stroke-linecap="round"/>
+    
+    <!-- Left ear cup -->
+    <g transform="translate(5, 120)">
+      <rect x="0" y="0" width="38" height="68" rx="19" fill="#181824" stroke="url(#hp-accent)" stroke-width="2.5"/>
+      <rect x="22" y="8" width="14" height="52" rx="7" fill="#2d2d3f"/>
+      <circle cx="16" cy="34" r="10" fill="#111827"/>
+    </g>
+    
+    <!-- Right ear cup -->
+    <g transform="translate(157, 120)">
+      <rect x="0" y="0" width="38" height="68" rx="19" fill="#181824" stroke="url(#hp-accent)" stroke-width="2.5"/>
+      <rect x="2" y="8" width="14" height="52" rx="7" fill="#2d2d3f"/>
+      <circle cx="22" cy="34" r="10" fill="#111827"/>
+    </g>
+    
+    <!-- Hinges -->
+    <rect x="20" y="112" width="10" height="16" rx="3" fill="url(#hp-metal)"/>
+    <rect x="170" y="112" width="10" height="16" rx="3" fill="url(#hp-metal)"/>
+  </g>
+</svg>

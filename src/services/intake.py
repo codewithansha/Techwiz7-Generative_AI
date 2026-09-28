@@ -75,6 +75,27 @@ def create_complaint(
     except ValueError as exc:
         raise IntakeError([f"Unknown channel '{fields.get('channel')}'."]) from exc
 
+    # Multilingual translation: detect language and translate for internal staff if non-English
+    source_language = "en"
+    translated_title = None
+    translated_description = None
+    translation_confidence = 1.0
+    preferred_lang = fields.get("preferred_language") or (customer.preferred_language if customer and hasattr(customer, "preferred_language") else None) or "auto"
+
+    try:
+        from src.services.multilingual import detect_language, translate_for_agent
+        detection = detect_language(f"{title} {description}".strip())
+        source_language = detection.code
+        translation_confidence = detection.confidence
+        if source_language != "en":
+            tr_desc = translate_for_agent(description, source_lang=source_language)
+            translated_description = tr_desc.get("translated_text")
+            if title:
+                tr_title = translate_for_agent(title, source_lang=source_language)
+                translated_title = tr_title.get("translated_text")
+    except Exception:
+        pass
+
     complaint = Complaint(
         # Placeholder until the insert assigns an id; replaced before commit.
         complaint_code=f"TMP-{uuid.uuid4().hex[:24]}",
@@ -93,6 +114,11 @@ def create_complaint(
         requested_resolution=sanitize_input(fields.get("requested_resolution") or ""),
         incident_date=_incident_date(fields.get("incident_date")),
         duplicate_of_id=duplicate.get("match_id"),
+        source_language=source_language,
+        translated_title=translated_title,
+        translated_description=translated_description,
+        customer_language=preferred_lang if preferred_lang != "auto" else source_language,
+        translation_confidence=translation_confidence,
     )
     db.add(complaint)
     db.flush()

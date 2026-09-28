@@ -17,10 +17,10 @@ This document follows one real complaint through the application, step by step, 
 | Role | Account | Password |
 |---|---|---|
 | Customer | registered during the run | — |
-| Agent | agent@nimbuscarta.example | AgentPass!23 |
-| Reviewer | reviewer@nimbuscarta.example | ReviewPass!23 |
-| Manager | manager@nimbuscarta.example | ManagerPass!23 |
-| Administrator | admin@nimbuscarta.example | ChangeMeNow!23 |
+| Agent | agent@supportnova.example | AgentPass!23 |
+| Reviewer | reviewer@supportnova.example | ReviewPass!23 |
+| Manager | manager@supportnova.example | ManagerPass!23 |
+| Administrator | admin@supportnova.example | ChangeMeNow!23 |
 
 **The flow at a glance:**
 
@@ -77,7 +77,7 @@ flowchart LR
 
 | File | What it is | What the system reads from it |
 |---|---|---|
-| `invoice_NC-768565.pdf` | NimbusCarta tax invoice | order **NC-768565**, amount **PKR 89,999**, invoice date **2026-09-16** |
+| `invoice_NC-768565.pdf` | SupportNova tax invoice | order **NC-768565**, amount **PKR 89,999**, invoice date **2026-09-16** |
 | `photo_cracked_screen.jpg` | photo of the cracked screen | counts as photo evidence; 1200×800, camera date 18 Sep |
 | `delivery_note.docx` | courier note: "received damaged" | text (157 characters), order number, delivery date |
 
@@ -255,7 +255,7 @@ The Python result is authoritative. GenAI's disagreements don't change it; they 
 
 - **What you do:** send *"Thank you for the invoice, the photo and the delivery note. We are sorry the tablet arrived damaged. Your case is with our Warranty team, who will check the evidence against the replacement policy and update you here."*
 - **Result:**
-  - The message is delivered as **NimbusCarta Support**, and the first-response time is recorded as *on time*.
+  - The message is delivered as **SupportNova Support**, and the first-response time is recorded as *on time*.
   - **Request missing information** would send the configured questions instead and set the status to *awaiting customer*.
 
 ![Reply sent](images/20-agent-reply-sent.png)

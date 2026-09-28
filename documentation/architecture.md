@@ -1,6 +1,6 @@
 # SupportNova architecture and design report
 
-SupportNova is the NimbusCarta complaint intelligence platform.
+SupportNova is the SupportNova complaint intelligence platform.
 
 - **Pipeline 1** is Generative AI. It reads a complaint and drafts a structured analysis and a reply.
 - **Pipeline 2** is Python. It independently works out the correct answer from approved rules and policies, checks Pipeline 1 against it, and decides what a human must review.
@@ -24,6 +24,8 @@ flowchart LR
     Eval[evaluation import]
     Chat[assistant]
     Notify[notifications]
+    Trans[translation · languages]
+    Catalog[products · orders · invoices]
   end
   subgraph P1["Pipeline 1 · GenAI"]
     Prompts[versioned Jinja prompts]
@@ -43,6 +45,7 @@ flowchart LR
   Files[(uploads/ · sample_documents/)]
   UI --> API
   Nova --> Chat
+  Complaints --> Trans
   Complaints --> P2
   Complaints --> P1
   Chat --> Ret
@@ -58,6 +61,8 @@ flowchart LR
 |---|---|---|
 | Presentation | `frontend/src` | Role-based SPA. The UI hides actions outside the user's role, and the API enforces the same limits. |
 | API | `src/api` | REST endpoints, request validation (Pydantic), role guards (`security/auth.py`). |
+| Multilingual | `src/services/multilingual.py`, `src/api/translation.py` | Language detection (Urdu, Roman Urdu, Hindi, Malay, English) & translation for tickets and messages. |
+| Commerce & Invoicing | `src/api/products.py`, `src/api/orders.py`, `src/services/invoice_generator.py` | Product catalog, order tracking, downloadable branded PDF invoices. |
 | Services | `src/services` | Intake, analysis orchestration, access scoping, messaging guard, evaluation. |
 | Pipeline 1 | `genai_pipeline`, `prompt_templates`, `schemas` | Prompt rendering, provider calls with fallback, structured JSON. |
 | Pipeline 2 | `python_validation`, `complaint_rules`, `routing_rules`, `escalation_rules`, `knowledge_base`, `hallucination_checks`, `comparison_engine` | Rules, retrieval, precedence, eligibility, checks, comparison. |
@@ -207,7 +212,7 @@ sequenceDiagram
     API-->>Agent: 422 with flags (nothing sent)
   else clean, or reviewer override (audited)
     API->>API: store, first-response SLA, status change
-    API-->>Customer: "NimbusCarta Support" message + notification
+    API-->>Customer: "SupportNova Support" message + notification
   end
 ```
 
