@@ -40,7 +40,7 @@ GenAI never approves its own output.
   - **Evaluation** page: import a CSV/JSON complaint pack and get per-field accuracy, a case-type breakdown, mismatches and the SRS comparison report.
   - Policy upload shows a **change-impact report** (sections changed, timelines changed, rules and escalation rules affected, open complaints to re-analyze) with one-click batch re-analysis.
 - **Live configuration.** Categories, subcategories, departments, resolution rules (create, edit, toggle), escalation rules, the priority table, SLA targets, and the high-value and repeat thresholds all change without code, and every change is audited.
-- **Customer experience.** Status timeline, messages, CSAT rating on closure, reopen, and notifications.
+- **Customer experience.** Self-service signup modal with glassmorphic UI, real-time frontend validation, seamless prefilled login, status timeline, messages, CSAT rating on closure, reopen, notifications, and strict multi-tenant account data isolation.
 - **Security.**
   - JWT + Argon2 and RBAC for 5 roles. Login throttling (429 after 5 failures).
   - PII masking before GenAI: emails, phones, cards, CNIC.
@@ -101,6 +101,10 @@ docker run -p 8000:8000 -e DATABASE_URL=postgresql+psycopg://user:pass@host:5432
 ```
 
 On **Render**: New → Blueprint → select this repository. `render.yaml` creates the web service and a PostgreSQL database, and generates `SECRET_KEY`. Add a GenAI key in the service's Environment tab.
+
+On **Railway** (Backend API): Use the included `railway.json` configuration with Nixpacks for Python FastAPI and PostgreSQL service provisioning.
+
+On **Vercel** (Frontend SPA): Use the included `frontend/vercel.json` SPA routing rewrite configuration for seamless Vite deployment.
 
 ## Seeded logins
 
