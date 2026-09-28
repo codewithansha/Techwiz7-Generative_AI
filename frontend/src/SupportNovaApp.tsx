@@ -24,6 +24,8 @@ import SupportNovaLoginHero from './SupportNovaLoginHero'
 import SystemTourModal from './SystemTourModal'
 import TeamPage from './TeamPage'
 import './team-members.css'
+import SignupModal from './SignupModal'
+import './signup-modal.css'
 import CategoryOverviewStats from './CategoryOverviewStats'
 import { Conversation, EvaluationPage, NotificationBell, StarRating } from './Engagement'
 import { STATUS_LABEL, Page, PageHeader, Panel, Metric, StatusBadge, Priority, Field, EmptyState, Skeleton, labelize, date, dateTime, messageOf, entries } from './ui'
@@ -216,6 +218,7 @@ function LoginPage() {
   const [password, setPassword] = useState('ChangeMeNow!23')
   const [showProfiles, setShowProfiles] = useState(false)
   const [showGlobalTour, setShowGlobalTour] = useState(false)
+  const [showSignup, setShowSignup] = useState(false)
   const profiles = [
     ['Administrator', 'admin@supportnova.example', 'ChangeMeNow!23'],
     ['Agent', 'agent@supportnova.example', 'AgentPass!23'],
@@ -275,6 +278,17 @@ function LoginPage() {
             {loading ? <><RefreshCw className="spin" /> Signing in…</> : <><span>Sign in</span> <ArrowRight /></>}
           </button>
 
+          <div className="signup-prompt">
+            <span>Don't have an account?</span>{' '}
+            <button
+              type="button"
+              className="signup-link-btn"
+              onClick={() => setShowSignup(true)}
+            >
+              Sign Up
+            </button>
+          </div>
+
           <div className="demo-profiles-section">
             <button
               type="button"
@@ -331,6 +345,17 @@ function LoginPage() {
     <SystemTourModal
       isOpen={showGlobalTour}
       onClose={() => setShowGlobalTour(false)}
+    />
+
+    <SignupModal
+      isOpen={showSignup}
+      onClose={() => setShowSignup(false)}
+      onSuccess={(registeredEmail) => {
+        setEmail(registeredEmail)
+        setPassword('')
+        setShowSignup(false)
+        toast.success('Account created successfully. Please log in to continue.')
+      }}
     />
 
     {/* Access Point 2: Bottom-Right Team Page navigation button */}
