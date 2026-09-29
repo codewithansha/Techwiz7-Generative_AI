@@ -1,0 +1,432 @@
+================================================================================
+SUPPORTNOVA · COMPLETE COLOR PALETTE & TYPOGRAPHY SPECIFICATION
+Project: SupportNova (ResponseX AI Intelligence Platform)
+Competition: TechWiz 7 World Championship (Generative AI World Track)
+Organization: Aptech Learning
+================================================================================
+
+This document provides a comprehensive and exhaustive reference of all color
+palettes, design tokens, gradients, surface tiers, and typography families used
+across the entire SupportNova application.
+
+SupportNova utilizes a dual-theme design system:
+  1. Dark Mode:  Obsidian Cyan & Neon Glassmorphism
+  2. Light Mode: Soft Aqua, Pale Mint & Deep Forest Teal Glassmorphism
+
+--------------------------------------------------------------------------------
+TABLE OF CONTENTS
+--------------------------------------------------------------------------------
+1. TYPOGRAPHY ARCHITECTURE & GOOGLE FONTS
+   1.1 Google Fonts Import URLs
+   1.2 Font Families & Usage Hierarchy
+   1.3 Typeface Scale, Weights & Contexts
+   1.4 Monospace & Numeric Systems
+
+2. COLOR PALETTES & DESIGN TOKENS
+   2.1 Dark Mode — "Obsidian Cyan" (Default Theme)
+   2.2 Light Mode — "Soft Aqua & Deep Forest Teal"
+   2.3 Login Hero & Editorial Showcase Palette
+   2.4 Base & Legacy Design Tokens (supportnova.css)
+
+3. COMPONENT & SEMANTIC COLOR MAPPINGS
+   3.1 Status & Severity Indicators (Urgent, High, Medium, Low)
+   3.2 Category & Department Badge Colors
+   3.3 Team Championship Poster Member Identity Colors
+   3.4 Glassmorphism Borders, Shadows & Ambient Glows
+
+4. FILE REFERENCE SOURCING
+   4.1 Stylesheet Distribution
+
+================================================================================
+1. TYPOGRAPHY ARCHITECTURE & GOOGLE FONTS
+================================================================================
+
+1.1 GOOGLE FONTS IMPORT URLS
+-----------------------------
+The application imports 6 distinct Google Font families across the CSS layers:
+
+[Import 1: Core App & AI Theme - frontend/src/supportnova-ai-theme.css (Line 6)]
+  URL: https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap
+  Fonts: 'Outfit', 'Inter'
+
+[Import 2: Base Fallback Theme - frontend/src/supportnova.css (Line 1)]
+  URL: https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap
+  Fonts: 'DM Sans', 'Manrope'
+
+[Import 3: Championship Poster - frontend/src/team-page.css (Line 13)]
+  URL: https://fonts.googleapis.com/css2?family=Alex+Brush&family=Dancing+Script:wght@700&family=Inter:wght@400;500;600;700;800;900&family=Montserrat:wght@800;900&display=swap
+  Fonts: 'Alex Brush', 'Dancing Script', 'Inter', 'Montserrat'
+
+
+1.2 FONT FAMILIES & USAGE HIERARCHY
+------------------------------------
+
+1. 'Outfit', sans-serif
+   - Category: Display Sans-Serif
+   - Weights: 400, 500, 600, 700, 800, 900
+   - Purpose: Primary heading and brand typography.
+   - Applications:
+       * All Page Headings (h1, h2, h3, h4)
+       * Brand wordmark and logos (.brand, .nav-logo)
+       * Hero headlines and section banners
+       * KPI metric numbers and analytic counter cards
+       * Modal titles and stage headers
+       * System Tour role guides
+
+2. 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif
+   - Category: Precision Neutral UI Sans-Serif
+   - Weights: 400 (Regular), 500 (Medium), 600 (Semi-Bold), 700 (Bold)
+   - Purpose: Core application user interface and body typography.
+   - Applications:
+       * Body text, paragraph content, descriptions
+       * Complaint tables, column headers, cell records
+       * Form inputs, textareas, select menus, checkboxes
+       * Navigation items, tab labels, action buttons
+       * Tooltips, popovers, and badge labels
+
+3. 'Montserrat', sans-serif
+   - Category: Geometric Heavy Display
+   - Weights: 800 (Extra-Bold), 900 (Black)
+   - Purpose: Championship Team Showcase poster impact branding.
+   - Applications:
+       * Championship Team Page Title: SUPPORTNOVA (.tp-brand-title)
+       * Poster card vertical badge tags (.tp-vert-main)
+       * Member name plates on poster cards (.tp-card-name)
+
+4. 'Alex Brush', 'Dancing Script', cursive
+   - Category: Elegant Hand-Lettered Script
+   - Weights: Regular (Alex Brush), 700 (Dancing Script)
+   - Purpose: Calligraphic signature lettering.
+   - Applications:
+       * Team Poster signature "Team" display script (.tp-script-team)
+       * Team poster graphic signature flourish
+
+5. 'DM Sans' & 'Manrope', sans-serif
+   - Category: Modern Clean Sans-Serif
+   - Weights: 400, 500, 600, 700 (DM Sans) / 500, 600, 700, 800 (Manrope)
+   - Purpose: Base layout fallback and legacy dashboard components.
+
+6. 'SFMono-Regular', Consolas, 'Courier New', monospace
+   - Category: Fixed-Width Monospace
+   - Weights: 400, 500, 600
+   - Purpose: Technical data, code previews, and strict alignment tokens.
+   - Applications:
+       * Complaint Reference IDs (e.g., #CMP-2026-8910)
+       * SLA Countdown Timers and timestamps
+       * JSON payload and API token inspectors
+       * Audit trail cryptographic log hashes
+       * Metric badges and code snippets
+
+
+1.3 TYPOGRAPHY SCALE & SPECIMEN
+--------------------------------
+- Hero / Poster Title:     36px - 56px  | Weight: 800/900 | Font: Outfit / Montserrat
+- Script Signature:        54px - 72px  | Script          | Font: Alex Brush / Dancing Script
+- Primary Section H1/H2:   24px - 32px  | Weight: 700/800 | Font: Outfit
+- Subsection / Card H3:    17px - 20px  | Weight: 600/700 | Font: Outfit
+- Body & Table Standard:   13.5px - 15px| Weight: 400/500 | Font: Inter
+- Small Labels & Dim Meta: 12px - 13px  | Weight: 500/600 | Font: Inter
+- Eyebrow / Micro Caps:    10px - 11px  | Weight: 700     | Font: Outfit / Inter (tracking: 0.16em)
+- Monospace Data Badges:   11px - 13px  | Weight: 500/600 | Font: Consolas / SFMono
+
+
+================================================================================
+2. COLOR PALETTES & DESIGN TOKENS
+================================================================================
+
+--------------------------------------------------------------------------------
+2.1 DARK MODE — "OBSIDIAN CYAN" (Default AI Theme)
+Defined in: frontend/src/supportnova-ai-theme.css (:root)
+--------------------------------------------------------------------------------
+
+[CANVAS & BACKGROUND SURFACE TIERS]
+  --bg-base:        #02080B   Pitch dark obsidian teal base
+  --bg-deep:        #061217   Deep container & canvas floor
+  --bg-surface:     #00181D   Elevated panel surface & card background
+  --bg-elevated:    #081A20   High-elevation panels & dropdown menus
+  --bg-card:        #00181D   Card element background
+  --bg-modal:       #06171D   Modal dialogue container
+  --bg-input:       #020C12   Input box, search field & textarea floor
+  --bg-nav:         #03171D   Navigation header bar background
+  --bg-topbar:      rgba(2, 12, 18, 0.92)  Frosted glass top header bar
+  --bg-sidebar:     #03171D   Fixed navigation sidebar background
+
+[BRAND ACCENT & NEON SPECTRUM]
+  --accent-primary: #00D6D6   Electric Cyan (Primary brand accent & active state)
+  --accent-secondary:#00AEB5  Teal Cyan Secondary accent
+  --accent-dark:    #007F82   Deep Cyan (Border accents and active states)
+  --neon-blue:      #00D6D6   Vibrant Neon Cyan
+  --neon-blue-2:    #00AEB5   Medium Teal Cyan
+  --neon-violet:    #00AEB5   Violet-teal bridge
+  --neon-violet-2:  #007F82   Deep violet-teal
+  --neon-cyan:      #00D6D6   Cyan glow & highlights
+  --neon-magenta:   #00D6D6   Vibrant cyan replacement
+  --neon-green:     #48E8B5   Mint Green (Resolved status & success badges)
+  --neon-pink:      #FF7D87   Coral Pink / Red (Critical & urgent indicators)
+  --purple:         #00D6D6   Mapped brand accent
+  --purple-dark:    #007F82   Mapped dark brand accent
+  --purple-soft:    rgba(0, 214, 214, 0.12)  Soft cyan pill background
+
+[TYPOGRAPHY COLORS]
+  --text-primary:   #F2F8FA   High-contrast ice white (Primary headings & body)
+  --text-secondary: #8AA3AA   Cool slate cyan (Descriptions & subtitles)
+  --text-muted:     #627A82   Subtle slate gray (Timestamps, labels, metadata)
+  --text-dim:       #4B636B   Dim placeholders, inactive states, icons
+  --text-accent:    #00D6D6   Electric cyan highlight text
+
+[BORDER STROKES & GLASS EDGES]
+  --border-subtle:  rgba(100, 210, 220, 0.10)  Very soft glass perimeter
+  --border-soft:    rgba(60, 210, 220, 0.20)   Card borders & divider lines
+  --border-medium:  rgba(80, 220, 225, 0.22)   Interactive cards & modal borders
+  --border-strong:  rgba(0, 214, 214, 0.40)   Active / focused container borders
+
+[GLOWS & DROP SHADOWS]
+  --glow-blue:      0 0 20px rgba(0, 214, 214, 0.08)
+  --glow-violet:    0 0 20px rgba(0, 174, 181, 0.08)
+  --glow-cyan:      0 0 16px rgba(0, 214, 214, 0.08)
+  --shadow-card:    0 8px 24px rgba(0, 8, 11, 0.50)
+  --shadow-panel:   0 12px 36px rgba(0, 8, 11, 0.60)
+  --shadow-modal:   0 25px 70px rgba(0, 0, 0, 0.65)
+
+
+--------------------------------------------------------------------------------
+2.2 LIGHT MODE — "SOFT AQUA & DEEP FOREST TEAL"
+Defined in: frontend/src/supportnova-light-theme.css (:root[data-theme="light"])
+--------------------------------------------------------------------------------
+
+[CANVAS & BACKGROUND SURFACE TIERS]
+  --lt-canvas:          #E2F3F0   Soft aqua / pale mint background canvas
+  --lt-canvas-gradient: linear-gradient(135deg, #DCF2EE 0%, #E6F6F3 40%, #DEF2EF 70%, #EBF4F6 100%)
+  --lt-surface:         rgba(255, 255, 255, 0.74)  Translucent frosted glass surface
+  --lt-card:            rgba(255, 255, 255, 0.78)  Card container surface
+  --lt-elevated:        rgba(255, 255, 255, 0.88)  Elevated containers & popups
+  --lt-modal:           rgba(255, 255, 255, 0.94)  High-opacity white modal
+  --lt-input:           rgba(255, 255, 255, 0.85)  Clean white form inputs
+  --lt-topbar:          rgba(236, 248, 246, 0.82)  Soft mint frosted topbar
+  --lt-sidebar:         #0D7A75   Deep Forest Teal solid background
+  --lt-sidebar-gradient:linear-gradient(180deg, rgba(13, 122, 117, 0.94) 0%, rgba(8, 72, 69, 0.98) 100%)
+
+[DEEP TEAL BRAND ACCENTS & HIGHLIGHTS]
+  --lt-teal-primary:    #0D7A75   Deep Forest Teal (Primary CTA, active states, key icons)
+  --lt-teal-dark:       #08605C   Dark Forest Teal (Hover states & button clicks)
+  --lt-teal-hover:      #108E88   Vibrant Teal Hover state
+  --lt-teal-light:      #149D96   Lighter teal accent
+  --lt-mint:            #2DD4BF   Bright Mint (Subtle tags & badge highlights)
+  --lt-mint-soft:       rgba(45, 212, 191, 0.14)   Translucent mint badge fill
+  --lt-cyan-soft:       rgba(6, 182, 212, 0.12)    Translucent cyan badge fill
+  --purple:             #0D7A75   Mapped primary brand teal
+  --purple-dark:        #08605C   Mapped dark brand teal
+  --purple-soft:        rgba(13, 122, 117, 0.12)   Translucent teal pill background
+
+[TYPOGRAPHY COLORS]
+  --lt-text-primary:    #112E2B   Deepest Forest Teal-Black (9.8:1 WCAG contrast)
+  --lt-text-secondary:  #2C4E4B   Dark Teal-Slate (Labels, secondary text)
+  --lt-text-muted:      #587E7B   Medium Teal-Gray (Timestamps, subtitles)
+  --lt-text-dim:        #7B9E9B   Subtle Teal-Gray (Placeholders & borders)
+
+[BORDER STROKES & GLASS EDGES]
+  --lt-border-glass:    rgba(255, 255, 255, 0.95)  Glossy specular top edge highlight
+  --lt-border-subtle:   rgba(160, 215, 205, 0.38)  Delicate mint card borders
+  --lt-border-medium:   rgba(140, 200, 190, 0.55)  Input field & divider borders
+  --lt-border-focus:    #0D7A75   Deep Forest Teal active focus ring
+
+[SHADOWS & AMBIENT DEPTH]
+  --lt-shadow-card:     0 14px 34px rgba(18, 72, 68, 0.06), 0 2px 6px rgba(18, 72, 68, 0.03)
+  --lt-shadow-panel:    0 18px 40px rgba(18, 72, 68, 0.08), 0 4px 10px rgba(18, 72, 68, 0.04)
+  --lt-shadow-teal:     0 8px 24px rgba(13, 122, 117, 0.32)
+  --lt-shadow-modal:    0 24px 60px rgba(18, 72, 68, 0.15), 0 8px 24px rgba(18, 72, 68, 0.08)
+
+
+--------------------------------------------------------------------------------
+2.3 LOGIN HERO & EDITORIAL SHOWCASE PALETTE
+Defined in: frontend/src/supportnova-login-hero.css
+--------------------------------------------------------------------------------
+
+[LIGHT MODE HERO TOKENS]
+  --sn-mint-canvas:         #F3FBFA   Soft editorial canvas
+  --sn-mint-surface:        #FFFFFF   Pure white login card
+  --sn-mint-card:           rgba(255, 255, 255, 0.92)  Frosted showcase cards
+  --sn-mint-glass:          rgba(244, 253, 251, 0.85)  Floating card translucent glass
+  --sn-mint-border:         rgba(160, 215, 205, 0.55)  Crisp card outline
+  --sn-mint-border-subtle:  rgba(191, 234, 228, 0.45)  Subtle internal dividers
+  --sn-teal-deep:           #0B302F   Dark evergreen typography
+  --sn-teal-primary:        #087C78   Editorial Primary Teal
+  --sn-teal-accent:         #0F8D86   Vibrant Teal Accent
+  --sn-teal-vibrant:        #159C93   Glowing Teal Accent
+  --sn-teal-soft:           rgba(8, 124, 120, 0.08)
+  --sn-teal-badge-bg:       #EAF8F6   Soft badge mint background
+  --sn-text-primary:        #0B302F   High contrast dark text
+  --sn-text-secondary:      #2C4E4B   Deep teal slate
+  --sn-text-muted:          #587E7B   Muted label text
+  --sn-text-dim:            #7B9E9B   Dim helper text
+  --sn-shadow-card:         0 20px 48px -12px rgba(8, 124, 118, 0.16)
+  --sn-shadow-hover:        0 28px 60px -14px rgba(8, 124, 118, 0.22)
+
+[DARK MODE HERO TOKENS (data-theme="dark")]
+  --sn-mint-canvas:         #020C0E   Pitch dark deep teal canvas
+  --sn-mint-surface:        #061A1D   Dark showcase card surface
+  --sn-mint-card:           rgba(6, 26, 29, 0.88)
+  --sn-mint-glass:          rgba(8, 34, 38, 0.82)
+  --sn-mint-border:         rgba(45, 212, 191, 0.25)
+  --sn-mint-border-subtle:  rgba(45, 212, 191, 0.14)
+  --sn-teal-deep:           #FFFFFF   Pure white headline text
+  --sn-teal-primary:        #14B8A6   Vibrant Electric Teal
+  --sn-teal-accent:         #2DD4BF   Bright Mint Accent
+  --sn-teal-vibrant:        #5EEAD4   Luminous Cyan Accent
+  --sn-teal-soft:           rgba(45, 212, 191, 0.12)
+  --sn-teal-badge-bg:       rgba(20, 184, 166, 0.16)
+  --sn-text-primary:        #FFFFFF   Crisp white text
+  --sn-text-secondary:      #CBD5E1   Light slate text
+  --sn-text-muted:          #94A3B8   Muted gray text
+  --sn-text-dim:            #64748B   Dim slate text
+  --sn-shadow-card:         0 20px 48px -12px rgba(0, 0, 0, 0.7)
+  --sn-shadow-hover:        0 28px 60px -14px rgba(0, 0, 0, 0.8)
+
+
+--------------------------------------------------------------------------------
+2.4 BASE & LEGACY DESIGN TOKENS
+Defined in: frontend/src/supportnova.css (:root)
+--------------------------------------------------------------------------------
+  --ink:          #191724   Legacy text dark slate
+  --muted:        #777486   Legacy muted violet-gray
+  --border:       #e7e5ec   Legacy light gray border
+  --surface:      #ffffff   Legacy white card surface
+  --canvas:       #f7f7fa   Legacy pale canvas
+  --purple:       #6558f5   Legacy Indigo Accent
+  --purple-dark:  #5145db   Legacy Dark Indigo
+  --purple-soft:  #efedff   Legacy Light Lavender
+  --nav:          #171424   Legacy Navigation Dark Navy
+  --danger:       #e94f63   Legacy Coral Red
+  --warning:      #e89736   Legacy Amber Orange
+  --teal:         #1ca891   Legacy Emerald Teal
+
+
+================================================================================
+3. COMPONENT & SEMANTIC COLOR MAPPINGS
+================================================================================
+
+3.1 STATUS & SEVERITY INDICATORS
+---------------------------------
+
+[CRITICAL / URGENT STATUS]
+  * Dark Mode:   #FF7D87 (Coral Pink Neon)
+                 Background: rgba(255, 125, 135, 0.12)
+                 Border: rgba(255, 125, 135, 0.35)
+  * Light Mode:  #DC2626 (Accessible Crimson Red)
+                 Background: rgba(220, 38, 38, 0.10)
+                 Border: rgba(220, 38, 38, 0.28)
+
+[HIGH STATUS / ESCALATED]
+  * Dark Mode:   #FF9F68 (Sunset Amber-Orange)
+                 Background: rgba(255, 159, 104, 0.12)
+                 Border: rgba(255, 159, 104, 0.35)
+  * Light Mode:  #D97706 (Deep Amber)
+                 Background: rgba(217, 119, 6, 0.10)
+                 Border: rgba(217, 119, 6, 0.28)
+
+[MEDIUM STATUS / IN-PROGRESS / PENDING]
+  * Dark Mode:   #F5C86A (Sun Gold Neon)
+                 Background: rgba(245, 200, 106, 0.12)
+                 Border: rgba(245, 200, 106, 0.35)
+  * Light Mode:  #B45309 (Warm Ochre / Brown-Amber)
+                 Background: rgba(180, 83, 9, 0.08)
+                 Border: rgba(180, 83, 9, 0.25)
+
+[LOW STATUS / OPEN / ASSIGNED]
+  * Dark Mode:   #00D6D6 (Electric Cyan)
+                 Background: rgba(0, 214, 214, 0.12)
+                 Border: rgba(0, 214, 214, 0.28)
+  * Light Mode:  #0D7A75 (Deep Forest Teal)
+                 Background: rgba(13, 122, 117, 0.08)
+                 Border: rgba(13, 122, 117, 0.25)
+
+[RESOLVED / CLOSED / SUCCESS]
+  * Dark Mode:   #48E8B5 (Neon Mint Green)
+                 Background: rgba(72, 232, 181, 0.12)
+                 Border: rgba(72, 232, 181, 0.35)
+  * Light Mode:  #059669 (Emerald Green)
+                 Background: rgba(5, 150, 105, 0.10)
+                 Border: rgba(5, 150, 105, 0.28)
+
+
+3.2 CATEGORY & DEPARTMENT BADGE COLORS
+---------------------------------------
+  * Technical Support:        #00D6D6 (Cyan)      | Light: #0D7A75 (Forest Teal)
+  * Billing & Finance:        #F5C86A (Gold)      | Light: #D97706 (Amber)
+  * Logistics & Delivery:     #48E8B5 (Mint)      | Light: #059669 (Emerald)
+  * Hardware & Returns:       #FF7D87 (Coral)     | Light: #DC2626 (Crimson)
+  * Account & Authentication: #9B8CFF (Lavender)  | Light: #7C3AED (Deep Violet)
+
+
+3.3 TEAM CHAMPIONSHIP POSTER MEMBER IDENTITY COLORS
+From frontend/src/TeamPage.tsx:
+----------------------------------------------------
+  [FACULTY ADVISORS & MENTORS]
+  * Sir Sheikh Rohan   (Faculty Mentor): #00D6D6 (Electric Cyan)
+  * Miss Noor-ul-Ain   (Faculty Mentor): #9B8CFF (Soft Lavender)
+  * Sir Talha Bin Ghous(Faculty Mentor): #F59F47 (Warm Orange)
+
+  [DEVELOPMENT & QA SQUAD]
+  * Syed Hamza Kamal   (Backend Lead & API Engineer):        #00E5FF (Luminous Cyan)
+  * Anousha Zameer     (Team Lead & Full Stack Architect):   #00D6D6 (Electric Cyan)
+  * Umme Hani          (Frontend Developer & UI Specialist): #A78BFA (Lilac Violet)
+  * Rubab              (QA Engineer & Documentation Lead):   #FBBF24 (Golden Amber)
+
+
+3.4 GLASSMORPHISM BORDERS, SHADOWS & AMBIENT GLOWS
+---------------------------------------------------
+  * Glass Reflection Top-Border:
+      Dark:  1px solid rgba(255, 255, 255, 0.12)
+      Light: 1px solid rgba(255, 255, 255, 0.95)
+
+  * Glass Backdrop Blur Filter:
+      Modals:    backdrop-filter: blur(16px) to blur(28px)
+      Sidebar:   backdrop-filter: blur(28px) saturate(145%)
+      Top Header:backdrop-filter: blur(20px)
+
+  * Custom Scrollbar Styling:
+      Dark Mode Thumb:  #007F82 (hover: #00AEB5)
+      Light Mode Thumb: #0D7A75 (hover: #08605C)
+      Track:            transparent (width: 6px)
+
+
+================================================================================
+4. FILE REFERENCE SOURCING
+================================================================================
+
+All colors and font declarations documented above are defined in the following
+source files within the repository:
+
+1. [frontend/src/supportnova-ai-theme.css](file:///c:/Users/Techdotpk/Desktop/NK_GenerateX_Techwiz7/4.%20SourceCode_SupportNova/frontend/src/supportnova-ai-theme.css)
+   - Dark Mode Obsidian Cyan design tokens (:root)
+   - Google Fonts import: Outfit & Inter
+   - Global backgrounds, neon variables, borders, and shadows
+
+2. [frontend/src/supportnova-light-theme.css](file:///c:/Users/Techdotpk/Desktop/NK_GenerateX_Techwiz7/4.%20SourceCode_SupportNova/frontend/src/supportnova-light-theme.css)
+   - Light Mode Soft Aqua & Pale Mint design tokens (:root[data-theme="light"])
+   - Deep Forest Teal navigation, surfaces, and contrast mappings
+
+3. [frontend/src/supportnova-login-hero.css](file:///c:/Users/Techdotpk/Desktop/NK_GenerateX_Techwiz7/4.%20SourceCode_SupportNova/frontend/src/supportnova-login-hero.css)
+   - Dual-theme tokens for the public editorial hero showcase
+   - Mint canvas, card surfaces, and GSAP floating card shadows
+
+4. [frontend/src/team-page.css](file:///c:/Users/Techdotpk/Desktop/NK_GenerateX_Techwiz7/4.%20SourceCode_SupportNova/frontend/src/team-page.css)
+   - Google Fonts import: Alex Brush, Dancing Script, Montserrat, Inter
+   - Championship 3D card tilt frames, calligraphic signature script, and badges
+
+5. [frontend/src/supportnova.css](file:///c:/Users/Techdotpk/Desktop/NK_GenerateX_Techwiz7/4.%20SourceCode_SupportNova/frontend/src/supportnova.css)
+   - Google Fonts import: DM Sans & Manrope
+   - Base typography fallback, custom scrollbars, and legacy color variables
+
+6. [frontend/src/team-members.css](file:///c:/Users/Techdotpk/Desktop/NK_GenerateX_Techwiz7/4.%20SourceCode_SupportNova/frontend/src/team-members.css)
+   - Team credits dialog, backdrop blurs, and mentor badge styles
+
+7. [frontend/src/system-tour.css](file:///c:/Users/Techdotpk/Desktop/NK_GenerateX_Techwiz7/4.%20SourceCode_SupportNova/frontend/src/system-tour.css)
+   - Role walkthrough guides and step modal styling
+
+8. [frontend/src/category-overview.css](file:///c:/Users/Techdotpk/Desktop/NK_GenerateX_Techwiz7/4.%20SourceCode_SupportNova/frontend/src/category-overview.css)
+   - Category overview metric cards and badge colors
+
+================================================================================
+END OF SPECIFICATION
+================================================================================

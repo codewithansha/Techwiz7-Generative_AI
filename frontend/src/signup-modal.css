@@ -1,6 +1,6 @@
 /* ==========================================================================
    SUPPORTNOVA PREMIUM SIGNUP MODAL & LOGIN INTEGRATION
-   Compatible with both Light Mode (CoachPro Mint/Teal) & Dark Mode (Neon Cyan)
+   Polished for Light Mode (Clean Mint/Teal) & Dark Mode (Obsidian Neon)
    ========================================================================== */
 
 /* --- 1. Signup Prompt on Login Card --- */
@@ -9,7 +9,7 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  margin: 16px 0 6px;
+  margin: 14px 0 6px;
   font-size: 13.5px;
   color: #587E7B;
 }
@@ -49,25 +49,26 @@
   text-shadow: 0 0 10px rgba(45, 212, 191, 0.5);
 }
 
-/* --- 2. Signup Modal Backdrop --- */
+/* --- 2. Signup Modal Backdrop Overlay --- */
 .signup-modal-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 10000;
-  display: grid;
-  place-items: center;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 16px;
-  background: rgba(10, 36, 34, 0.45);
-  backdrop-filter: blur(10px) saturate(140%);
-  -webkit-backdrop-filter: blur(10px) saturate(140%);
-  animation: signup-fade-in 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  background: rgba(14, 38, 36, 0.72) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  animation: signup-fade-in 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   overflow-y: auto;
 }
 
 [data-theme="dark"] .signup-modal-backdrop {
-  background: rgba(2, 6, 10, 0.75);
-  backdrop-filter: blur(14px) saturate(180%);
-  -webkit-backdrop-filter: blur(14px) saturate(180%);
+  background: rgba(1, 8, 12, 0.88) !important;
+  backdrop-filter: blur(18px) !important;
+  -webkit-backdrop-filter: blur(18px) !important;
 }
 
 @keyframes signup-fade-in {
@@ -81,31 +82,34 @@
 
 /* --- 3. Signup Modal Card --- */
 .signup-modal-card {
-  width: min(480px, calc(100vw - 32px));
-  max-height: calc(100vh - 40px);
+  width: 100%;
+  max-width: 450px;
+  max-height: min(92vh, 670px);
+  margin: auto;
   overflow-y: auto;
   overflow-x: hidden;
   position: relative;
-  background: rgba(255, 255, 255, 0.96);
-  border: 1px solid rgba(160, 215, 205, 0.65);
-  border-radius: 20px;
-  box-shadow: 0 24px 65px rgba(18, 72, 68, 0.22), 0 4px 16px rgba(18, 72, 68, 0.08);
-  padding: 28px 30px;
+  background: #FFFFFF !important;
+  border: 1px solid rgba(13, 122, 117, 0.26) !important;
+  border-radius: 18px !important;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.36), 0 4px 16px rgba(13, 122, 117, 0.12) !important;
+  padding: 24px 26px !important;
   box-sizing: border-box;
-  animation: signup-card-enter 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: signup-card-enter 0.26s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  color: #0E3533 !important;
 }
 
 [data-theme="dark"] .signup-modal-card {
-  background: rgba(3, 18, 23, 0.95);
-  border: 1px solid rgba(45, 212, 191, 0.25);
-  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.75), 0 0 40px rgba(0, 214, 214, 0.12);
-  color: #F1F5F9;
+  background: #06171D !important;
+  border: 1px solid rgba(0, 214, 214, 0.32) !important;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.85), 0 0 40px rgba(0, 214, 214, 0.14) !important;
+  color: #F1F5F9 !important;
 }
 
 @keyframes signup-card-enter {
   from {
     opacity: 0;
-    transform: scale(0.94) translateY(12px);
+    transform: scale(0.95) translateY(10px);
   }
   to {
     opacity: 1;
@@ -118,29 +122,29 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 14px;
-  margin-bottom: 20px;
+  gap: 12px;
+  margin-bottom: 16px;
   position: relative;
 }
 
 .signup-modal-header-text {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
 .signup-badge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   background: rgba(8, 124, 120, 0.08);
   border: 1px solid rgba(8, 124, 120, 0.2);
   color: #087C78;
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  padding: 4px 10px;
+  padding: 3px 8px;
   border-radius: 999px;
   width: fit-content;
 }
@@ -152,36 +156,37 @@
 }
 
 .signup-modal-header h2 {
-  margin: 0;
-  font-size: 22px;
+  margin: 2px 0 0;
+  font-size: 21px;
   font-weight: 800;
-  color: #0E3533;
+  color: #0E3533 !important;
   letter-spacing: -0.02em;
+  line-height: 1.25;
 }
 
 [data-theme="dark"] .signup-modal-header h2 {
-  color: #F8FAFC;
+  color: #F8FAFC !important;
 }
 
 .signup-subtitle {
   margin: 0;
-  font-size: 13.5px;
-  color: #587E7B;
-  line-height: 1.45;
+  font-size: 13px;
+  color: #587E7B !important;
+  line-height: 1.4;
 }
 
 [data-theme="dark"] .signup-subtitle {
-  color: #94A3B8;
+  color: #94A3B8 !important;
 }
 
 .signup-modal-close {
-  background: rgba(13, 122, 117, 0.08);
-  border: 1px solid rgba(13, 122, 117, 0.2);
-  color: #0D7A75;
-  width: 34px;
-  height: 34px;
-  min-width: 34px;
-  border-radius: 10px;
+  background: rgba(13, 122, 117, 0.08) !important;
+  border: 1px solid rgba(13, 122, 117, 0.2) !important;
+  color: #0D7A75 !important;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  border-radius: 8px;
   display: grid;
   place-items: center;
   cursor: pointer;
@@ -190,33 +195,33 @@
 }
 
 .signup-modal-close:hover {
-  background: rgba(13, 122, 117, 0.18);
-  color: #08605C;
-  transform: scale(1.06);
+  background: rgba(13, 122, 117, 0.18) !important;
+  color: #08605C !important;
+  transform: scale(1.05);
 }
 
 [data-theme="dark"] .signup-modal-close {
-  background: rgba(0, 214, 214, 0.1);
-  border-color: rgba(0, 214, 214, 0.25);
-  color: #00D6D6;
+  background: rgba(0, 214, 214, 0.1) !important;
+  border-color: rgba(0, 214, 214, 0.25) !important;
+  color: #00D6D6 !important;
 }
 
 [data-theme="dark"] .signup-modal-close:hover {
-  background: rgba(0, 214, 214, 0.22);
-  color: #FFFFFF;
+  background: rgba(0, 214, 214, 0.22) !important;
+  color: #FFFFFF !important;
   box-shadow: 0 0 12px rgba(0, 214, 214, 0.4);
 }
 
 /* --- 5. Alerts & Validation Messages --- */
 .signup-alert-error {
-  background: rgba(239, 68, 68, 0.1);
+  background: rgba(239, 68, 68, 0.09);
   border: 1px solid rgba(239, 68, 68, 0.3);
   color: #B91C1C;
-  padding: 10px 14px;
-  border-radius: 12px;
-  font-size: 13px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 12.5px;
   font-weight: 600;
-  margin-bottom: 18px;
+  margin-bottom: 14px;
   line-height: 1.4;
 }
 
@@ -230,7 +235,7 @@
   color: #DC2626;
   font-size: 11.5px;
   font-weight: 600;
-  margin-top: 3px;
+  margin-top: 2px;
   display: block;
 }
 
@@ -239,78 +244,83 @@
 }
 
 /* --- 6. Form Fields --- */
+.signup-modal-form {
+  display: flex;
+  flex-direction: column;
+}
+
 .signup-fields-group {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  margin-bottom: 22px;
+  gap: 11px;
+  margin-bottom: 16px;
 }
 
 .signup-input-label {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  font-size: 13px;
+  gap: 4px;
+  font-size: 12.5px;
   font-weight: 700;
-  color: #2C4E4B;
+  color: #1F3F3C !important;
   text-align: left;
 }
 
 [data-theme="dark"] .signup-input-label {
-  color: #CBD5E1;
+  color: #CBD5E1 !important;
 }
 
 .signup-input-label input {
-  height: 44px;
-  min-height: 44px;
-  border-radius: 12px;
-  padding: 0 14px;
-  font-size: 14px;
-  color: #0B302F;
-  background: rgba(255, 255, 255, 0.95);
-  border: 1px solid rgba(160, 215, 205, 0.65);
-  box-shadow: 0 1px 3px rgba(8, 124, 118, 0.03);
-  transition: all 0.2s ease;
-  outline: none;
-  box-sizing: border-box;
-  width: 100%;
+  height: 40px !important;
+  min-height: 40px !important;
+  border-radius: 10px !important;
+  padding: 0 13px !important;
+  font-size: 13.5px !important;
+  color: #0B302F !important;
+  background: #F3FAF8 !important;
+  border: 1.5px solid rgba(13, 122, 117, 0.22) !important;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+  transition: all 0.2s ease !important;
+  outline: none !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
 }
 
 .signup-input-label input:hover:not(:disabled) {
-  border-color: #087C78;
+  border-color: #087C78 !important;
 }
 
 .signup-input-label input:focus {
-  border-color: #087C78;
-  background: #FFFFFF;
-  box-shadow: 0 0 0 3px rgba(8, 124, 120, 0.16);
+  border-color: #087C78 !important;
+  background: #FFFFFF !important;
+  box-shadow: 0 0 0 3px rgba(8, 124, 120, 0.16) !important;
 }
 
 .signup-input-label input.has-error {
   border-color: #EF4444 !important;
-  background: rgba(254, 242, 242, 0.7) !important;
+  background: rgba(254, 242, 242, 0.95) !important;
 }
 
 [data-theme="dark"] .signup-input-label input {
-  background: rgba(3, 15, 17, 0.85);
-  border-color: rgba(45, 212, 191, 0.22);
-  color: #F1F5F9;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+  background: rgba(3, 15, 20, 0.9) !important;
+  border: 1.5px solid rgba(0, 214, 214, 0.22) !important;
+  color: #F1F5F9 !important;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4) !important;
 }
 
 [data-theme="dark"] .signup-input-label input:hover:not(:disabled) {
-  border-color: #2DD4BF;
+  border-color: #2DD4BF !important;
 }
 
 [data-theme="dark"] .signup-input-label input:focus {
-  border-color: #2DD4BF;
-  background: rgba(4, 18, 21, 0.98);
-  box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.25), 0 0 14px rgba(45, 212, 191, 0.18);
+  border-color: #2DD4BF !important;
+  background: rgba(4, 18, 24, 0.98) !important;
+  box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.25), 0 0 14px rgba(45, 212, 191, 0.18) !important;
 }
 
 [data-theme="dark"] .signup-input-label input.has-error {
   border-color: #F87171 !important;
-  background: rgba(69, 10, 10, 0.35) !important;
+  background: rgba(69, 10, 10, 0.45) !important;
 }
 
 /* Password wrapper & eye toggle */
@@ -322,18 +332,18 @@
 }
 
 .password-input-wrap input {
-  padding-right: 44px !important;
+  padding-right: 40px !important;
 }
 
 .password-toggle-btn {
   position: absolute;
-  right: 10px;
+  right: 8px;
   top: 50%;
   transform: translateY(-50%);
   background: transparent;
   border: none;
   color: #6C8B87;
-  padding: 6px;
+  padding: 5px;
   display: grid;
   place-items: center;
   border-radius: 6px;
@@ -357,46 +367,46 @@
 
 /* --- 7. Primary Submit CTA Button --- */
 .signup-submit-btn {
-  height: 48px;
-  min-height: 48px;
-  border-radius: 13px;
-  background: #087C78;
-  color: #FFFFFF;
-  font-size: 15px;
-  font-weight: 750;
+  height: 44px !important;
+  min-height: 44px !important;
+  border-radius: 11px !important;
+  background: #087C78 !important;
+  color: #FFFFFF !important;
+  font-size: 14.5px !important;
+  font-weight: 750 !important;
   letter-spacing: 0.01em;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  border: none;
-  cursor: pointer;
-  box-shadow: 0 10px 24px rgba(8, 124, 118, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.25);
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  width: 100%;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  border: none !important;
+  cursor: pointer !important;
+  box-shadow: 0 8px 20px rgba(8, 124, 118, 0.28) !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  width: 100% !important;
 }
 
 .signup-submit-btn:hover:not(:disabled) {
-  background: #066763;
-  transform: translateY(-1px);
-  box-shadow: 0 14px 30px rgba(8, 124, 118, 0.36);
+  background: #066763 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 12px 26px rgba(8, 124, 118, 0.36) !important;
 }
 
 .signup-submit-btn:disabled {
-  opacity: 0.65;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
+  opacity: 0.65 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+  box-shadow: none !important;
 }
 
 [data-theme="dark"] .signup-submit-btn {
-  background: linear-gradient(135deg, #0D9488 0%, #0F766E 100%);
-  box-shadow: 0 10px 24px rgba(13, 148, 136, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  background: linear-gradient(135deg, #0D9488 0%, #0F766E 100%) !important;
+  box-shadow: 0 8px 22px rgba(13, 148, 136, 0.4) !important;
 }
 
 [data-theme="dark"] .signup-submit-btn:hover:not(:disabled) {
-  background: linear-gradient(135deg, #14B8A6 0%, #0D9488 100%);
-  box-shadow: 0 14px 32px rgba(13, 148, 136, 0.55), 0 0 20px rgba(45, 212, 191, 0.25);
+  background: linear-gradient(135deg, #14B8A6 0%, #0D9488 100%) !important;
+  box-shadow: 0 12px 28px rgba(13, 148, 136, 0.55), 0 0 18px rgba(45, 212, 191, 0.25) !important;
 }
 
 /* --- 8. Modal Footer Switch to Login --- */
@@ -405,8 +415,8 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  margin-top: 18px;
-  font-size: 13.5px;
+  margin-top: 14px;
+  font-size: 13px;
 }
 
 .login-switch-text {
@@ -421,7 +431,7 @@
   background: transparent;
   border: none;
   color: #087C78;
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 750;
   cursor: pointer;
   padding: 0 4px;
@@ -452,9 +462,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
-  margin-top: 16px;
-  font-size: 11.5px;
+  gap: 6px;
+  margin-top: 12px;
+  font-size: 11px;
   color: #7A9B97;
   text-align: center;
   line-height: 1.4;
@@ -473,32 +483,62 @@
   color: #2DD4BF;
 }
 
+/* Custom sleek scrollbar for modal */
+.signup-modal-card::-webkit-scrollbar {
+  width: 5px;
+}
+
+.signup-modal-card::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.signup-modal-card::-webkit-scrollbar-thumb {
+  background: rgba(8, 124, 120, 0.2);
+  border-radius: 10px;
+}
+
+[data-theme="dark"] .signup-modal-card::-webkit-scrollbar-thumb {
+  background: rgba(0, 214, 214, 0.25);
+}
+
 /* --- 10. Responsive Adjustments --- */
 @media (max-width: 520px) {
   .signup-modal-backdrop {
-    padding: 12px;
+    padding: 10px;
   }
 
   .signup-modal-card {
-    padding: 22px 18px;
-    border-radius: 16px;
+    padding: 18px 16px !important;
+    border-radius: 16px !important;
+    max-height: 94vh;
   }
 
   .signup-modal-header h2 {
-    font-size: 19px;
+    font-size: 18px;
   }
 
   .signup-subtitle {
-    font-size: 12.5px;
+    font-size: 12px;
+  }
+
+  .signup-fields-group {
+    gap: 9px;
+    margin-bottom: 14px;
+  }
+
+  .signup-input-label input {
+    height: 38px !important;
+    min-height: 38px !important;
+    font-size: 13px !important;
   }
 
   .signup-submit-btn {
-    height: 44px;
-    min-height: 44px;
-    font-size: 14px;
+    height: 40px !important;
+    min-height: 40px !important;
+    font-size: 13.5px !important;
   }
 
   .signup-security-note {
-    font-size: 10.5px;
+    font-size: 10px;
   }
 }

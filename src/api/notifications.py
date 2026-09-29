@@ -3,6 +3,7 @@
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from database.models import AuditLog, Complaint, ComplaintStatus, NotificationState, UserRole
@@ -46,9 +47,6 @@ def _last_seen(db: Session, user_id: int) -> datetime:
 def list_notifications(user: CurrentUser, db: Session = Depends(get_db), limit: int = 30):
     since = datetime.now(timezone.utc) - WINDOW
     visible = scope_complaints(db, user, db.query(Complaint.id, Complaint.complaint_code, Complaint.title, Complaint.assigned_to_id))
-    if user.role == UserRole.agent:
-        # Agents are notified about their own cases, not every unassigned one.
-        visible = visible.filter(Complaint.assigned_to_id == user.id)
     complaints = {row.complaint_code: row for row in visible.all()}
     events = CUSTOMER_EVENTS if user.role == UserRole.customer else STAFF_EVENTS
     rows = []
@@ -72,6 +70,13 @@ def list_notifications(user: CurrentUser, db: Session = Depends(get_db), limit: 
         complaint = complaints[row.entity_id]
         details = row.details or {}
         text = events[row.action]
+        if row.action == "assign":
+            agent_name = details.get("agent")
+            if agent_name:
+                if complaint.assigned_to_id == user.id or agent_name == user.full_name:
+                    text = "This complaint was assigned to you."
+                else:
+                    text = f"Assigned to {agent_name}."
         if row.action == "status" and user.role == UserRole.customer and details.get("to"):
             text = f"Status changed to {str(details['to']).replace('_', ' ')}."
         if row.action == "customer_reopen" and details.get("comment"):
@@ -124,7 +129,16 @@ def _live_items(db: Session, user) -> list[dict]:
         ]
     items = []
     now = datetime.now(timezone.utc)
-    mine = db.query(Complaint).filter(Complaint.assigned_to_id == user.id, ~Complaint.status.in_([ComplaintStatus.resolved, ComplaintStatus.closed]))
+    if user.role == UserRole.agent:
+        mine = db.query(Complaint).filter(
+            or_(Complaint.assigned_to_id == user.id, Complaint.assigned_to_id.is_(None)),
+            ~Complaint.status.in_([ComplaintStatus.resolved, ComplaintStatus.closed]),
+        )
+    else:
+        mine = db.query(Complaint).filter(
+            Complaint.assigned_to_id == user.id,
+            ~Complaint.status.in_([ComplaintStatus.resolved, ComplaintStatus.closed]),
+        )
     for c in mine.filter(Complaint.sla_resolution_due.isnot(None)).limit(50).all():
         from complaint_processing.sla import refresh_sla_risk
 
@@ -138,4 +152,20 @@ def _live_items(db: Session, user) -> list[dict]:
         if pending:
             items.append({"id": "review-queue", "complaint_id": None, "complaint_code": None, "title": "Review queue",
                           "text": f"{pending} complaint(s) waiting for a reviewer decision.", "kind": "review_queue", "at": now, "unread": True})
+    if user.role == UserRole.agent:
+        unassigned = db.query(Complaint).filter(
+            Complaint.assigned_to_id.is_(None),
+            ~Complaint.status.in_([ComplaintStatus.resolved, ComplaintStatus.closed]),
+        ).count()
+        if unassigned:
+            items.append({
+                "id": "unassigned-queue",
+                "complaint_id": None,
+                "complaint_code": None,
+                "title": "Unassigned queue",
+                "text": f"{unassigned} unassigned complaint(s) waiting for an agent.",
+                "kind": "review_queue",
+                "at": now,
+                "unread": True,
+            })
     return items

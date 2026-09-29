@@ -132,7 +132,8 @@
   padding: 40px 48px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: flex-start;
+  gap: 0;
   box-sizing: border-box;
 }
 
@@ -144,6 +145,7 @@
   align-items: center;
   justify-content: space-between;
   margin-bottom: 24px;
+  padding-right: 58px;
 }
 
 .supportnova-brand-badge-group {
@@ -411,6 +413,7 @@
   max-width: 620px;
   height: 290px;
   z-index: 3;
+  margin-top: 32px;
 }
 
 .supportnova-login-hero-cards-row {
@@ -760,7 +763,7 @@
    5. FOOTER ATTRIBUTION
    ========================================================================== */
 .supportnova-login-hero-footer {
-  margin-top: auto;
+  margin-top: 32px;
   padding-top: 18px;
   border-top: 1px solid rgba(160, 215, 205, 0.45);
   display: flex;
@@ -1156,11 +1159,11 @@
 }
 
 /* ==========================================================================
-   RESPONSIVE DESIGN FOR AUTH PAGE
+   RESPONSIVE DESIGN FOR AUTH PAGE (LIGHT & DARK MODES)
    ========================================================================== */
 @media (max-width: 1200px) {
   .auth-page {
-    grid-template-columns: minmax(460px, 1.15fr) minmax(400px, 0.95fr);
+    grid-template-columns: minmax(440px, 1.15fr) minmax(380px, 0.95fr);
   }
 }
 
@@ -1174,49 +1177,317 @@
   }
 }
 
-@media (max-width: 860px) {
+/* Tablet Portrait & Mobile Viewports (<= 900px) */
+@media (max-width: 900px) {
   .auth-page {
-    grid-template-columns: 1fr;
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
+    display: flex !important;
+    flex-direction: column !important;
+    grid-template-columns: 1fr !important;
+    min-height: 100vh !important;
+    width: 100% !important;
+    position: relative !important;
   }
 
-  .auth-story {
-    min-height: auto;
-    border-bottom: 1px solid rgba(160, 215, 205, 0.45);
+  /* Hide the large decorative desktop hero showcase on mobile devices */
+  .auth-story,
+  .auth-story.auth-story-hero,
+  .supportnova-login-hero {
+    display: none !important;
   }
 
+  /* Full-screen centered login container */
   .auth-panel {
-    padding: 40px 24px 60px;
-    min-height: auto;
-    background: #F3FBFA;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 100vh !important;
+    width: 100% !important;
+    padding: 36px 20px 96px 20px !important;
+    box-sizing: border-box !important;
+    position: relative !important;
   }
 
   .login-card-container {
-    max-width: 440px;
+    width: 100% !important;
+    max-width: 440px !important;
+    margin: 0 auto !important;
+    display: flex !important;
+    justify-content: center !important;
+  }
+
+  .login-card {
+    width: 100% !important;
+    max-width: 440px !important;
+    padding: 34px 28px !important;
+    border-radius: 22px !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Mobile Brand Header inside the Login Card */
+  .mobile-brand {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    margin-bottom: 22px !important;
+  }
+
+  .mobile-brand .brand {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    height: auto !important;
+  }
+
+  .mobile-brand .brand-mark {
+    width: 42px !important;
+    height: 42px !important;
+    border-radius: 12px !important;
+    background: #FFFFFF !important;
+    border: 1px solid rgba(160, 215, 205, 0.6) !important;
+    box-shadow: 0 4px 12px rgba(8, 124, 118, 0.08) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 6px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .mobile-brand .brand-logo-img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important;
+  }
+
+  .mobile-brand .brand-text {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2px !important;
+  }
+
+  .mobile-brand .brand-text span {
+    font-size: 19px !important;
+    font-weight: 850 !important;
+    color: #0B302F !important;
+    letter-spacing: -0.025em !important;
+    line-height: 1.1 !important;
+  }
+
+  .mobile-brand .brand-text small {
+    font-size: 9.5px !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.12em !important;
+    color: #087C78 !important;
+    text-transform: uppercase !important;
+  }
+
+  /* Dark mode overrides for mobile brand */
+  [data-theme="dark"] .mobile-brand .brand-mark {
+    background: rgba(6, 26, 29, 0.95) !important;
+    border: 1px solid rgba(45, 212, 191, 0.35) !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5), 0 0 12px rgba(45, 212, 191, 0.15) !important;
+  }
+
+  [data-theme="dark"] .mobile-brand .brand-text span {
+    color: #FFFFFF !important;
+  }
+
+  [data-theme="dark"] .mobile-brand .brand-text small {
+    color: #5EEAD4 !important;
+  }
+
+  /* Fixed theme toggle button on mobile */
+  .auth-theme-toggle {
+    position: fixed !important;
+    top: 16px !important;
+    right: 16px !important;
+    width: 42px !important;
+    height: 42px !important;
+    border-radius: 12px !important;
+    z-index: 100 !important;
+  }
+
+  /* Bottom Launchers on mobile */
+  .login-project-tour-btn {
+    bottom: 16px !important;
+    left: 16px !important;
+    z-index: 99 !important;
+  }
+
+  .login-team-btn {
+    bottom: 16px !important;
+    right: 16px !important;
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    border-radius: 50% !important;
+    padding: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    z-index: 99 !important;
+  }
+
+  .login-team-btn .team-btn-label-group {
+    display: none !important;
+  }
+
+  .login-team-btn .team-btn-icon-bubble {
+    width: 28px !important;
+    height: 28px !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
+  }
+
+  [data-theme="light"] .login-team-btn .team-btn-icon-bubble {
+    background: #0D7A75 !important;
+    color: #ffffff !important;
+    border-radius: 50% !important;
+  }
+
+  [data-theme="dark"] .login-team-btn .team-btn-icon-bubble,
+  .login-team-btn .team-btn-icon-bubble {
+    background: #00D6D6 !important;
+    color: #02080B !important;
+    border-radius: 50% !important;
   }
 }
 
+/* Smartphone Viewports (<= 480px) */
 @media (max-width: 480px) {
+  .auth-panel {
+    padding: 24px 14px 92px 14px !important;
+  }
+
   .login-card {
-    padding: 28px 20px;
-    border-radius: 18px;
+    padding: 26px 18px !important;
+    border-radius: 18px !important;
   }
 
   .login-card-header h2 {
-    font-size: 24px;
+    font-size: 24px !important;
+  }
+
+  .login-subtitle {
+    font-size: 13px !important;
   }
 
   .mobile-brand {
-    display: flex;
-    margin-bottom: 16px;
+    margin-bottom: 18px !important;
+  }
+
+  .mobile-brand .brand-mark {
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 10px !important;
+  }
+
+  .mobile-brand .brand-text span {
+    font-size: 17px !important;
+  }
+
+  .login-fields-group {
+    gap: 12px !important;
+  }
+
+  .login-input-label {
+    gap: 5px !important;
+    font-size: 12.5px !important;
+  }
+
+  .login-input-label input {
+    height: 42px !important;
+    font-size: 14px !important;
+    padding: 0 12px !important;
+  }
+
+  .login-submit-btn {
+    height: 44px !important;
+    font-size: 14px !important;
+    margin-top: 6px !important;
+  }
+
+  .signup-prompt {
+    font-size: 13px !important;
+    margin-top: 14px !important;
+  }
+
+  .demo-profiles-section {
+    margin-top: 14px !important;
+  }
+
+  .demo-toggle {
+    height: 38px !important;
+    font-size: 12.5px !important;
+    padding: 0 12px !important;
   }
 
   .demo-profile-row {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 2px;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 1px !important;
+  }
+
+  .demo-profile-role {
+    font-size: 12.5px !important;
+  }
+
+  .demo-profile-email {
+    font-size: 11px !important;
+  }
+
+  .security-note {
+    margin-top: 18px !important;
+    padding-top: 14px !important;
+    font-size: 11.5px !important;
+  }
+
+  /* Tour button compact on phone screen */
+  .login-project-tour-btn {
+    bottom: 12px !important;
+    left: 12px !important;
+    padding: 6px 12px 6px 8px !important;
+    max-width: calc(100vw - 76px) !important;
+  }
+
+  .tour-btn-icon-bubble {
+    width: 26px !important;
+    height: 26px !important;
+    font-size: 12px !important;
+  }
+
+  .tour-btn-label-title {
+    font-size: 12px !important;
+  }
+
+  .tour-btn-label-sub {
+    display: none !important;
+  }
+
+  /* Team button compact on phone screen */
+  .login-team-btn {
+    bottom: 12px !important;
+    right: 12px !important;
+    width: 42px !important;
+    height: 42px !important;
+    min-width: 42px !important;
+    border-radius: 50% !important;
+    padding: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .login-team-btn .team-btn-icon-bubble {
+    width: 26px !important;
+    height: 26px !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
   }
 }
 

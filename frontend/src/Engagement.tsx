@@ -42,7 +42,7 @@ export function NotificationBell() {
     <button className="icon-button" onClick={toggle} aria-label={`Notifications${data.unread ? `, ${data.unread} unread` : ''}`}>
       <Bell />{data.unread > 0 && <span className="notify-count">{data.unread > 9 ? '9+' : data.unread}</span>}
     </button>
-    {open && <div className="notify-panel card">
+    {open && <div className="notify-panel">
       <header><b>Notifications</b><button className="text-button" onClick={load}><RefreshCw /> Refresh</button></header>
       {data.items.length ? <ul>{data.items.map((item) => <li key={item.id}>
         <button className={item.unread ? 'unread' : ''} onClick={() => go(item)}>

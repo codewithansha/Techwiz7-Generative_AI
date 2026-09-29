@@ -107,7 +107,7 @@ export default function SignupModal({ isOpen, onClose, onSuccess }: SignupModalP
       aria-modal="true"
       aria-labelledby="signup-modal-title"
     >
-      <div className="signup-modal-card card" onMouseDown={(e) => e.stopPropagation()}>
+      <div className="signup-modal-card" onMouseDown={(e) => e.stopPropagation()}>
         <header className="signup-modal-header">
           <div className="signup-modal-header-text">
             <div className="signup-badge">

@@ -46,7 +46,11 @@ ROMAN_URDU_LEXICON = {
     "bataen", "bataiye", "hoga", "hogi", "honge", "jana", "sakta", "sakti", "saktay", "dein",
     "dijiye", "diya", "dya", "lekin", "magar", "par", "pe", "se", "say", "ko", "ka", "ki", "ke",
     "mujhay", "mjhy", "mujy", "tuti", "tooti", "tute", "toote", "hui", "hue", "hua", "huwa", "huwi",
-    "mili", "mila", "mile", "cheez", "saman", "pesay", "pese", "kharab", "nuqsan", "kare", "kre", "kr"
+    "mili", "mila", "mile", "cheez", "saman", "pesay", "pese", "kharab", "nuqsan", "kare", "kre", "kr",
+    "recive", "recieve", "received", "bheja", "bheji", "bhej", "galat", "ghalat", "khareeda", "khareedi",
+    "khareeday", "khareede", "mangwaya", "mangwai", "fault", "kam", "kaam", "chalta", "chalti", "chal",
+    "chalna", "deliver", "pohncha", "pahuncha", "pohanch", "pohanchna", "milna", "wapsi", "tabdeel",
+    "badal", "badlo", "badlein", "slip", "suboot", "tasveer"
 }
 
 MALAY_LEXICON = {
@@ -54,7 +58,14 @@ MALAY_LEXICON = {
     "wang", "saya", "kami", "tolong", "terima", "kasih", "aduan", "barang", "alamat", "akaun",
     "batal", "batalkan", "kembalikan", "bayar", "hubungi", "pembayaran", "pengesahan", "tiba",
     "masalah", "sila", "boleh", "tidak", "tiada", "hari", "esok", "ini", "itu", "ke", "di",
-    "dari", "daripada", "untuk", "dengan", "akan", "telah", "sudah", "kemaskini", "pertanyaan"
+    "dari", "daripada", "untuk", "dengan", "akan", "telah", "sudah", "kemaskini", "pertanyaan",
+    "kualiti", "produk", "adalah", "rendah", "buruk", "teruk", "sangat", "amat", "salah",
+    "hilang", "pecah", "cacat", "duit", "pulangkan", "pulang", "lampirkan", "melampirkan",
+    "melampirkannya", "bersama", "bukti", "resit", "gambar", "ganti", "penggantian", "lambat",
+    "lewat", "kurang", "harga", "caj", "kata", "laluan", "bantuan", "maklum", "balas",
+    "layanan", "perkhidmatan", "staf", "pekerja", "kedai", "beli", "membeli", "dapat",
+    "mendapat", "menerima", "kenapa", "mengapa", "bagaimana", "bila", "apa", "siapa",
+    "tak", "nak", "mahu", "ingin"
 }
 
 # Domain product names to protect
@@ -246,6 +257,53 @@ CUSTOMER_FALLBACK_RULES = [
         r"(product|item|screen|barang|saman|cheez).*(kharab|tuta|tuti|toota|tooti|broken|damage|damaged|rosak)|(kharab|tuta|tuti|toota|tooti|broken|damage|damaged|rosak).*(product|item|screen|barang|saman|cheez|order|mili|mila)",
         "I received a broken or damaged product.",
     ),
+    # Wrong / incorrect product received
+    (
+        r"(wrong|galat|ghalat|different|dosra|dusra|salah).*(product|item|cheez|saman|parcel|order|size|model|color|colour|recive|receive)|(product|item|cheez|saman|parcel|order|size|model|color|colour).*(wrong|galat|ghalat|different|dosra|dusra|salah)",
+        "I received the wrong product.",
+    ),
+    (
+        r"(mujhe|mujhy|mjhe|mjhy|saya).*(wrong|galat|ghalat|incorrect)",
+        "I received the wrong product.",
+    ),
+    # Missing items / incomplete order
+    (
+        r"(missing|kam\s*hai|adhoora|adhura|gayab|hilang).*(product|item|cheez|saman|order|parcel|part)|(product|item|cheez|saman|order|parcel).*(missing|kam\s*hai|adhoora|adhura|gayab|incomplete)",
+        "Items are missing from my order.",
+    ),
+    # Product not working / defective
+    (
+        r"(kam|kaam)\s*n[ah]+i\s*k[a-z]*|chal\s*n[ah]+i\s*r[a-z]*|not\s*working|tak\s*berfungsi",
+        "The product is not working properly.",
+    ),
+    # Delivery delayed / late
+    (
+        r"(late|delay|der\s*se|lambat).*(delivery|order|parcel)|(delivery|order|parcel).*(late|delay|der\s*se|lambat)",
+        "My delivery is delayed.",
+    ),
+    # Overcharge / billing dispute
+    (
+        r"(double|extra|zyada|ziyada).*(charge|kat[a-z]*|deduct|paisa|pesay)|(charge|deduct).*(double|extra|twice|zyada)",
+        "I was charged incorrectly or charged multiple times.",
+    ),
+    # Evidence / attachment submitted
+    (
+        r"(melampirkannya|melampirkan|lampir|attach|bukti|resit|slip|gambar|screenshot).*(aduan|complaint|saya|file|fail|dokumen|document)|(saya|kami|mai|maine|hum).*(melampirkannya|melampirkan|lampir|attach|bhej\s*diya)",
+        "I have attached it with my complaint.",
+    ),
+    (
+        r"(attach|lampir|slip|receipt|recipt|screenshot|bukti|gambar).*(hai|kardi|diya|done|kiya|kardiya|attached)",
+        "I have attached the required document/evidence.",
+    ),
+    # Product quality is low / poor
+    (
+        r"(kualiti|quality).*(rendah|teruk|buruk|bad|poor|kharab|low)|(rendah|teruk|buruk|kharab|low).*(kualiti|quality)",
+        "Product quality is low.",
+    ),
+    (
+        r"(quality|kualiti)\s*(kharab|low|bad|poor|teruk|rendah)",
+        "Product quality is low.",
+    ),
     # Cancellation request
     (
         r"(cancel|batalkan|band\s*karo|cancel\s*karna)",
@@ -329,10 +387,26 @@ def _offline_translate_to_english(text: str, source_lang: str) -> tuple[str, flo
         # If short query, synthesize intelligent translation
         if any(w in lowered for w in ["order", "delivery", "parcel"]):
             return "Customer is inquiring about order delivery status.", 0.88
+        if any(w in lowered for w in ["wrong", "galat", "ghalat", "incorrect", "different"]):
+            return "I received the wrong product.", 0.94
         if any(w in lowered for w in ["paisa", "paise", "refund", "wapis"]):
             return "Customer is requesting refund status or money return.", 0.88
         if any(w in lowered for w in ["login", "account", "password"]):
             return "Customer is reporting an account or login issue.", 0.88
+
+    if source_lang == "ms":
+        if any(w in lowered for w in ["kualiti", "rendah", "buruk", "teruk"]):
+            return "Product quality is low.", 0.94
+        if any(w in lowered for w in ["melampirkannya", "melampirkan", "lampir", "bukti", "resit", "gambar"]):
+            return "I have attached it with my complaint.", 0.94
+        if any(w in lowered for w in ["rosak", "pecah", "patah"]):
+            return "I received a broken or damaged product.", 0.94
+        if any(w in lowered for w in ["salah", "wrong"]):
+            return "I received the wrong product.", 0.94
+        if any(w in lowered for w in ["wang", "duit", "bayaran", "balik", "refund"]):
+            return "I need a refund for my order.", 0.94
+        if any(w in lowered for w in ["belum", "sampai", "lambat", "hantar"]):
+            return "My order has not arrived yet.", 0.94
 
     return cleaned, 0.70
 
